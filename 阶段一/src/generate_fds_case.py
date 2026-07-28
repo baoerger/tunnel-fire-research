@@ -79,14 +79,20 @@ def _fmt_surf_burner(Q, D_f, ramp=cfg.TAU_RAMP):
 
 
 def _fmt_surf_inlet(U, ramp=None):
-    """纵向通风入口表面（x=0 洞口）。VEL 约定：负值将气流推入域内（+x 方向）。"""
+    """纵向通风入口表面（x=0 洞口）。VEL 约定：负值将气流推入域内（+x 方向）。
+    环境温度由 &MISC TMPA 全局设置（见 render_fds），此处不写 TAMBIENT——
+    TAMBIENT 非 FDS 合法参数，会被忽略并产生“未知属性”告警。"""
     # ramp 可选：风速渐升，减少初始冲击（与火源斜坡同步）
     if ramp:
-        return (
-            f"&SURF ID='INLET', VEL={-U:.3f}, RAMP_V='ramp_inlet', "
-            f"TAMBIENT={cfg.T_AMBIENT_C} /"
-        )
-    return f"&SURF ID='INLET', VEL={-U:.3f}, TAMBIENT={cfg.T_AMBIENT_C} /"
+        return f"&SURF ID='INLET', VEL={-U:.3f}, RAMP_V='ramp_inlet' /"
+    return f"&SURF ID='INLET', VEL={-U:.3f} /"
+
+
+def _fmt_spec():
+    """燃料物种 &SPEC。FDS 6.8 起 &REAC 的 FUEL 必须在 &SPEC 行定义，
+    否则 FDS 用默认参数新建同名物种并告警；显式 &SPEC 可加载 FDS 预定义
+    n-HEPTANE 的真实物性（分子量、燃烧热等）。"""
+    return f"&SPEC ID='{cfg.FUEL_NAME}' /"
 
 
 def _fmt_reac():
@@ -192,10 +198,11 @@ def _fmt_devices(x_fire, sensor_xs, L=None, W=None, H=None, hrr_region=None):
         )
 
     # 4b 顶棚附近纵向速度测点（回流/输运参考）
+    # 气相点取 x 速度分量须用 'U VELOCITY'；IOR 仅对固壁设备有效，气相点 IOR 会被忽略
     for x in sensor_xs:
         lines.append(
-            f"&DEVC ID='{_id_x('U', x)}', QUANTITY='{cfg.QUANTITY_VELOCITY}', "
-            f"XYZ={x:.3f} {y_mid:.3f} {zU:.3f}, IOR=1, UNITS='{cfg.UNITS_VEL}' /"
+            f"&DEVC ID='{_id_x('U', x)}', QUANTITY='{cfg.QUANTITY_VELOCITY_U}', "
+            f"XYZ={x:.3f} {y_mid:.3f} {zU:.3f}, UNITS='{cfg.UNITS_VEL}' /"
         )
 
     # 4c HRR：总 + 对流（§1.8）。量名/统计量集中为常量，便于按版本修正。
@@ -304,7 +311,8 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     parts.append(
         f"&DUMP DT_DEVC={cfg.DT_DEVC}, DT_SLCF={cfg.DT_SLCF}, DT_BNDF={cfg.DT_BNDF} /"
     )
-    parts.append("&MISC SIMULATION_MODE='LES', RESTART=.FALSE. /")
+    parts.append(f"&MISC SIMULATION_MODE='LES', RESTART=.FALSE., TMPA={cfg.T_AMBIENT_C} /")
+    parts.append(_fmt_spec())
     parts.append(_fmt_reac())
     parts.append(_fmt_matl())
     parts.append(_fmt_surf_wall())
@@ -314,7 +322,7 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
         parts.append(_fmt_ramp_inlet())
     parts.extend(_fmt_geometry(L, W, H, x_fire, side))
     parts.extend(_fmt_devices(x_fire, sensor_xs, L=L, W=W, H=H))
-    parts.append("&BNDF /")   # 边界场：默认壁面温度（§4.7 壁面温度参考）
+    parts.append(f"&BNDF QUANTITY='{cfg.QUANTITY_BNDF}' /")   # 边界场：壁面温度（§4.7 壁面温度参考）
     parts.extend(_fmt_slices(L, W, H, x_fire))
     parts.append("&TAIL /")
 
