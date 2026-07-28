@@ -1,0 +1,17 @@
+# 默认:文本文件按 LF 存储,保证 Windows/Linux 跨平台一致
+# (Linux 集群跑 .sh 时不会因 CRLF 报 "bad interpreter" 错误)
+* text=auto eol=lf
+
+# 关键脚本明确用 LF
+*.sh   text eol=lf
+*.py   text eol=lf
+*.csv  text eol=lf
+*.md   text eol=lf
+*.fds  text eol=lf
+
+# 二进制文件不做换行转换
+*.docx binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.pdf  binary

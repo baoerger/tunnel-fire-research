@@ -1,0 +1,73 @@
+# ==========================================================
+# .gitignore —— 隧道火灾 FDS 仿真研究项目
+# 已跟踪的输入/配置文件不受影响(.fds .csv .py .sh .md .docx)
+# 如需跟踪某类被忽略的输出文件,把对应行注释掉即可
+# ==========================================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+.env
+*.egg-info/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- FDS / Smokeview 运行输出(二进制/日志,体积大,不进仓库) ----------
+*.s3d
+*.sf
+*.bnd
+*.bndf
+*.prt5
+*.part
+*.prof
+*.mass
+*.ctrl
+*.mln
+*.line
+*.sca
+*.thr
+*.plt
+*.dt
+*.trb
+*.vis
+*.dep
+*.smv
+*.run
+*.out
+*.stop
+*_dev.log
+
+# ---------- 结果目录(按需) ----------
+# 仿真生成的大量结果文件默认不进仓库;若想把结果也共享,注释掉下面两行
+results/
+output/
+
+# ---------- 大文件 / 压缩包 ----------
+# 单个超过 50MB 的文件建议用 Git LFS 或网盘,不要直接提交
+*.zip
+*.7z
+*.tar
+*.gz
+
+# ---------- 编辑器 / IDE ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---------- 操作系统 ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ---------- Claude Code 本地缓存 ----------
+.claude/
