@@ -79,7 +79,7 @@ def detect(chid, rundir, win_half=10,
     需连续 min_steady 秒满足才认定。
     """
     times, series, units = fds_io.read_devc(rundir, chid)
-    series = fds_io.normalize_units(series, units)   # §1.7 选项 B：归一到 °C/kW/kW·m⁻²
+    series = fds_io.normalize_units(series, units)   # 按 CSV 单位行归一到 °C/kW/kW·m⁻²
     if times is None:
         return None, None, None
 

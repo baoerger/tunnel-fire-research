@@ -29,28 +29,29 @@ def _id(x):
     return f"T_{int(round(x * 100)):04d}"
 
 
-def _region_of(x, fire_x, near=4.0 * cfg.H):
+def _region_of(x, fire_x, height=cfg.H):
     """分区：near（火源±4H）、far_up、far_down。"""
-    if abs(x - fire_x) <= near:
+    if abs(x - fire_x) <= 4.0 * height:
         return "near"
     return "far_up" if x < fire_x else "far_down"
 
 
-def build_layout(fire_x=None, region=None):
+def build_layout(fire_x=None, region=None, length=cfg.L, width=cfg.W, height=cfg.H):
     if fire_x is None:
-        fire_x = cfg.X_FIRE_DEFAULT
+        fire_x = length / 2.0
     if region is None:
-        region = cfg.MEAS_REGION
-    xs = cfg.sensor_layout(fire_x=fire_x, region=region)
+        region = cfg.measurement_region(length, height)
+    z_temp, z_vel = cfg.sensor_heights(height)
+    xs = cfg.sensor_layout(height=height, fire_x=fire_x, region=region)
     rows = []
     for x in xs:
         rows.append({
             "id": _id(x),
             "x": round(x, 3),
-            "y": round(cfg.W / 2.0, 3),
-            "z_temp": round(cfg.Z_SENSOR, 3),
-            "z_vel": round(min(cfg.Z_VELOCITY, cfg.H - 0.05 * cfg.H), 3),
-            "region": _region_of(x, fire_x),
+            "y": round(width / 2.0, 3),
+            "z_temp": round(z_temp, 3),
+            "z_vel": round(z_vel, 3),
+            "region": _region_of(x, fire_x, height),
         })
     return rows
 
@@ -69,7 +70,7 @@ def default_sparse_subset(rows, n):
     return [rows[i]["id"] for i in idxs]
 
 
-def plot_layout(rows, fire_x, outpath):
+def plot_layout(rows, fire_x, outpath, length=cfg.L, height=cfg.H):
     try:
         import matplotlib
         matplotlib.use("Agg")
@@ -79,10 +80,10 @@ def plot_layout(rows, fire_x, outpath):
         return False
 
     xs = [r["x"] for r in rows]
-    z = cfg.Z_SENSOR
+    z = rows[0]["z_temp"] if rows else 0.90 * height
     fig, ax = plt.subplots(figsize=(14, 3.2))
     # 隧道剖面
-    ax.add_patch(plt.Rectangle((cfg.X0, cfg.Z0), cfg.L, cfg.H,
+    ax.add_patch(plt.Rectangle((cfg.X0, cfg.Z0), length, height,
                                fill=False, ec="k", lw=1.5))
     # 测点
     for r in rows:
@@ -91,14 +92,14 @@ def plot_layout(rows, fire_x, outpath):
     # 火源
     ax.plot([fire_x], [cfg.Z0], marker="X", color="darkred", ms=12)
     # 测量区
-    lo, hi = cfg.MEAS_REGION
+    lo, hi = cfg.measurement_region(length, height)
     ax.axvline(lo, ls="--", c="gray", lw=0.8)
     ax.axvline(hi, ls="--", c="gray", lw=0.8)
-    ax.set_xlim(cfg.X0 - 2, cfg.L + 2)
-    ax.set_ylim(-1.0, cfg.H + 1.5)
+    ax.set_xlim(cfg.X0 - 0.02 * length, length + 0.02 * length)
+    ax.set_ylim(-0.2 * height, 1.3 * height)
     ax.set_xlabel("x [m] (纵向)")
     ax.set_ylabel("z [m]")
-    ax.set_title(f"顶棚中心线测点布置（{len(rows)} 个）· z_temp={z:.2f} m (顶棚下方 {cfg.H - z:.2f} m)")
+    ax.set_title(f"顶棚中心线测点布置（{len(rows)} 个）· z_temp={z:.2f} m (顶棚下方 {height - z:.2f} m)")
     ax.grid(alpha=0.3)
     fig.tight_layout()
     fig.savefig(outpath, dpi=150)
@@ -109,12 +110,16 @@ def plot_layout(rows, fire_x, outpath):
 def main():
     ap = argparse.ArgumentParser(description="生成顶棚中心线测点布置")
     ap.add_argument("--fire_x", type=float, default=None, help="火源 x 位置，默认隧道中部")
+    ap.add_argument("--L", type=float, default=cfg.L, help="隧道长度 [m]")
+    ap.add_argument("--W", type=float, default=cfg.W, help="隧道宽度 [m]")
+    ap.add_argument("--H", type=float, default=cfg.H, help="隧道高度 [m]")
     ap.add_argument("--outdir", default=".", help="输出目录")
     args = ap.parse_args()
 
-    fire_x = args.fire_x if args.fire_x is not None else cfg.X_FIRE_DEFAULT
-    region = (cfg.PORTAL_BUFFER, cfg.L - cfg.PORTAL_BUFFER)
-    rows = build_layout(fire_x=fire_x, region=region)
+    fire_x = args.fire_x if args.fire_x is not None else args.L / 2.0
+    region = cfg.measurement_region(args.L, args.H)
+    rows = build_layout(fire_x=fire_x, region=region,
+                        length=args.L, width=args.W, height=args.H)
 
     os.makedirs(args.outdir, exist_ok=True)
     csv_path = os.path.join(args.outdir, "sensor_layout.csv")
@@ -136,7 +141,7 @@ def main():
     print(f"[OK] 稀疏子集(4/8/12/16) -> {sub_path}")
 
     png = os.path.join(args.outdir, "sensor_layout.png")
-    if plot_layout(rows, fire_x, png):
+    if plot_layout(rows, fire_x, png, length=args.L, height=args.H):
         print(f"[OK] 示意图 -> {png}")
     print(f"测点 x: {[r['x'] for r in rows]}")
 

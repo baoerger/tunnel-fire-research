@@ -30,72 +30,63 @@ def _find_devc(chid_dir, chid):
     return None
 
 
-def read_devc(chid_dir, chid):
-    """
-    读取设备时序。
-
-    返回
-    ----
-    times : list[float]
-    series : dict {device_id: list[float]}
-    units  : dict {device_id: str}
-    若文件不存在返回 (None, {}, {})。
-    """
-    path = _find_devc(chid_dir, chid)
-    if path is None:
+def _read_fds_csv(path):
+    if not os.path.isfile(path):
         return None, {}, {}
 
     with open(path, newline="", encoding="utf-8-sig", errors="ignore") as f:
-        reader = list(csv.reader(f))
-    if len(reader) < 2:
+        rows = list(csv.reader(f))
+    if len(rows) < 2:
         return None, {}, {}
 
-    header = [c.strip() for c in reader[0]]
-    units_row = [c.strip() for c in reader[1]] if len(reader) > 1 else [""] * len(header)
-
-    # 首列通常为时间。识别其标签（可能为空 / 'Time' / 't' / 's'）。
-    first_label = header[0].lower()
-    time_is_col0 = first_label in ("", "time", "t", "s")
-    # 设备 ID 列
-    if time_is_col0:
-        ids = header[1:]
-        us = units_row[1:]
-        col_offset = 1
+    first = [c.strip() for c in rows[0]]
+    second = [c.strip() for c in rows[1]]
+    if second and second[0].lower() in ("time", "t"):
+        units_row, header = first, second
     else:
-        ids = header
-        us = units_row
-        col_offset = 0
+        header, units_row = first, second
 
+    ids = header[1:]
+    units = dict(zip(ids, units_row[1:]))
     times = []
     series = {fid: [] for fid in ids}
-    for row in reader[2:]:
+    for row in rows[2:]:
         if not row or not row[0].strip():
             continue
         try:
-            t = float(row[0])
+            times.append(float(row[0]))
         except ValueError:
             continue
-        times.append(t)
-        for i, fid in enumerate(ids):
-            cell = row[col_offset + i] if (col_offset + i) < len(row) else ""
+        for i, fid in enumerate(ids, start=1):
             try:
-                v = float(cell)
+                value = float(row[i]) if i < len(row) else float("nan")
             except ValueError:
-                v = float("nan")
-            series[fid].append(v)
-
-    units = dict(zip(ids, us))
+                value = float("nan")
+            series[fid].append(value)
     return times, series, units
 
 
+def read_devc(chid_dir, chid):
+    """读取 <chid>_devc.csv 设备时序。"""
+    path = _find_devc(chid_dir, chid)
+    if path is None:
+        return None, {}, {}
+    return _read_fds_csv(path)
+
+
+def read_hrr(chid_dir, chid):
+    """读取 <chid>_hrr.csv 能量收支时序。"""
+    return _read_fds_csv(os.path.join(chid_dir, f"{chid}_hrr.csv"))
+
+
 # ----------------------------------------------------------------------------
-# 单位归一化（§1.7 选项 B：FDS 输出默认 SI，分析侧归一到工程单位）
+# 单位归一化：始终以 FDS CSV 单位行为准，统一到工程单位
 # ----------------------------------------------------------------------------
 def normalize_units(series, units):
     """把 devc.csv 各设备序列归一到工程单位并返回新 series（不改输入）。
     工程单位：温度 °C、HRR/功率 kW、热通量 kW/m²、速度 m/s。
-    按 read_devc 返回的 units 字符串判定，不假设 FDS 默认单位——
-    故对旧 run（°C/kW）与新 run（K/W）都正确（向后兼容）。"""
+    按 read_devc/read_hrr 返回的单位字符串判定，不假设 FDS 默认单位，
+    兼容 C/kW、K/W 和 MW 等历史及当前输出。"""
     return {fid: _convert_unit(vals, (units.get(fid, "") or "").strip())
             for fid, vals in series.items()}
 

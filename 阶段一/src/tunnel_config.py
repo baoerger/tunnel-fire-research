@@ -71,7 +71,7 @@ QDASH_RANGE = (200.0, 1500.0)   # [kW/m^2]
 # 采用正庚烷 (n-heptane, C7H16) 简化化学反应作为隧道池火替代物；
 # 较甲烷更易产生碳烟，便于实现与研究范围相称的辐射份额（§1.8 验证）。
 # —— 若 §1.8 表明 χ_r 系统性偏低，可改用更高 soot_yield 或其它燃料。
-FUEL_NAME = "n-HEPTANE"
+FUEL_NAME = "N-HEPTANE"
 FUEL_FORMULA = "C7H16"
 SOOT_YIELD = 0.037     # 庚烷典型碳烟产率
 CO_YIELD = 0.010       # 一氧化碳产率（燃烧状态参考，非主体闭合变量）
@@ -84,7 +84,7 @@ CONCRETE = {
     "id": "concrete",
     "density": 2300.0,          # [kg/m^3]
     "conductivity": 1.4,        # [W/(m·K)]
-    "specific_heat": 880.0,     # [J/(kg·K)]
+    "specific_heat": 0.88,      # [kJ/(kg·K)]
     "emissivity": 0.9,
     "thickness": 0.20,          # [m] 衬砌厚度（一维热传导深度）
 }
@@ -101,26 +101,47 @@ Z_SENSOR = H - Z_SENSOR_BELOW_CEILING  # 4.5 m（气体温度测点）
 Z_VELOCITY = H - 0.05 * H               # 4.75 m
 
 
-def sensor_layout(near_step=0.5 * H, far_step=1.0 * H,
-                 fire_x=None, region=None):
+def portal_buffer(height=None):
+    """返回与工况高度一致的洞口缓冲长度 3H。"""
+    height = H if height is None else height
+    return 3.0 * height
+
+
+def measurement_region(length=None, height=None):
+    """返回工况的均匀测量区，兼顾 3H 洞口缓冲和 15% 长度边界。"""
+    length = L if length is None else length
+    buffer = portal_buffer(height)
+    return max(buffer, 0.15 * length), min(length - buffer, 0.85 * length)
+
+
+def sensor_heights(height=None):
+    """返回工况温度和纵向速度测点高度 (0.90H, 0.95H)。"""
+    height = H if height is None else height
+    return 0.90 * height, 0.95 * height
+
+
+def sensor_layout(height=None, near_step=None, far_step=None,
+                  fire_x=None, region=None):
     """
     生成顶棚中心线虚拟测点 x 坐标（§1.7）。
 
-    - 火源可能区（中部约 ±2~4H，即 x≈30~70）附近间距 0.25H~0.5H；
-    - 远离火源后放宽至 H~2H；
-    - 全部落在均匀测量区 [15, 85] 内，不得越过洞口缓冲。
+    - 火源可能区（中部约 ±4H）附近间距 0.5H；
+    - 远离火源后放宽至 1.0H；
+    - 全部落在传入工况的均匀测量区内。
 
-    返回有序 x 列表（长度 20~30）。
+    返回有序 x 列表（基准几何为 20~30 个）。
     """
+    height = H if height is None else height
+    near_step = 0.5 * height if near_step is None else near_step
+    far_step = 1.0 * height if far_step is None else far_step
     if fire_x is None:
         fire_x = X_FIRE_DEFAULT
     if region is None:
         region = MEAS_REGION
     lo, hi = region
 
-    # 近场加密区：火源 ±4H，但限制在测量区内
-    near_lo = max(lo, fire_x - 4.0 * H)
-    near_hi = min(hi, fire_x + 4.0 * H)
+    near_lo = max(lo, fire_x - 4.0 * height)
+    near_hi = min(hi, fire_x + 4.0 * height)
 
     pts = set()
 
@@ -151,18 +172,16 @@ def sensor_layout(near_step=0.5 * H, far_step=1.0 * H,
 # 说明：以下为 FDS 设备量与空间统计量名称。不同 FDS 版本可能略有差异；
 # 若启动时 FDS 报“未知量名”，只需在此处修改常量，无需改动生成器主体。
 # §1.8 分析脚本对列名做模糊匹配，进一步提高版本兼容性。
-QUANTITY_HRR_TOTAL = "HRR"                 # 总热释放速率（体积分）
-QUANTITY_HRR_CONV = "CONVECTIVE HRR"      # 对流热释放速率（体积分）
-STAT_VOLUME_INTEGRATION = "VOLUME INTEGRATION"
+QUANTITY_HRR_TOTAL = "HRRPUV"               # 单位体积热释放速率（区域体积分后为总 HRR）
+STAT_VOLUME_INTEGRATION = "VOLUME INTEGRAL"
 QUANTITY_TEMPERATURE = "TEMPERATURE"
 QUANTITY_VELOCITY = "VELOCITY"            # 速度幅值（切片场 VECTOR=.TRUE. 用）
-QUANTITY_VELOCITY_U = "U VELOCITY"        # 纵向(x)速度分量：气相点测速须用分量量名，IOR 对气相点无效
+QUANTITY_VELOCITY_U = "U-VELOCITY"        # 纵向(x)速度分量；气相点测速不使用 IOR
 QUANTITY_WALL_HEATFLUX = "NET HEAT FLUX"  # 壁面净热通量（§4.7 壁面吸热参考）
 QUANTITY_DENSITY = "DENSITY"
 QUANTITY_BNDF = "WALL TEMPERATURE"        # 边界场默认量；显式给出以兼容部分版本对空 &BNDF 的报错
-# §1.7 选项 B：&DEVC 不写 UNITS，FDS 输出默认 SI（温度 K、HRR W、热通量 W/m²、速度 m/s）。
-# 分析脚本经 fds_io.normalize_units 按 devc.csv 的 units 列归一为工程单位（°C/kW/kW·m⁻²），
-# 故此处不再提供 UNITS_* 常量。若将来回退到选项 A（写 UNITS），在此恢复即可。
+# &DEVC 不显式写 UNITS；分析脚本以 CSV 单位行为准并归一到工程单位（°C/kW/kW·m⁻²）。
+# fds_io 同时兼容 FDS 6.10.1 的 C/kW 输出及历史 K/W/MW 输出。
 
 
 # ============================================================================
@@ -198,6 +217,7 @@ def critical_velocity_estimate(Q):
 # 8. 默认输出频率（§1.6 数据量控制）
 # ============================================================================
 DT_DEVC = 1.0      # 设备/传感器输出间隔 [s]（准稳态时间平均需 1 Hz）
+DT_HRR = 1.0       # _hrr.csv 输出间隔 [s]（含 HRR、Q_RADI、Q_CONV 等能量收支项）
 DT_SLCF = 5.0      # 切片场输出间隔 [s]（控制三维/二维数据量）
 DT_BNDF = 10.0     # 边界场输出间隔 [s]
 T_END_DEFAULT = 300.0   # 默认模拟结束时间 [s]（需 ≥ 稳态到达 + 30 s 平均窗口）

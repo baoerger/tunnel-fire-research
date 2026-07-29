@@ -1,113 +1,76 @@
-# 阶段一：模型建立与外部验证 · 工作目录
+# 阶段一：FDS 模型建立与外部验证
 
-> 本目录是《实施.md》阶段一的执行产物。阶段目标：建立可信、可复现的 FDS 隧道火灾基准平台；
-> 完成网格敏感性、洞口边界、外部试验验证与计算资源预算；固定测点/输出/准稳态判定/温度与 HRR 定义。
+本目录用于建立可复现的隧道火灾 FDS 平台，并完成网格敏感性、洞口边界、外部试验复现、HRR 能量口径和准稳态统计。当前输入语法与最小启动已在本机 **FDS 6.10.1** 验证；正式 300 s 工况和论文统计结论仍须运行后填写。
 
-## ⚠️ 平台说明（请先读）
+## 状态与单一事实源
 
-本机的 Python 仅为 Windows Store 占位（无实际运行环境）、FDS/MPI/conda 均未安装。
-因此**本阶段交付的是"可在目标平台直接运行的整套准备物"**，包括：
-- FDS 输入文件生成器与一份手写基准 `.fds`；
-- 工况表、运行脚本（bash/Slurm）；
-- 分析脚本（Python，读 FDS 设备 CSV）；
-- 设计/协议/报告文档（含待填结果模板）。
+- `src/tunnel_config.py`：几何、材料、燃料、FDS 量名和输出频率。
+- `src/generate_fds_case.py`：所有 `.fds` 的生成与工况校验。
+- `02_FDS基准模型/tunnel_benchmark.fds`：生成器产物，不独立手改。
+- `src/fds_io.py`：读取 FDS CSV 单位行并归一到 °C、kW、kW/m²、m/s。
+- `../CLAUDE.md`：FDS 6.10.1 已验证语法、错误速查和首次运行门。
 
-**实际 FDS 计算（§1.3/§1.4/§1.5/§1.8/§1.9 的"运行后填入"部分）须在 Linux/HPC + MPI 平台执行。**
-详见 `阶段一完成报告.md` 的"是否需要换平台"一节与 `src/run_slurm_template.sh`。
+本机已确认 FDS 6.10.1 可解析并推进修正后的短工况，且产生非零 HRR、`_devc.csv` 和 `_hrr.csv`。这只证明输入/启动链路有效，不代表网格收敛、洞口无关性、外部验证或正式准稳态计算已经完成。
 
----
+## 关键模型决策
 
-## 目录结构
+1. 基准 L×W×H=100×10×5 m；L=100 m 的洞口影响必须用 150/200 m 对照检查。
+2. 正庚烷直接使用 `REAC FUEL='N-HEPTANE'`，不额外写 SPEC 或 SIMPLE_CHEMISTRY。
+3. 预设 HRR 燃烧器使用 `TAU_Q=10 s`。生成器将燃烧器边界吸附到网格面，并按离散面积及 kW/m² 单位计算 HRRPUA；正式 Q 在约 `3×TAU_Q` 后且进入准稳态时由 CSV 时间平均核验。
+4. 粗/中/细均匀单 mesh 为 0.5/0.25/0.125 m；生产网格由核心目标量收敛决定。
+5. 温度/纵向速度测点分别为 0.90H/0.95H；自定义几何按其 H 重算。
+6. 火源对流 HRR 从 `_hrr.csv` 推导：`Q_c,source=HRR+Q_RADI`，不使用无效的 `CONVECTIVE HRR` 设备。
 
-```
-阶段一/
-├─ 01_文献调研/
-│  ├─ 文献调研笔记.md                     §1.1 经验关联式/临界风速/FDS 验证 + 局限
-│  └─ 正向对照基准公式清单.md              §1.1 供阶段四 §23 对照的基准公式表
-├─ 02_FDS基准模型/
-│  ├─ MODEL_SETTINGS.md                   §1.2 完整模型设置（可复现记录 + 首次必查项）
-│  └─ tunnel_benchmark.fds                §1.2 手写基准 .fds（中功率临界风·中网格；供直接检视）
-├─ 03_网格敏感性/
-│  ├─ grid_sensitivity_cases.csv          §1.3 9 工况表（3 工况×3 网格）
-│  └─ 网格敏感性分析报告.md                §1.3 协议 + 结果模板
-├─ 04_隧道长度与洞口边界/
-│  ├─ length_boundary_cases.csv           §1.4 延长工况表（150/200 m）
-│  └─ 洞口边界影响报告.md                  §1.4 协议 + 结果模板
-├─ 05_外部试验复现/
-│  ├─ external_cases_template.csv        §1.5 外部工况模板（TBD 待按文献补全）
-│  └─ 外部试验候选清单.md                  §1.5 Memorial/Runehamar/EUREKA/缩尺候选 + 选用准则
-├─ 06_计算资源预算/
-│  └─ 计算资源预算表.md                    §1.6 81~84 次计算的核心小时与存储预算
-├─ 07_温度测点与输出规范/
-│  ├─ generate_sensor_layout.py           §1.7 测点布置生成器 → CSV + 图 + 稀疏子集
-│  └─ 输出变量与频率规范.md                 §1.7 测点/输出/频率规范
-├─ 08_HRR与对流比例/
-│  └─ 对流比例稳定性检查报告.md            §1.8 协议 + 结果模板
-├─ 09_准稳态与时间平均/
-│  └─ 准稳态判定与时间平均规范.md            §1.9 协议 + 结果模板
-├─ src/
-│  ├─ tunnel_config.py                   共享几何/物理常量 + 测点布局
-│  ├─ generate_fds_case.py                ★ FDS 输入文件生成器（核心）
-│  ├─ fds_io.py                           FDS 设备 CSV 读取 + 温度曲线特征提取
-│  ├─ analyze_grid_convergence.py         §1.3 网格收敛分析
-│  ├─ analyze_boundary_effect.py          §1.4 洞口边界分析
-│  ├─ check_convection_ratio.py           §1.8 对流比例检查
-│  ├─ quasi_steady_detect.py              §1.9 准稳态检测
-│  ├─ time_average_bootstrap.py          §1.9 时间平均 + 分块 Bootstrap
-│  ├─ validation_metrics.py               §1.5 NRMSE/偏差/峰值位置误差
-│  ├─ run_case.sh / run_batch.sh           Linux/MPI 单/批量运行
-│  └─ run_slurm_template.sh               HPC Slurm array 模板
-├─ README.md                              本文件
-└─ 阶段一完成报告.md                       完成状态 + 是否换平台结论
-```
+## 生成与测试
 
----
-
-## 关键设计决策（与两份文档的关系）
-
-1. **隧道长度 L=100 m**：采用《实施.md》（更新）的 100 m 基准，而非理论研究方案.docx 的 250~300 m。
-   代价：洞口边界影响增大 → §1.4 列为**生产前必查项**。若 §1.4 不通过，延长至 150~200 m。
-2. **火源建模**：预设 `HRRPUA` 燃烧器，精确控制总功率 Q（FDS 按需注入燃料）；正庚烷 SIMPLE_CHEMISTRY，
-   碳烟适中，便于实现合理 χ_r（§1.8 以 FDS 实测 Q_c/Q 检验，不假设）。
-3. **网格**：均匀单 mesh，粗 0.5 / 中 0.25 / 细 0.125 m；中网格为候选生产网格，3 代表工况计入 68 组 DB。
-4. **测点高度**：顶棚下方 0.10H（z=4.5 m），§1.3 核查近壁稳定性后可在 0.05H~0.10H 内调整。
-5. **纵向通风**：入口 x=0 施加速度（`VEL` 负值推入域内），出口 x=L OPEN；U=0 两端 OPEN。
-
----
-
-## 推荐执行顺序（Linux/HPC 平台）
+在 `阶段一` 目录执行：
 
 ```bash
-cd 阶段一
-
-# 0) 一次性依赖：python3 + numpy + matplotlib（分析/绘图）、mpiexec + FDS(fds)
-#    （如集群无 matplotlib，绘图自动跳过，CSV 仍产出）
-
-# 1) 测点布置（可选，FDS 工况已内嵌同一布局）
-python3 07_温度测点与输出规范/generate_sensor_layout.py --outdir 07_温度测点与输出规范
-
-# 2) 生成全部 §1.3/§1.4 FDS 输入
-python3 src/generate_fds_case.py --csv 03_网格敏感性/grid_sensitivity_cases.csv --outdir fds_cases
-python3 src/generate_fds_case.py --csv 04_隧道长度与洞口边界/length_boundary_cases.csv --outdir fds_cases
-
-# 3) 运行（二选一）
-bash src/run_batch.sh 03_网格敏感性/grid_sensitivity_cases.csv fds_cases 8 1
-# 或 Slurm array（按 .fds 数设 --array 上界）：
-#   sbatch --array=0-8 src/run_slurm_template.sh
-
-# 4) 首次必查（见 MODEL_SETTINGS.md §6）：短试算确认入口风向 / HRR 量名 / 壁面 / HRRPUA / 测点高度
-
-# 5) 准稳态检测 → 时间平均 → 网格/边界/对流比例分析
-python3 src/quasi_steady_detect.py --rundir fds_cases --chids gsA_m gsB_m gsC_m --outdir results/steady
-python3 src/time_average_bootstrap.py --rundir fds_cases --chid gsB_m --t0 <t0> --t1 <t1> --outdir results/avg
-python3 src/analyze_grid_convergence.py --csv 03_网格敏感性/grid_sensitivity_cases.csv --rundir fds_cases --t0 <t0> --t1 <t1> --outdir results/grid
-python3 src/analyze_boundary_effect.py --length 04_隧道长度与洞口边界/length_boundary_cases.csv --baseline 03_网格敏感性/grid_sensitivity_cases.csv --rundir fds_cases --t0 <t0> --t1 <t1> --outdir results/boundary
-python3 src/check_convection_ratio.py --rundir fds_cases --chids gsA_m gsB_m gsC_m --t0 <t0> --t1 <t1> --outdir results/hrr
+python -m unittest discover -s tests -v
+python src/generate_fds_case.py --csv 03_网格敏感性/grid_sensitivity_cases.csv --outdir fds_cases
+python src/generate_fds_case.py --csv 04_隧道长度与洞口边界/length_boundary_cases.csv --outdir fds_cases
 ```
 
-## 进入下一阶段的前提（阶段一末勾选）
-- [ ] 网格核心目标量收敛
-- [ ] 洞口边界对主体测量区影响可忽略
-- [ ] 外部试验复现达可接受指标
-- [ ] 计算资源预算可承载 81~84 次计算
-- [ ] 测点高度/输出/准稳态判定/温度定义已固定并统一
+外部模板含 `TBD` 时生成器会快速失败并列出未填写字段；必须按文献补齐后再生成，不会猜值或静默跳过。
+
+## 运行
+
+单 mesh 默认单进程：
+
+```bash
+bash src/run_case.sh fds_cases/gsB_m.fds
+bash src/run_batch.sh 03_网格敏感性/grid_sensitivity_cases.csv fds_cases 1 1
+```
+
+只有输入明确划分多个 MESH 时才增加 MPI 进程。批处理严格按 CSV 的 CHID 运行，不会误跑输出目录中的旧 `.fds`。
+
+Slurm 提交前先创建日志目录并设置 CSV/工况目录：
+
+```bash
+mkdir -p logs
+sbatch --array=0-8 \
+  --export=ALL,CASES_CSV="$PWD/03_网格敏感性/grid_sensitivity_cases.csv",CASES_DIR="$PWD/fds_cases" \
+  src/run_slurm_template.sh
+```
+
+Slurm 模板已做 shell 语法检查，但模块名、MPI 类型和调度行为须在目标集群最终验证。
+
+## 后处理顺序
+
+```bash
+python src/quasi_steady_detect.py --rundir fds_cases --chids gsA_m gsB_m gsC_m --outdir results/steady
+python src/time_average_bootstrap.py --rundir fds_cases --chid gsB_m --t0 <t0> --t1 <t1> --outdir results/avg
+python src/analyze_grid_convergence.py --csv 03_网格敏感性/grid_sensitivity_cases.csv --rundir fds_cases --t0 <t0> --t1 <t1> --outdir results/grid
+python src/analyze_boundary_effect.py --length 04_隧道长度与洞口边界/length_boundary_cases.csv --baseline 03_网格敏感性/grid_sensitivity_cases.csv --rundir fds_cases --t0 <t0> --t1 <t1> --outdir results/boundary
+python src/check_convection_ratio.py --rundir fds_cases --chids gsA_m gsB_m gsC_m --t0 <t0> --t1 <t1> --outdir results/hrr
+```
+
+每次首次运行必须检查目标 FDS 版本、第一条 ERROR、全部 WARNING、无 VENT rejected、`HRR_tot>0`、入口方向为 +x，以及 `_hrr.csv` 含 `HRR/Q_RADI`。
+
+## 进入下一阶段的前提
+
+- [ ] 核心目标量网格收敛
+- [ ] 洞口边界对主体测量区影响可接受
+- [ ] 外部试验复现达到预定指标
+- [ ] 辐射/对流比例口径确定
+- [ ] 测点、输出、准稳态窗口和温度定义固定

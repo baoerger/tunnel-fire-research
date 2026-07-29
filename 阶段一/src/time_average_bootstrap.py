@@ -107,7 +107,8 @@ def main():
     args = ap.parse_args()
     os.makedirs(args.outdir, exist_ok=True)
 
-    times, series, _ = fds_io.read_devc(args.rundir, args.chid)
+    times, series, units = fds_io.read_devc(args.rundir, args.chid)
+    series = fds_io.normalize_units(series, units)
     if times is None:
         print(f"[WARN] 无 {args.chid}_devc.csv")
         return

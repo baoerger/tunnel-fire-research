@@ -1,52 +1,49 @@
 #!/usr/bin/env bash
-# ============================================================================
-# run_case.sh — 单个 FDS 工况运行封装（Linux/MPI）
-#
-# 用法:
-#   ./run_case.sh <chid.fds 路径> [MPI 进程数]
-# 例:
-#   ./run_case.sh fds_cases/gsB_m.fds 8
-#   ./run_case.sh fds_cases/gsB_m.fds        # 默认 8 进程
-#
-# 说明:
-# - FDS 单 mesh 由 MPI 按域分解并行；进程数应 <= 网格单元总数且与节点核心匹配。
-# - 若 FDS 可执行名不是 `fds`，用环境变量 FDS_BIN 覆盖，例：
-#       FDS_BIN=/opt/FDS/fds6.7.9/bin/fds ./run_case.sh ...
-# - 运行前请确认 fds 脚本(壳)在 PATH 中，或显式给定 FDS_BIN。
-# - 输出与输入同目录（CHID_* 文件）。
-# ============================================================================
+# run_case.sh — 运行一个 FDS 工况（默认单 mesh、单进程）
+# 用法: ./run_case.sh <case.fds> [MPI 进程数]
+# FDS_BIN 可为 PATH 中的命令或绝对路径；多进程仅适用于输入已划分多个 MESH 的情况。
 set -euo pipefail
 
-FDS_BIN="${FDS_BIN:-fds}"
-
 if [ "$#" -lt 1 ]; then
-  echo "用法: $0 <chid.fds> [nprocs]" >&2
+  echo "用法: $0 <case.fds> [nprocs]" >&2
   exit 1
 fi
 
-INPUT="$1"
-NPROC="${2:-8}"
+INPUT="$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$1")"
+NPROC="${2:-1}"
+FDS_COMMAND="${FDS_BIN:-fds}"
 
 if [ ! -f "$INPUT" ]; then
   echo "错误: 输入文件不存在: $INPUT" >&2
   exit 1
 fi
+if ! [[ "$NPROC" =~ ^[1-9][0-9]*$ ]]; then
+  echo "错误: MPI 进程数必须为正整数: $NPROC" >&2
+  exit 1
+fi
+if [[ "$FDS_COMMAND" == */* ]]; then
+  FDS_COMMAND="$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$FDS_COMMAND")"
+  if [ ! -x "$FDS_COMMAND" ]; then
+    echo "错误: FDS_BIN 不可执行: $FDS_COMMAND" >&2
+    exit 1
+  fi
+elif ! FDS_COMMAND="$(command -v "$FDS_COMMAND")"; then
+  echo "错误: 找不到 FDS 可执行文件；请设置 FDS_BIN。" >&2
+  exit 1
+fi
 
 DIR="$(dirname "$INPUT")"
-CHID="$(basename "$INPUT" .fds)"
+FILE="$(basename "$INPUT")"
+CHID="${FILE%.fds}"
 
 echo "[$(date '+%F %T')] 运行 $CHID | 进程=$NPROC | 目录=$DIR"
 cd "$DIR"
-
-# 先做语法预检（几秒内可发现 .fds 错误，避免空跑）
-if ! "$FDS_BIN" --validate "$INPUT" >/dev/null 2>&1; then
-  echo "警告: --validate 未通过或该版本不支持；将直接运行。" >&2
+if [ "$NPROC" -eq 1 ]; then
+  time "$FDS_COMMAND" "$FILE"
+else
+  time mpiexec -n "$NPROC" "$FDS_COMMAND" "$FILE"
 fi
 
-# 正式运行
-time mpiexec -n "$NPROC" "$FDS_BIN" "$INPUT"
-
 echo "[$(date '+%F %T')] $CHID 完成。"
-echo "  - 设备/CSV: ${CHID}_devc.csv  ${CHID}_hrr.csv(若有)"
-echo "  - 切片:     ${CHID}_*.sf?"
-echo "  - 边界:     ${CHID}_bf?"
+echo "  - 设备/能量: ${CHID}_devc.csv  ${CHID}_hrr.csv"
+echo "  - 切片/边界: ${CHID}_*.sf*  ${CHID}_*.bf"
