@@ -133,6 +133,20 @@ class FdsIoTests(unittest.TestCase):
             finally:
                 tmp.cleanup()
 
+    def test_reads_per_case_run_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            chid = "nested_case"
+            run_dir = os.path.join(tmp, chid)
+            os.makedirs(run_dir)
+            path = os.path.join(run_dir, f"{chid}_devc.csv")
+            with open(path, "w", newline="", encoding="utf-8") as f:
+                csv.writer(f).writerows([
+                    ["Time", "T_0100"], ["s", "C"], [0, 20],
+                ])
+            times, series, _ = fds_io.read_devc(tmp, chid)
+            self.assertEqual([0.0], times)
+            self.assertEqual([20.0], series["T_0100"])
+
     def test_hrr_key_matching_does_not_substitute_q_conv(self):
         series = {"HRR": [1000], "Q_CONV": [500]}
         self.assertEqual("HRR", convection._find_key(series, ["HRR"]))

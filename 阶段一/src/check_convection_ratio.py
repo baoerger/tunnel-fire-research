@@ -18,9 +18,9 @@ check_convection_ratio.py — 总/对流 HRR 与对流比例检查（§9 / §1.8
 - 不得在公式训练时使用仅 FDS 内部可得的对流 HRR，而在工程反演时默认已知。
 
 用法:
-  python check_convection_ratio.py --rundir fds_cases \
+  python check_convection_ratio.py --rundir outputs/runs \
       --chids gsA_m gsB_m gsC_m gsC_f \
-      --outdir results/hrr
+      --outdir outputs/analysis/convection_ratio
 """
 import os
 import csv
@@ -28,6 +28,7 @@ import argparse
 
 import tunnel_config as cfg
 import fds_io
+from project_paths import FDS_RUNS_DIR, output_path
 
 
 def _avg_in_window(arr, idx):
@@ -37,9 +38,10 @@ def _avg_in_window(arr, idx):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--rundir", required=True)
+    ap.add_argument("--rundir", default=str(FDS_RUNS_DIR),
+                    help="FDS 运行根目录（默认: outputs/runs）")
     ap.add_argument("--chids", nargs="+", required=True)
-    ap.add_argument("--outdir", default="results/hrr")
+    ap.add_argument("--outdir", default=output_path("analysis", "convection_ratio"))
     ap.add_argument("--t0", type=float, default=None, help="准稳态窗口起点")
     ap.add_argument("--t1", type=float, default=None, help="准稳态窗口终点")
     args = ap.parse_args()

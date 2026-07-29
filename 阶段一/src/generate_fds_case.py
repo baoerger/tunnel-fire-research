@@ -41,6 +41,7 @@ import re
 import warnings
 
 import tunnel_config as cfg
+from project_paths import FDS_INPUTS_DIR
 
 
 _REQUIRED_FIELDS = ("chid", "Q", "Df", "dx")
@@ -490,7 +491,8 @@ def _run_csv(csv_path, outdir):
 def main():
     ap = argparse.ArgumentParser(description="隧道火灾 FDS 输入文件生成器")
     ap.add_argument("--csv", help="按 CSV 批量生成（推荐）")
-    ap.add_argument("--outdir", default="fds_cases", help="输出目录")
+    ap.add_argument("--outdir", default=str(FDS_INPUTS_DIR),
+                    help="FDS 输入文件目录（默认: outputs/inputs）")
     ap.add_argument("--chid", help="单工况：案例标识")
     ap.add_argument("--Q", type=float, help="火源总功率 [MW]")
     ap.add_argument("--U", type=float, default=0.0, help="纵向风速 [m/s]")

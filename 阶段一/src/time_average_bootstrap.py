@@ -16,8 +16,8 @@ time_average_bootstrap.py — 准稳态时间平均与分块 Bootstrap 不确定
 4. 输出 T_i_bar 与 95% 置信区间。
 
 用法:
-  python time_average_bootstrap.py --rundir fds_cases --chid gsB_m \
-      --t0 120 --t1 150 --outdir results/avg
+  python time_average_bootstrap.py --rundir outputs/runs --chid gsB_m \
+      --t0 120 --t1 150 --outdir outputs/analysis/time_average
 """
 import os
 import csv
@@ -26,6 +26,7 @@ import math
 
 import tunnel_config as cfg
 import fds_io
+from project_paths import FDS_RUNS_DIR, output_path
 
 try:
     import numpy as np
@@ -98,12 +99,13 @@ def _mean(series, idx):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--rundir", required=True)
+    ap.add_argument("--rundir", default=str(FDS_RUNS_DIR),
+                    help="FDS 运行根目录（默认: outputs/runs）")
     ap.add_argument("--chid", required=True)
     ap.add_argument("--t0", type=float, required=True, help="准稳态窗口起点")
     ap.add_argument("--t1", type=float, required=True, help="准稳态窗口终点")
     ap.add_argument("--n_boot", type=int, default=2000)
-    ap.add_argument("--outdir", default="results/avg")
+    ap.add_argument("--outdir", default=output_path("analysis", "time_average"))
     args = ap.parse_args()
     os.makedirs(args.outdir, exist_ok=True)
 

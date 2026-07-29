@@ -27,8 +27,8 @@
 
 ```bash
 python -m unittest discover -s tests -v
-python src/generate_fds_case.py --csv 03_网格敏感性/grid_sensitivity_cases.csv --outdir fds_cases
-python src/generate_fds_case.py --csv 04_隧道长度与洞口边界/length_boundary_cases.csv --outdir fds_cases
+python src/generate_fds_case.py --csv 03_网格敏感性/grid_sensitivity_cases.csv
+python src/generate_fds_case.py --csv 04_隧道长度与洞口边界/length_boundary_cases.csv
 ```
 
 外部模板含 `TBD` 时生成器会快速失败并列出未填写字段；必须按文献补齐后再生成，不会猜值或静默跳过。
@@ -38,18 +38,37 @@ python src/generate_fds_case.py --csv 04_隧道长度与洞口边界/length_boun
 单 mesh 默认单进程：
 
 ```bash
-bash src/run_case.sh fds_cases/gsB_m.fds
-bash src/run_batch.sh 03_网格敏感性/grid_sensitivity_cases.csv fds_cases 1 1
+bash src/run_case.sh outputs/inputs/gsB_m.fds
+bash src/run_batch.sh 03_网格敏感性/grid_sensitivity_cases.csv
 ```
 
-只有输入明确划分多个 MESH 时才增加 MPI 进程。批处理严格按 CSV 的 CHID 运行，不会误跑输出目录中的旧 `.fds`。
+只有输入明确划分多个 MESH 时才增加 MPI 进程。批处理严格按 CSV 的 CHID 运行，不会误跑输出目录中的旧 `.fds`。自定义目录时，`run_batch.sh` 的位置参数依次为输入目录、MPI 进程数、并发数、运行根目录。
+
+所有脚本的默认产物统一放在：
+
+```text
+outputs/
+├── inputs/                 # 生成的 .fds 输入
+├── runs/<chid>/            # 各工况原始 FDS 输出，互不混放
+├── analysis/               # 后处理表格和图片
+│   ├── steady/
+│   ├── time_average/
+│   ├── grid_convergence/
+│   ├── boundary_effect/
+│   ├── convection_ratio/
+│   └── validation/
+├── sensors/                # 测点表和布置图
+└── logs/                   # Slurm 日志
+```
+
+默认路径锚定到本 `阶段一` 目录，从其他目录启动脚本也不会把文件散落到当前工作目录；各脚本的 `--outdir`、`--rundir` 仍可覆盖默认值。
 
 Slurm 提交前先创建日志目录并设置 CSV/工况目录：
 
 ```bash
-mkdir -p logs
+mkdir -p outputs/logs
 sbatch --array=0-8 \
-  --export=ALL,CASES_CSV="$PWD/03_网格敏感性/grid_sensitivity_cases.csv",CASES_DIR="$PWD/fds_cases" \
+  --export=ALL,CASES_CSV="$PWD/03_网格敏感性/grid_sensitivity_cases.csv",CASES_DIR="$PWD/outputs/inputs",RUNS_DIR="$PWD/outputs/runs" \
   src/run_slurm_template.sh
 ```
 
@@ -58,11 +77,11 @@ Slurm 模板已做 shell 语法检查，但模块名、MPI 类型和调度行为
 ## 后处理顺序
 
 ```bash
-python src/quasi_steady_detect.py --rundir fds_cases --chids gsA_m gsB_m gsC_m --outdir results/steady
-python src/time_average_bootstrap.py --rundir fds_cases --chid gsB_m --t0 <t0> --t1 <t1> --outdir results/avg
-python src/analyze_grid_convergence.py --csv 03_网格敏感性/grid_sensitivity_cases.csv --rundir fds_cases --t0 <t0> --t1 <t1> --outdir results/grid
-python src/analyze_boundary_effect.py --length 04_隧道长度与洞口边界/length_boundary_cases.csv --baseline 03_网格敏感性/grid_sensitivity_cases.csv --rundir fds_cases --t0 <t0> --t1 <t1> --outdir results/boundary
-python src/check_convection_ratio.py --rundir fds_cases --chids gsA_m gsB_m gsC_m --t0 <t0> --t1 <t1> --outdir results/hrr
+python src/quasi_steady_detect.py --chids gsA_m gsB_m gsC_m
+python src/time_average_bootstrap.py --chid gsB_m --t0 <t0> --t1 <t1>
+python src/analyze_grid_convergence.py --csv 03_网格敏感性/grid_sensitivity_cases.csv --t0 <t0> --t1 <t1>
+python src/analyze_boundary_effect.py --length 04_隧道长度与洞口边界/length_boundary_cases.csv --baseline 03_网格敏感性/grid_sensitivity_cases.csv --t0 <t0> --t1 <t1>
+python src/check_convection_ratio.py --chids gsA_m gsB_m gsC_m --t0 <t0> --t1 <t1>
 ```
 
 每次首次运行必须检查目标 FDS 版本、第一条 ERROR、全部 WARNING、无 VENT rejected、`HRR_tot>0`、入口方向为 +x，以及 `_hrr.csv` 含 `HRR/Q_RADI`。

@@ -19,10 +19,12 @@ except ImportError:
 
 
 def _find_devc(chid_dir, chid):
-    """定位 <chid>_devc.csv；若不存在，回退尝试 <chid>.devc（遗留文本格式）。"""
+    """定位设备输出，兼容平铺目录和 outputs/runs/<chid> 分目录。"""
     candidates = [
         os.path.join(chid_dir, f"{chid}_devc.csv"),
         os.path.join(chid_dir, f"{chid}.devc"),
+        os.path.join(chid_dir, chid, f"{chid}_devc.csv"),
+        os.path.join(chid_dir, chid, f"{chid}.devc"),
     ]
     for p in candidates:
         if os.path.isfile(p):
@@ -76,7 +78,13 @@ def read_devc(chid_dir, chid):
 
 def read_hrr(chid_dir, chid):
     """读取 <chid>_hrr.csv 能量收支时序。"""
-    return _read_fds_csv(os.path.join(chid_dir, f"{chid}_hrr.csv"))
+    for path in (
+        os.path.join(chid_dir, f"{chid}_hrr.csv"),
+        os.path.join(chid_dir, chid, f"{chid}_hrr.csv"),
+    ):
+        if os.path.isfile(path):
+            return _read_fds_csv(path)
+    return None, {}, {}
 
 
 # ----------------------------------------------------------------------------

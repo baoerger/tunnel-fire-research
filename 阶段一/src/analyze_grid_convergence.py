@@ -18,7 +18,7 @@ analyze_grid_convergence.py — 网格敏感性分析（§11.1 / §1.3）
 
 用法:
   python analyze_grid_convergence.py --csv ../03_网格敏感性/grid_sensitivity_cases.csv \
-      --rundir fds_cases --outdir results/grid
+      --rundir outputs/runs --outdir outputs/analysis/grid_convergence
 """
 import os
 import csv
@@ -27,6 +27,7 @@ from collections import defaultdict
 
 import tunnel_config as cfg
 import fds_io
+from project_paths import FDS_RUNS_DIR, output_path
 
 
 def _read_cases(csv_path):
@@ -109,8 +110,9 @@ def _rel_change(v_fine, v_med):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", required=True, help="grid_sensitivity_cases.csv")
-    ap.add_argument("--rundir", required=True, help="FDS 运行结果目录")
-    ap.add_argument("--outdir", default="results/grid")
+    ap.add_argument("--rundir", default=str(FDS_RUNS_DIR),
+                    help="FDS 运行根目录（默认: outputs/runs）")
+    ap.add_argument("--outdir", default=output_path("analysis", "grid_convergence"))
     ap.add_argument("--near_exclude", type=float, default=0.3 * cfg.H,
                     help="近场排除半径 [m]（默认 0.3H）")
     ap.add_argument("--t0", type=float, default=None, help="准稳态窗口起点 [s]")

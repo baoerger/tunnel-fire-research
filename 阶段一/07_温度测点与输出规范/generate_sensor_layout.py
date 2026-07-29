@@ -19,10 +19,16 @@ generate_sensor_layout.py — 顶棚中心线测点布置生成器（§1.7）
 sensor_layout() 生成，二者口径一致。
 """
 import os
+import sys
 import csv
 import argparse
 
+SRC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src")
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+
 import tunnel_config as cfg
+from project_paths import SENSORS_DIR
 
 
 def _id(x):
@@ -113,7 +119,8 @@ def main():
     ap.add_argument("--L", type=float, default=cfg.L, help="隧道长度 [m]")
     ap.add_argument("--W", type=float, default=cfg.W, help="隧道宽度 [m]")
     ap.add_argument("--H", type=float, default=cfg.H, help="隧道高度 [m]")
-    ap.add_argument("--outdir", default=".", help="输出目录")
+    ap.add_argument("--outdir", default=str(SENSORS_DIR),
+                    help="输出目录（默认: outputs/sensors）")
     args = ap.parse_args()
 
     fire_x = args.fire_x if args.fire_x is not None else args.L / 2.0

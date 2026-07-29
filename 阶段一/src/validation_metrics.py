@@ -16,12 +16,14 @@ validation_metrics.py — 外部试验复现验证指标（§11.3 / §1.5）
 
 用法:
   python validation_metrics.py --fds exp_fds.csv --exp exp_obs.csv \
-      --outdir results/external --label Memorial
+      --outdir outputs/analysis/validation --label Memorial
 """
 import os
 import csv
 import argparse
 import math
+
+from project_paths import output_path
 
 
 def _load_xy(path):
@@ -89,7 +91,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fds", required=True, help="FDS 温升 CSV: x,dT")
     ap.add_argument("--exp", required=True, help="试验温升 CSV: x,dT")
-    ap.add_argument("--outdir", default="results/external")
+    ap.add_argument("--outdir", default=output_path("analysis", "validation"))
     ap.add_argument("--label", default="case")
     args = ap.parse_args()
     os.makedirs(args.outdir, exist_ok=True)

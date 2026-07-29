@@ -18,8 +18,8 @@ quasi_steady_detect.py — 准稳态识别（§14 / §1.9）
 - steady_windows.csv  各工况准稳态起止时间与平均窗口
 
 用法:
-  python quasi_steady_detect.py --rundir fds_cases --chids gsB_m gsC_m \
-      --outdir results/steady
+  python quasi_steady_detect.py --rundir outputs/runs --chids gsB_m gsC_m \
+      --outdir outputs/analysis/steady
 """
 import os
 import csv
@@ -27,6 +27,7 @@ import argparse
 
 import tunnel_config as cfg
 import fds_io
+from project_paths import FDS_RUNS_DIR, output_path
 
 
 def _rolling(vals, w):
@@ -122,9 +123,10 @@ def detect(chid, rundir, win_half=10,
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--rundir", required=True)
+    ap.add_argument("--rundir", default=str(FDS_RUNS_DIR),
+                    help="FDS 运行根目录（默认: outputs/runs）")
     ap.add_argument("--chids", nargs="+", required=True)
-    ap.add_argument("--outdir", default="results/steady")
+    ap.add_argument("--outdir", default=output_path("analysis", "steady"))
     ap.add_argument("--min_steady", type=float, default=30.0)
     args = ap.parse_args()
     os.makedirs(args.outdir, exist_ok=True)

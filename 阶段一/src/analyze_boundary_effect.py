@@ -21,7 +21,7 @@ analyze_boundary_effect.py — 隧道长度与洞口边界分析（§11.2 / §1.
   python analyze_boundary_effect.py \
       --length ../04_隧道长度与洞口边界/length_boundary_cases.csv \
       --baseline ../03_网格敏感性/grid_sensitivity_cases.csv \
-      --rundir fds_cases --outdir results/boundary
+      --rundir outputs/runs --outdir outputs/analysis/boundary_effect
 """
 import os
 import csv
@@ -29,6 +29,7 @@ import argparse
 
 import tunnel_config as cfg
 import fds_io
+from project_paths import FDS_RUNS_DIR, output_path
 from analyze_grid_convergence import analyze_one  # 复用特征提取
 
 
@@ -56,8 +57,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--length", required=True)
     ap.add_argument("--baseline", required=True)
-    ap.add_argument("--rundir", required=True)
-    ap.add_argument("--outdir", default="results/boundary")
+    ap.add_argument("--rundir", default=str(FDS_RUNS_DIR),
+                    help="FDS 运行根目录（默认: outputs/runs）")
+    ap.add_argument("--outdir", default=output_path("analysis", "boundary_effect"))
     ap.add_argument("--near_exclude", type=float, default=0.3 * cfg.H)
     ap.add_argument("--t0", type=float, default=None)
     ap.add_argument("--t1", type=float, default=None)
@@ -118,7 +120,7 @@ def main():
 
 
 def _all_present(rundir, chid):
-    return os.path.isfile(os.path.join(rundir, f"{chid}_devc.csv"))
+    return fds_io._find_devc(rundir, chid) is not None
 
 
 if __name__ == "__main__":
