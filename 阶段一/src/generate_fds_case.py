@@ -190,11 +190,15 @@ def _fmt_devices(x_fire, sensor_xs, L=None, W=None, H=None, hrr_region=None):
     zT = cfg.Z_SENSOR
     zU = min(cfg.Z_VELOCITY, H - 0.05 * H)
 
+    # §1.7 选项 B：&DEVC 不写 UNITS，FDS 输出默认 SI（温度 K、HRR W、热通量 W/m²、速度 m/s）；
+    # 分析脚本经 fds_io.normalize_units 按 devc.csv 的 units 列归一为 °C/kW/kW·m⁻²。
+    # 保留 SIMPLE_CHEMISTRY/TAU/'U VELOCITY'/&SPEC（见 _fmt_reac/_fmt_surf_burner/_fmt_spec）。
+
     # 4a 顶棚中心线气体温度测点（§1.7）
     for x in sensor_xs:
         lines.append(
             f"&DEVC ID='{_id_x('T', x)}', QUANTITY='{cfg.QUANTITY_TEMPERATURE}', "
-            f"XYZ={x:.3f} {y_mid:.3f} {zT:.3f}, UNITS='{cfg.UNITS_TEMP}' /"
+            f"XYZ={x:.3f} {y_mid:.3f} {zT:.3f} /"
         )
 
     # 4b 顶棚附近纵向速度测点（回流/输运参考）
@@ -202,7 +206,7 @@ def _fmt_devices(x_fire, sensor_xs, L=None, W=None, H=None, hrr_region=None):
     for x in sensor_xs:
         lines.append(
             f"&DEVC ID='{_id_x('U', x)}', QUANTITY='{cfg.QUANTITY_VELOCITY_U}', "
-            f"XYZ={x:.3f} {y_mid:.3f} {zU:.3f}, UNITS='{cfg.UNITS_VEL}' /"
+            f"XYZ={x:.3f} {y_mid:.3f} {zU:.3f} /"
         )
 
     # 4c HRR：总 + 对流（§1.8）。量名/统计量集中为常量，便于按版本修正。
@@ -214,11 +218,11 @@ def _fmt_devices(x_fire, sensor_xs, L=None, W=None, H=None, hrr_region=None):
     xb = " ".join(f"{v:.2f}" for v in hrr_region)
     lines.append(
         f"&DEVC ID='HRR_tot', QUANTITY='{cfg.QUANTITY_HRR_TOTAL}', XB={xb}, "
-        f"STATISTICS='{cfg.STAT_VOLUME_INTEGRATION}', UNITS='{cfg.UNITS_HRR}' /"
+        f"STATISTICS='{cfg.STAT_VOLUME_INTEGRATION}' /"
     )
     lines.append(
         f"&DEVC ID='HRR_conv', QUANTITY='{cfg.QUANTITY_HRR_CONV}', XB={xb}, "
-        f"STATISTICS='{cfg.STAT_VOLUME_INTEGRATION}', UNITS='{cfg.UNITS_HRR}' /"
+        f"STATISTICS='{cfg.STAT_VOLUME_INTEGRATION}' /"
     )
 
     # 4d 壁面热通量（顶棚若干代表点，§4.7 壁面吸热参考）
@@ -228,7 +232,7 @@ def _fmt_devices(x_fire, sensor_xs, L=None, W=None, H=None, hrr_region=None):
         if lo <= x <= hi:
             lines.append(
                 f"&DEVC ID='{_id_x('Qw', x)}', QUANTITY='{cfg.QUANTITY_WALL_HEATFLUX}', "
-                f"XYZ={x:.3f} {y_mid:.3f} {H:.3f}, IOR=3, UNITS='kW/m^2' /"
+                f"XYZ={x:.3f} {y_mid:.3f} {H:.3f}, IOR=3 /"
             )
 
     return lines

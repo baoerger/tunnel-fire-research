@@ -85,7 +85,8 @@ def _wall_heatflux_avg(times, series, t_window=None):
 
 
 def analyze_one(rundir, chid, fire_x, near_exclude, t_window):
-    times, series, _ = fds_io.read_devc(rundir, chid)
+    times, series, units = fds_io.read_devc(rundir, chid)
+    series = fds_io.normalize_units(series, units)   # §1.7 选项 B：归一到 °C/kW/kW·m⁻²
     if times is None:
         print(f"[WARN] 无设备输出: {chid}（预期 {chid}_devc.csv）")
         return None

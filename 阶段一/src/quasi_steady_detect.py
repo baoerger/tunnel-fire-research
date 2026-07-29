@@ -78,7 +78,8 @@ def detect(chid, rundir, win_half=10,
     各判据：HRR 相对波动<thr_hrr；最大顶棚温度斜率<thr_slope [°C/s]。
     需连续 min_steady 秒满足才认定。
     """
-    times, series, _ = fds_io.read_devc(rundir, chid)
+    times, series, units = fds_io.read_devc(rundir, chid)
+    series = fds_io.normalize_units(series, units)   # §1.7 选项 B：归一到 °C/kW/kW·m⁻²
     if times is None:
         return None, None, None
 

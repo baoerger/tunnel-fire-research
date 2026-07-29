@@ -47,7 +47,8 @@ def main():
 
     rows = []
     for chid in args.chids:
-        times, series, _ = fds_io.read_devc(args.rundir, chid)
+        times, series, units = fds_io.read_devc(args.rundir, chid)
+        series = fds_io.normalize_units(series, units)   # §1.7 选项 B：归一到 °C/kW/kW·m⁻²
         if times is None:
             print(f"[WARN] 无 {chid}_devc.csv")
             continue

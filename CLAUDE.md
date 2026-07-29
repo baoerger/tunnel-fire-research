@@ -24,6 +24,7 @@
 ### 1.1 气相点测速用分量量名,不用 IOR
 - `IOR` 只对**固壁设备**有效;对**气相点**(单点 `XYZ=`、非 `XB=` 区间)的 `QUANTITY='VELOCITY'`,`IOR` 会被忽略并告警 *"IOR is only used with devices attached to a solid surface"*,实际输出的是速度**幅值**,不是分量。
 - 取纵向(x)分量必须用 `QUANTITY='U VELOCITY'`(`'V VELOCITY'`/`'W VELOCITY'` 同理),且**不写 IOR**。本项目用 `cfg.QUANTITY_VELOCITY_U`。
+- 第三方工具若报 `Unknown quantity: U VELOCITY`,属工具误报(见 §1.7),**勿改回 `'VELOCITY'`**——会变回速度幅值、丢失纵向分量。
 - **切片场 `&SLCF` 例外**:矢量场仍用 `QUANTITY='VELOCITY', VECTOR=.TRUE.`(不要改成分量量名)。
 - ❌ `&DEVC ID='U_5000', QUANTITY='VELOCITY', XYZ=50 5 4.75, IOR=1, ...`
 - ✅ `&DEVC ID='U_5000', QUANTITY='U VELOCITY', XYZ=50 5 4.75, ...`
@@ -51,11 +52,31 @@
 ### 1.6 量名/统计量集中在 tunnel_config.py
 - 所有 FDS 设备量名(`QUANTITY_*`)与统计量名(`STAT_*`)以常量给出,生成器引用常量而非硬编码字符串。
 - 遇 FDS 报"未知量名":**只改 `tunnel_config.py` 常量**,不动生成器主体;分析脚本(`check_convection_ratio.py` 等)对列名做模糊匹配兜底。
-- 已确认 FDS 6.8 合法:`'HRR'`、`'CONVECTIVE HRR'`、`'VOLUME INTEGRATION'`、`'TEMPERATURE'`、`'U/V/W VELOCITY'`、`'NET HEAT FLUX'`、`'DENSITY'`、`'WALL TEMPERATURE'`。
+- 已确认 FDS 6.8 合法:`'HRR'`、`'CONVECTIVE HRR'`、`'VOLUME INTEGRATION'`、`'TEMPERATURE'`、`'U/V/W VELOCITY'`、`'NET HEAT FLUX'`、`'DENSITY'`、`'WALL TEMPERATURE'`。若第三方工具报其中任一 "unknown quantity",属工具误报(§1.7),**勿改 `tunnel_config.py` 常量**。
 
-### 1.7 校验工具的"未知/不支持"先辨真伪,勿盲改
-- `SIMPLE_CHEMISTRY`(REAC)、`TAU`(SURF)、`UNITS`(DEVC)在 FDS 6.8 均为**合法参数**。若第三方导入工具报"未知/不支持",是**工具过时**,不是 FDS 错误——**不要为迁就工具删这些参数**(删 `UNITS` 会丢单位换算)。
-- 区分:工具的中文/HTML 提示多为误报;FDS 自身的英文告警(如 *"As of FDS 6.8 …"*、*"IOR is only used with devices attached to a solid surface"*、*"Quantity missing"*)才是真问题。
+### 1.7 第三方导入/校验工具的"未知/不支持"先辨真伪,勿盲改
+
+**判定总则**:合法性以 **FDS 自身实跑(`fds`)**为准;FDS 真问题是其英文 ERROR/WARNING,会中止运行或影响输出。凡出现"导入对象/提取对象/附加字段/additional records section"等措辞的,都是**第三方导入工具**的容忍性提示(只收集不中止),其参数/量名库往往**滞后于 FDS**,会把合法项报成"未知/不支持"——**不是 FDS 错误**,绝大多数情况下**不要为迁就工具改 FDS**。
+
+**已知工具误报清单(逐项处置)**——以下报文均实测由导入工具产生,对应参数/量名在 FDS 6.8 合法,**保留**:
+
+| 工具报文(原文) | 对象 | FDS 6.8 实情 | 处置 |
+|---|---|---|---|
+| `记录REAC的未知属性SIMPLE_CHEMISTRY` | `&REAC` | 合法:`SIMPLE_CHEMISTRY=.TRUE.` 为本项目简化化学反应模型开关 | **保留**;删了退回需逐物种定义的复杂化学,破坏模型 |
+| `记录SURF的未知属性TAU` | `&SURF`(BURNER) | 合法:`TAU` 为 HRRPUA 指数斜坡时间常数 | **保留**;删了火源瞬间满功率启动,产生冲击+数值噪声(等价替代 `RAMP_Q` 工具多半同样不认) |
+| `这些字段还不支持:UNITS` | `&DEVC` | 合法:`UNITS` 指定 devc.csv 输出单位并触发换算 | **基准已选 B(删 UNITS),此报文不再出现**;见下“UNITS 两种取舍” |
+| `Unknown quantity: U VELOCITY`(每个 U/V/W 测点各一条) | `&DEVC QUANTITY` | 合法:FDS6 UG 收录 `'U VELOCITY'`/`'V VELOCITY'`/`'W VELOCITY'` 为气相速度分量(§1.1/§1.6) | **保留且勿改**;改回 `'VELOCITY'` 会变回幅值、丢失纵向分量,且 `IOR` 对气相点无效救不回来(§1.1) |
+
+**UNITS 的两种取舍(择一,勿反复)** —— **本项目基准已采用 (B)**:生成器 `_fmt_devices` 不写 `UNITS`,FDS 输出默认 SI(温度 K、HRR W、热通量 W/m²、速度 m/s);分析侧经 `fds_io.normalize_units` 按 devc.csv 的 units 列归一到工程单位(°C/kW/kW·m⁻²,对旧 run °C/kW 向后兼容),故下文 (B) 项“须确认单位口径”已落实。选 (B) 后工具仍报 `SIMPLE_CHEMISTRY`/`TAU`/`U VELOCITY` 三类误报,按 §1.7 继续忽略、**勿删**:
+- (A,默认)**保留 `UNITS`**:FDS 按 `'C'`/`'m/s'`/`'kW'`/`'kW/m2'` 输出,分析脚本直接可读;代价:工具每次报"不支持:UNITS"(误报,忽略)。
+- (B,若要让工具彻底闭嘴)**删除全部 `&DEVC` 的 `UNITS`**:FDS 改输出默认 SI(K、m/s、W、W/m² 等);**模拟不受影响**,仅 devc.csv 数值单位变;此时分析脚本须自行换算(`check_convection_ratio.py` 算 χ_r 用比值、单位自消,不受影响;但温度/HRR 绝对值需转 °C/kW,`quasi_steady_detect`/`analyze_grid_convergence` 须确认单位口径)。
+- 无论 A/B,`UNITS` 字符串须为 FDS 规范写法:温度 `'C'`、速度 `'m/s'`、功率 `'kW'`、热通量 `'kW/m2'`(**不带脱字符** `^`——`'kW/m^2'` 易触发工具报错且非规范)。
+
+**真伪判定法(清单外新报文通用)**:
+1. 看措辞:中文 / `<html>` / "导入对象/提取对象/附加字段" / "Adding to additional records section" → **工具方容忍性提示**,默认按误报处理,不改 FDS。
+2. 看 FDS 自身 stderr:英文 ERROR/WARNING,如 *"As of FDS 6.8 …"*、*"IOR is only used…"*、*"Quantity missing"*、*"Creating new Species with default parameters"* → **真问题**,按对应小节修(§1.1/§1.2/§1.4)。
+3. 存疑时:**不改 FDS,先在目标 FDS 版本跑一次短试算**,用 FDS 自身输出判定;勿据工具报文删参数。
+4. **切勿"为消除工具告警"删除** `SIMPLE_CHEMISTRY`/`TAU`/`U/V/W VELOCITY`——删了破坏模型或测点意图;`UNITS` 可按上表取舍,但须同步检查分析脚本单位口径。
 
 ### 1.8 其他已定约定
 - 入口 `VEL` 符号:负值把气流推入域内(+x);出口端 `SURF_ID='OPEN'`。首次运行用中心纵剖面速度切片确认风向(MODEL_SETTINGS §6.1)。
@@ -70,6 +91,6 @@
 - [ ] `&SPEC ID='n-HEPTANE'` 加载的是预定义物种(无 *"default parameters"* 告警)
 - [ ] 入口风向为 +x(短时试算 T_END≈5 s 看速度切片)
 - [ ] 壁面表面已应用混凝土 `WALL`
-- [ ] `HRR_tot` 稳态均值 ≈ 目标 Q(核验 §1.5 闭环)
+- [ ] `HRR_tot` 稳态均值 ≈ 目标 Q(核验 §1.5 闭环);**选项 B 下 HRR 单位为 W**,故数值 ≈ Q[MW]×1e6(如 40 MW→4.0e7 W),分析脚本经 `fds_io` 归一为 kW
 - [ ] z=4.5 m 距顶棚 ≥2 个网格、近壁温度稳定
 - [ ] 顶棚壁面热通量 `Qw_*`(IOR=3)结果非 ~0;若异常,试 IOR=-3(顶棚气侧法向朝下)

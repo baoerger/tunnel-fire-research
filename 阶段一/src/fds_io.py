@@ -89,6 +89,34 @@ def read_devc(chid_dir, chid):
 
 
 # ----------------------------------------------------------------------------
+# 单位归一化（§1.7 选项 B：FDS 输出默认 SI，分析侧归一到工程单位）
+# ----------------------------------------------------------------------------
+def normalize_units(series, units):
+    """把 devc.csv 各设备序列归一到工程单位并返回新 series（不改输入）。
+    工程单位：温度 °C、HRR/功率 kW、热通量 kW/m²、速度 m/s。
+    按 read_devc 返回的 units 字符串判定，不假设 FDS 默认单位——
+    故对旧 run（°C/kW）与新 run（K/W）都正确（向后兼容）。"""
+    return {fid: _convert_unit(vals, (units.get(fid, "") or "").strip())
+            for fid, vals in series.items()}
+
+
+def _convert_unit(vals, unit):
+    """按单位字符串换算一个序列：温度 K→°C 用偏移，W/MW/热通量用乘因子；其余不变。"""
+    if not vals:
+        return list(vals)
+    u = unit.upper().replace(" ", "").replace("^", "")
+    if u in ("K", "KELVIN"):                       # 温度 K → °C
+        return [(_v - 273.15) if _v == _v else _v for _v in vals]
+    if u in ("W/M2",):                             # 热通量 W/m² → kW/m²
+        return [(_v * 1e-3) if _v == _v else _v for _v in vals]
+    if u in ("W", "WATTS", "WATT"):                # 功率 W → kW
+        return [(_v * 1e-3) if _v == _v else _v for _v in vals]
+    if u in ("MW", "MEGAWATT", "MEGAWATTS"):       # 功率 MW → kW
+        return [(_v * 1e3) if _v == _v else _v for _v in vals]
+    return list(vals)                              # kW / kW/m² / m/s / 未知：不变
+
+
+# ----------------------------------------------------------------------------
 # 温度曲线特征提取（§1.3/§1.4/§2.7）
 # ----------------------------------------------------------------------------
 def _to_array(lst):

@@ -62,6 +62,8 @@
 ## 6. 首次运行必查项（平台切换后首批执行）
 
 > 以下为生成器使用广泛关键字但仍建议在目标 FDS 版本上首次启动时验证的点：
+>
+> **单位口径（§1.7 选项 B）**：`&DEVC` 不写 `UNITS`，devc.csv 输出默认 SI（温度 K、HRR W、热通量 W/m²、速度 m/s）；分析脚本经 `fds_io.normalize_units` 按 units 列归一为 °C/kW/kW·m⁻²，对旧 run（°C/kW）向后兼容。
 
 1. **入口风向**：取一短时试算（T_END≈5 s），用中心纵剖面速度切片确认 x=0 入口气流方向为 +x；
    若反向，将 `tunnel_config` 中入口 `VEL` 符号取反（见 `generate_fds_case._fmt_surf_inlet`）。
@@ -69,7 +71,7 @@
    `QUANTITY_HRR_TOTAL / QUANTITY_HRR_CONV / STAT_VOLUME_INTEGRATION`；
    `check_convection_ratio.py` 对列名做模糊匹配作为兜底（详见 §1.8 报告）。
 3. **壁面表面指派**：确认地面/顶棚/侧墙已应用混凝土 `WALL` 表面（FDS 以 &VENT 指派边界面材料）。
-4. **燃烧器 HRRPUA**：核验 `HRRPUA = Q·1e6 / A_f` 与预设 Q 一致（看 `_devc.csv` 中 HRR_tot 稳态均值）。
+4. **燃烧器 HRRPUA**：核验 `HRRPUA = Q·1e6 / A_f` 与预设 Q 一致（看 `_devc.csv` 中 HRR_tot 稳态均值）。**§1.7 选项 B 下 `&DEVC` 不写 UNITS，HRR_tot 单位为 W（默认 SI）**，故稳态均值 ≈ Q[MW]×1e6（如 40 MW→4.0e7 W）；分析脚本经 `fds_io.normalize_units` 按 units 列归一为 kW。
 5. **测点高度**：在所选网格上确认 z=4.5 m 距顶棚 ≥2 个网格、近壁温度稳定；否则在 0.05H~0.10H 内调整。
 6. **燃料/反应**：确认 FDS 识别 `FUEL='n-HEPTANE'`（预定义物种名，大小写不敏感）；
    若该版本报未知物种，改 `tunnel_config.FUEL_NAME` 为 `'N-HEPTANE'`/`'PROPANE'`/`'METHANE'`。

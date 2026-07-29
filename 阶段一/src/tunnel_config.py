@@ -160,9 +160,9 @@ QUANTITY_VELOCITY_U = "U VELOCITY"        # 纵向(x)速度分量：气相点测
 QUANTITY_WALL_HEATFLUX = "NET HEAT FLUX"  # 壁面净热通量（§4.7 壁面吸热参考）
 QUANTITY_DENSITY = "DENSITY"
 QUANTITY_BNDF = "WALL TEMPERATURE"        # 边界场默认量；显式给出以兼容部分版本对空 &BNDF 的报错
-UNITS_TEMP = "C"
-UNITS_VEL = "m/s"
-UNITS_HRR = "kW"   # FDS HRR 设备常用 kW；分析时按需换算
+# §1.7 选项 B：&DEVC 不写 UNITS，FDS 输出默认 SI（温度 K、HRR W、热通量 W/m²、速度 m/s）。
+# 分析脚本经 fds_io.normalize_units 按 devc.csv 的 units 列归一为工程单位（°C/kW/kW·m⁻²），
+# 故此处不再提供 UNITS_* 常量。若将来回退到选项 A（写 UNITS），在此恢复即可。
 
 
 # ============================================================================
