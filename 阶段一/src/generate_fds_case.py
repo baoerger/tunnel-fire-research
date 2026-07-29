@@ -29,7 +29,8 @@ generate_fds_case.py — 隧道火灾 FDS 输入文件生成器（阶段一核�
   python generate_fds_case.py --csv cases/grid_sensitivity.csv --outdir cases/
 
 CSV 必填列：chid,Q,U,Df,dx,L,x_fire,T_end
-可选列：U0(纵向风 m/s，缺省=U)、case_group、note
+可选列：U0(纵向风 m/s，缺省=U)、case_group、note、
+        n_mesh_x、n_mesh_y、n_mesh_z（各方向 MESH 数，缺省=1）
 
 依赖：仅标准库 + tunnel_config（同目录）。
 """
@@ -46,6 +47,7 @@ from project_paths import FDS_INPUTS_DIR
 
 _REQUIRED_FIELDS = ("chid", "Q", "Df", "dx")
 _NUMERIC_FIELDS = ("Q", "U", "Df", "dx", "L", "W", "H", "x_fire", "T_end")
+_MESH_COUNT_FIELDS = ("n_mesh_x", "n_mesh_y", "n_mesh_z")
 _CHID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
@@ -88,6 +90,20 @@ def normalize_case(spec, row_number=None):
     if values["U"] < 0:
         raise ValueError(f"{prefix}: U 必须大于等于 0；入口方向由生成器用负 VEL 表示")
 
+    for field in _MESH_COUNT_FIELDS:
+        value = raw.get(field, 1)
+        if value in (None, ""):
+            value = 1
+        try:
+            count = int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{prefix}: {field}={value!r} 不是有效整数") from exc
+        if str(value).strip() != str(count):
+            raise ValueError(f"{prefix}: {field}={value!r} 必须是整数")
+        if count <= 0:
+            raise ValueError(f"{prefix}: {field} 必须大于 0，当前为 {count}")
+        values[field] = count
+
     for dim in ("L", "W", "H"):
         cells = values[dim] / values["dx"]
         if not math.isclose(cells, round(cells), rel_tol=0.0, abs_tol=1e-8):
@@ -111,6 +127,26 @@ def normalize_case(spec, row_number=None):
             f"{prefix}: 吸附到网格后的燃烧器 {bounds} 必须完整位于地面内部，"
             "以保留四块非零面积 WALL"
         )
+
+    axis_specs = (
+        ("x", values["L"], values["n_mesh_x"], x0, x1),
+        ("y", values["W"], values["n_mesh_y"], y0, y1),
+        ("z", values["H"], values["n_mesh_z"], None, None),
+    )
+    for axis, length, count, burner_lo, burner_hi in axis_specs:
+        cells = int(round(length / values["dx"]))
+        if count > cells:
+            raise ValueError(
+                f"{prefix}: n_mesh_{axis}={count} 超过 {axis} 方向单元数 {cells}"
+            )
+        if burner_lo is not None:
+            internal = _axis_mesh_bounds(length, values["dx"], count)[1:-1]
+            crossing = [edge for edge in internal if burner_lo < edge < burner_hi]
+            if crossing:
+                raise ValueError(
+                    f"{prefix}: {axis} 方向 MESH 边界 {crossing} 切穿离散燃烧器 "
+                    f"[{burner_lo:g}, {burner_hi:g}]"
+                )
 
     if values["T_end"] <= 3.0 * cfg.TAU_RAMP:
         warnings.warn(
@@ -204,17 +240,45 @@ def _mesh_IJK(L, W, H, dx):
     nx = max(1, int(round(L / dx)))
     ny = max(1, int(round(W / dx)))
     nz = max(1, int(round(H / dx)))
-    # 强制 IJK 为偶数无关紧要；保持整数化即可
     return nx, ny, nz
 
 
-def _fmt_mesh(L, W, H, dx):
+def _axis_mesh_cells(total_cells, count):
+    base, remainder = divmod(total_cells, count)
+    return [base + (1 if i < remainder else 0) for i in range(count)]
+
+
+def _axis_mesh_bounds(length, dx, count, origin=0.0):
+    cells = int(round(length / dx))
+    bounds = [origin]
+    cumulative = 0
+    for width in _axis_mesh_cells(cells, count):
+        cumulative += width
+        bounds.append(origin + cumulative * dx)
+    return [round(value, 10) for value in bounds]
+
+
+def _fmt_mesh(L, W, H, dx, n_mesh_x=1, n_mesh_y=1, n_mesh_z=1):
     nx, ny, nz = _mesh_IJK(L, W, H, dx)
-    return (
-        f"&MESH IJK={nx} {ny} {nz}, "
-        f"XB={cfg.X0:.2f} {cfg.X0 + L:.2f} {cfg.Y0:.2f} {cfg.Y0 + W:.2f} "
-        f"{cfg.Z0:.2f} {cfg.Z0 + H:.2f} /"
-    )
+    x_cells = _axis_mesh_cells(nx, n_mesh_x)
+    y_cells = _axis_mesh_cells(ny, n_mesh_y)
+    z_cells = _axis_mesh_cells(nz, n_mesh_z)
+    x_bounds = _axis_mesh_bounds(L, dx, n_mesh_x, cfg.X0)
+    y_bounds = _axis_mesh_bounds(W, dx, n_mesh_y, cfg.Y0)
+    z_bounds = _axis_mesh_bounds(H, dx, n_mesh_z, cfg.Z0)
+
+    lines = []
+    for ix, nx_part in enumerate(x_cells):
+        for iy, ny_part in enumerate(y_cells):
+            for iz, nz_part in enumerate(z_cells):
+                mesh_id = f"MESH_X{ix + 1:02d}_Y{iy + 1:02d}_Z{iz + 1:02d}"
+                lines.append(
+                    f"&MESH ID='{mesh_id}', IJK={nx_part} {ny_part} {nz_part}, "
+                    f"XB={x_bounds[ix]:.3f} {x_bounds[ix + 1]:.3f} "
+                    f"{y_bounds[iy]:.3f} {y_bounds[iy + 1]:.3f} "
+                    f"{z_bounds[iz]:.3f} {z_bounds[iz + 1]:.3f} /"
+                )
+    return lines
 
 
 # ----------------------------------------------------------------------------
@@ -349,7 +413,8 @@ def _fmt_slices(L, W, H, x_fire):
 # 6. 组装
 # ----------------------------------------------------------------------------
 def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=None,
-               title=None, group=None, ramp_inlet=True, _normalized=None):
+               title=None, group=None, ramp_inlet=True, n_mesh_x=1, n_mesh_y=1,
+               n_mesh_z=1, _normalized=None):
     """
     渲染一份完整 FDS 输入字符串。
 
@@ -372,7 +437,8 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     normalized = _normalized or normalize_case(dict(
         chid=chid, Q=Q, U=U, Df=Df, dx=dx, L=L, W=W, H=H,
         x_fire=x_fire, T_end=T_end, case_group=group, note=title,
-        ramp_inlet=ramp_inlet,
+        ramp_inlet=ramp_inlet, n_mesh_x=n_mesh_x, n_mesh_y=n_mesh_y,
+        n_mesh_z=n_mesh_z,
     ))
     Q = normalized["Q"]
     U = normalized["U"]
@@ -384,6 +450,9 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     x_fire = normalized["x_fire"]
     T_end = normalized["T_end"]
     bounds = normalized["burner_bounds"]
+    n_mesh_x = normalized["n_mesh_x"]
+    n_mesh_y = normalized["n_mesh_y"]
+    n_mesh_z = normalized["n_mesh_z"]
     group = normalized["case_group"]
     title = normalized["note"] or f"Q={Q}MW U={U}m/s Df={Df}m dx={dx}m L={L} W={W} H={H}"
     if group:
@@ -397,7 +466,7 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
 
     parts = []
     parts.append(f"&HEAD CHID='{chid}', TITLE='{title}' /")
-    parts.append(_fmt_mesh(L, W, H, dx))
+    parts.extend(_fmt_mesh(L, W, H, dx, n_mesh_x, n_mesh_y, n_mesh_z))
     parts.append(f"&TIME T_END={T_end:.1f} /")
     parts.append(
         f"&DUMP DT_DEVC={cfg.DT_DEVC}, DT_HRR={cfg.DT_HRR}, "
@@ -438,6 +507,9 @@ def write_fds(spec, outdir, row_number=None):
         group=case["case_group"],
         title=case["note"],
         ramp_inlet=case["ramp_inlet"],
+        n_mesh_x=case["n_mesh_x"],
+        n_mesh_y=case["n_mesh_y"],
+        n_mesh_z=case["n_mesh_z"],
         _normalized=case,
     )
     os.makedirs(outdir, exist_ok=True)
@@ -479,7 +551,9 @@ def _run_csv(csv_path, outdir):
             chid=chid, Q=case["Q"], U=case["U"], Df=case["Df"], dx=case["dx"],
             L=case["L"], W=case["W"], H=case["H"], x_fire=case["x_fire"],
             T_end=case["T_end"], group=case["case_group"], title=case["note"],
-            ramp_inlet=case["ramp_inlet"], _normalized=case,
+            ramp_inlet=case["ramp_inlet"], n_mesh_x=case["n_mesh_x"],
+            n_mesh_y=case["n_mesh_y"], n_mesh_z=case["n_mesh_z"],
+            _normalized=case,
         )
         os.makedirs(outdir, exist_ok=True)
         path = os.path.join(outdir, f"{chid}.fds")
@@ -503,6 +577,9 @@ def main():
     ap.add_argument("--H", type=float, help="隧道高度 [m]（外部试验可覆盖）")
     ap.add_argument("--x_fire", type=float, help="火源 x 位置 [m]")
     ap.add_argument("--T_end", type=float, help="模拟结束时间 [s]")
+    ap.add_argument("--n_mesh_x", type=int, default=1, help="x 方向 MESH 数")
+    ap.add_argument("--n_mesh_y", type=int, default=1, help="y 方向 MESH 数")
+    ap.add_argument("--n_mesh_z", type=int, default=1, help="z 方向 MESH 数")
     ap.add_argument("--group", help="工况分组标签")
     ap.add_argument("--note", help="标题备注")
     args = ap.parse_args()
@@ -519,7 +596,8 @@ def main():
 
     spec = dict(chid=args.chid, Q=args.Q, U=args.U, Df=args.Df, dx=args.dx,
                 L=args.L, W=args.W, H=args.H, x_fire=args.x_fire, T_end=args.T_end,
-                case_group=args.group, note=args.note)
+                n_mesh_x=args.n_mesh_x, n_mesh_y=args.n_mesh_y,
+                n_mesh_z=args.n_mesh_z, case_group=args.group, note=args.note)
     path = write_fds(spec, args.outdir)
     print(f"[OK] {args.chid} -> {path}")
 

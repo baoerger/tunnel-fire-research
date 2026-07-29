@@ -1,4 +1,5 @@
 import csv
+import math
 import os
 import re
 import sys
@@ -22,6 +23,22 @@ class GenerateFdsTests(unittest.TestCase):
                     L=100, W=10, H=5, x_fire=50, T_end=60)
         spec.update(overrides)
         return gen.render_fds(**spec)
+
+    def parse_meshes(self, text):
+        pattern = re.compile(
+            r"^&MESH ID='([^']+)', IJK=(\d+) (\d+) (\d+), "
+            r"XB=([\d.-]+) ([\d.-]+) ([\d.-]+) ([\d.-]+) "
+            r"([\d.-]+) ([\d.-]+) /$",
+            re.MULTILINE,
+        )
+        return [
+            {
+                "id": match.group(1),
+                "ijk": tuple(int(match.group(i)) for i in range(2, 5)),
+                "xb": tuple(float(match.group(i)) for i in range(5, 11)),
+            }
+            for match in pattern.finditer(text)
+        ]
 
     def test_verified_fds_6101_contract(self):
         text = self.render()
@@ -65,8 +82,75 @@ class GenerateFdsTests(unittest.TestCase):
         for dx, ijk in ((0.5, "IJK=200 20 10"),
                         (0.25, "IJK=400 40 20"),
                         (0.125, "IJK=800 80 40")):
+            meshes = self.parse_meshes(self.render(dx=dx))
+            self.assertEqual(1, len(meshes))
             self.assertIn(ijk, self.render(dx=dx))
         self.assertIn("IJK=600 40 20", self.render(L=150, x_fire=75))
+
+    def test_uniform_22_mesh_partition_preserves_domain_and_cells(self):
+        cases = (
+            (0.5, 3.0, 40000),
+            (0.25, 5.0, 320000),
+            (0.125, 7.0, 2560000),
+        )
+        for dx, diameter, expected_cells in cases:
+            with self.subTest(dx=dx, diameter=diameter):
+                text = self.render(
+                    dx=dx, Df=diameter,
+                    n_mesh_x=11, n_mesh_y=1, n_mesh_z=2,
+                )
+                meshes = self.parse_meshes(text)
+                self.assertEqual(22, len(meshes))
+                self.assertEqual(22, len({mesh["id"] for mesh in meshes}))
+                self.assertEqual(
+                    expected_cells,
+                    sum(math.prod(mesh["ijk"]) for mesh in meshes),
+                )
+
+                x_intervals = sorted({(mesh["xb"][0], mesh["xb"][1]) for mesh in meshes})
+                z_intervals = sorted({(mesh["xb"][4], mesh["xb"][5]) for mesh in meshes})
+                self.assertEqual(11, len(x_intervals))
+                self.assertEqual(2, len(z_intervals))
+                self.assertEqual((0.0, 100.0), (x_intervals[0][0], x_intervals[-1][1]))
+                self.assertEqual((0.0, 5.0), (z_intervals[0][0], z_intervals[-1][1]))
+                self.assertTrue(all(
+                    left[1] == right[0]
+                    for left, right in zip(x_intervals, x_intervals[1:])
+                ))
+                self.assertTrue(all(
+                    left[1] == right[0]
+                    for left, right in zip(z_intervals, z_intervals[1:])
+                ))
+                self.assertTrue(all(mesh["xb"][2:4] == (0.0, 10.0) for mesh in meshes))
+                for mesh in meshes:
+                    for boundary in mesh["xb"]:
+                        self.assertAlmostEqual(boundary / dx, round(boundary / dx))
+
+                burner_x0, burner_x1, burner_y0, burner_y1 = gen.normalize_case(dict(
+                    chid="partition", Q=40, U=2.5, Df=diameter, dx=dx,
+                    L=100, W=10, H=5, x_fire=50, T_end=60,
+                    n_mesh_x=11, n_mesh_y=1, n_mesh_z=2,
+                ))["burner_bounds"]
+                containing = [
+                    interval for interval in x_intervals
+                    if interval[0] <= burner_x0 and burner_x1 <= interval[1]
+                ]
+                self.assertEqual(1, len(containing))
+                self.assertTrue(0.0 <= burner_y0 < burner_y1 <= 10.0)
+
+    def test_mesh_partition_validation(self):
+        invalid = (
+            (dict(n_mesh_x=0), "n_mesh_x 必须大于 0"),
+            (dict(n_mesh_z=21), "超过 z 方向单元数"),
+            (dict(n_mesh_x=10), "切穿离散燃烧器"),
+            (dict(n_mesh_x=1.5), "必须是整数"),
+        )
+        for overrides, message in invalid:
+            spec = dict(chid="partition", Q=40, U=2.5, Df=5, dx=0.25,
+                        L=100, W=10, H=5, x_fire=50, T_end=60)
+            spec.update(overrides)
+            with self.subTest(overrides=overrides), self.assertRaisesRegex(ValueError, message):
+                gen.normalize_case(spec)
 
     def test_custom_geometry_uses_case_height(self):
         text = self.render(L=30, W=4, H=2, x_fire=15, Df=1, dx=0.25)
