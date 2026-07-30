@@ -1,0 +1,244 @@
+
+ Starting FDS ...
+
+ MPI Process      0 started on sd06n02
+ MPI Process      2 started on sd06n02
+ MPI Process      4 started on sd06n02
+ MPI Process      6 started on sd06n02
+ MPI Process      8 started on sd06n02
+ MPI Process     10 started on sd06n02
+ MPI Process     12 started on sd06n02
+ MPI Process     14 started on sd06n02
+ MPI Process     16 started on sd06n02
+ MPI Process     18 started on sd06n02
+ MPI Process     20 started on sd06n02
+ MPI Process      1 started on sd06n02
+ MPI Process      3 started on sd06n02
+ MPI Process      5 started on sd06n02
+ MPI Process      7 started on sd06n02
+ MPI Process      9 started on sd06n02
+ MPI Process     11 started on sd06n02
+ MPI Process     13 started on sd06n02
+ MPI Process     15 started on sd06n02
+ MPI Process     17 started on sd06n02
+ MPI Process     19 started on sd06n02
+ MPI Process     21 started on sd06n02
+
+ Reading FDS input file ...
+
+
+ Fire Dynamics Simulator
+
+ Current Date     : July 29, 2026  22:47:24
+ Revision         : FDS-6.9.1-0-g889da6a-release
+ Revision Date    : Sun Apr 7 17:05:06 2024 -0400
+ Compiler         : Intel(R) Fortran Intel(R) 64 Compiler Classic for applications running on Intel(R) 64, Version 2021.7.1 Build 20221019_000000
+ Compilation Date : Apr 09, 2024 13:24:51
+
+ Number of MPI Processes:  22
+
+ MPI version: 3.1
+ MPI library version: Intel(R) MPI Library 2021.6 for Linux* OS
+
+
+ Job TITLE        : [grid_high_strong] 高功率强风 · 粗网格(0.5m)
+ Job ID string    : gsC_c
+
+ Time Step:       1, Simulation Time:      0.36 s
+ Time Step:       2, Simulation Time:      0.71 s
+ Time Step:       3, Simulation Time:      1.07 s
+ Time Step:       4, Simulation Time:      1.43 s
+ Time Step:       5, Simulation Time:      1.79 s
+ Time Step:       6, Simulation Time:      1.97 s
+ Time Step:       7, Simulation Time:      2.14 s
+ Time Step:       8, Simulation Time:      2.28 s
+ Time Step:       9, Simulation Time:      2.42 s
+ Time Step:      10, Simulation Time:      2.53 s
+ Time Step:      20, Simulation Time:      3.32 s
+ Time Step:      30, Simulation Time:      3.83 s
+ Time Step:      40, Simulation Time:      4.29 s
+ Time Step:      50, Simulation Time:      4.69 s
+ Time Step:      60, Simulation Time:      5.01 s
+ Time Step:      70, Simulation Time:      5.28 s
+ Time Step:      80, Simulation Time:      5.52 s
+ Time Step:      90, Simulation Time:      5.72 s
+ Time Step:     100, Simulation Time:      5.89 s
+ Time Step:     200, Simulation Time:      7.63 s
+ Time Step:     300, Simulation Time:      9.56 s
+ Time Step:     400, Simulation Time:     11.44 s
+ Time Step:     500, Simulation Time:     13.08 s
+ Time Step:     600, Simulation Time:     15.07 s
+ Time Step:     700, Simulation Time:     16.60 s
+ Time Step:     800, Simulation Time:     18.49 s
+ Time Step:     900, Simulation Time:     20.24 s
+ Time Step:    1000, Simulation Time:     21.77 s
+ Time Step:    1100, Simulation Time:     23.57 s
+ Time Step:    1200, Simulation Time:     25.19 s
+ Time Step:    1300, Simulation Time:     27.03 s
+ Time Step:    1400, Simulation Time:     28.72 s
+ Time Step:    1500, Simulation Time:     30.35 s
+ Time Step:    1600, Simulation Time:     32.09 s
+ Time Step:    1700, Simulation Time:     33.68 s
+ Time Step:    1800, Simulation Time:     35.46 s
+ Time Step:    1900, Simulation Time:     37.05 s
+ Time Step:    2000, Simulation Time:     38.82 s
+ Time Step:    2100, Simulation Time:     40.44 s
+ Time Step:    2200, Simulation Time:     42.10 s
+ Time Step:    2300, Simulation Time:     43.92 s
+ Time Step:    2400, Simulation Time:     45.52 s
+ Time Step:    2500, Simulation Time:     47.33 s
+ Time Step:    2600, Simulation Time:     48.83 s
+ Time Step:    2700, Simulation Time:     50.40 s
+ Time Step:    2800, Simulation Time:     51.96 s
+ Time Step:    2900, Simulation Time:     53.76 s
+ Time Step:    3000, Simulation Time:     55.43 s
+ Time Step:    3100, Simulation Time:     57.05 s
+ Time Step:    3200, Simulation Time:     58.78 s
+ Time Step:    3300, Simulation Time:     60.41 s
+ Time Step:    3400, Simulation Time:     62.16 s
+ Time Step:    3500, Simulation Time:     63.65 s
+ Time Step:    3600, Simulation Time:     65.49 s
+ Time Step:    3700, Simulation Time:     67.10 s
+ Time Step:    3800, Simulation Time:     68.93 s
+ Time Step:    3900, Simulation Time:     70.52 s
+ Time Step:    4000, Simulation Time:     72.28 s
+ Time Step:    4100, Simulation Time:     73.93 s
+ Time Step:    4200, Simulation Time:     75.62 s
+ Time Step:    4300, Simulation Time:     77.46 s
+ Time Step:    4400, Simulation Time:     78.88 s
+ Time Step:    4500, Simulation Time:     80.67 s
+ Time Step:    4600, Simulation Time:     82.12 s
+ Time Step:    4700, Simulation Time:     83.96 s
+ Time Step:    4800, Simulation Time:     85.40 s
+ Time Step:    4900, Simulation Time:     87.05 s
+ Time Step:    5000, Simulation Time:     88.70 s
+ Time Step:    5100, Simulation Time:     90.37 s
+ Time Step:    5200, Simulation Time:     92.20 s
+ Time Step:    5300, Simulation Time:     93.75 s
+ Time Step:    5400, Simulation Time:     95.49 s
+ Time Step:    5500, Simulation Time:     97.11 s
+ Time Step:    5600, Simulation Time:     98.92 s
+ Time Step:    5700, Simulation Time:    100.51 s
+ Time Step:    5800, Simulation Time:    102.28 s
+ Time Step:    5900, Simulation Time:    103.93 s
+ Time Step:    6000, Simulation Time:    105.68 s
+ Time Step:    6100, Simulation Time:    107.42 s
+ Time Step:    6200, Simulation Time:    109.06 s
+ Time Step:    6300, Simulation Time:    110.68 s
+ Time Step:    6400, Simulation Time:    112.20 s
+ Time Step:    6500, Simulation Time:    113.93 s
+ Time Step:    6600, Simulation Time:    115.39 s
+ Time Step:    6700, Simulation Time:    117.14 s
+ Time Step:    6800, Simulation Time:    118.79 s
+ Time Step:    6900, Simulation Time:    120.69 s
+ Time Step:    7000, Simulation Time:    122.24 s
+ Time Step:    7100, Simulation Time:    124.05 s
+ Time Step:    7200, Simulation Time:    125.69 s
+ Time Step:    7300, Simulation Time:    127.41 s
+ Time Step:    7400, Simulation Time:    128.95 s
+ Time Step:    7500, Simulation Time:    130.69 s
+ Time Step:    7600, Simulation Time:    132.40 s
+ Time Step:    7700, Simulation Time:    133.93 s
+ Time Step:    7800, Simulation Time:    135.55 s
+ Time Step:    7900, Simulation Time:    137.16 s
+ Time Step:    8000, Simulation Time:    139.10 s
+ Time Step:    8100, Simulation Time:    140.59 s
+ Time Step:    8200, Simulation Time:    142.36 s
+ Time Step:    8300, Simulation Time:    143.87 s
+ Time Step:    8400, Simulation Time:    145.68 s
+ Time Step:    8500, Simulation Time:    147.36 s
+ Time Step:    8600, Simulation Time:    149.03 s
+ Time Step:    8700, Simulation Time:    150.77 s
+ Time Step:    8800, Simulation Time:    152.25 s
+ Time Step:    8900, Simulation Time:    154.00 s
+ Time Step:    9000, Simulation Time:    155.56 s
+ Time Step:    9100, Simulation Time:    157.39 s
+ Time Step:    9200, Simulation Time:    158.97 s
+ Time Step:    9300, Simulation Time:    160.79 s
+ Time Step:    9400, Simulation Time:    162.32 s
+ Time Step:    9500, Simulation Time:    164.02 s
+ Time Step:    9600, Simulation Time:    165.61 s
+ Time Step:    9700, Simulation Time:    167.29 s
+ Time Step:    9800, Simulation Time:    169.05 s
+ Time Step:    9900, Simulation Time:    170.56 s
+ Time Step:   10000, Simulation Time:    172.38 s
+ Time Step:   10100, Simulation Time:    173.89 s
+ Time Step:   10200, Simulation Time:    175.67 s
+ Time Step:   10300, Simulation Time:    177.23 s
+ Time Step:   10400, Simulation Time:    178.97 s
+ Time Step:   10500, Simulation Time:    180.56 s
+ Time Step:   10600, Simulation Time:    182.29 s
+ Time Step:   10700, Simulation Time:    183.90 s
+ Time Step:   10800, Simulation Time:    185.54 s
+ Time Step:   10900, Simulation Time:    187.42 s
+ Time Step:   11000, Simulation Time:    188.92 s
+ Time Step:   11100, Simulation Time:    190.72 s
+ Time Step:   11200, Simulation Time:    192.27 s
+ Time Step:   11300, Simulation Time:    194.04 s
+ Time Step:   11400, Simulation Time:    195.71 s
+ Time Step:   11500, Simulation Time:    197.34 s
+ Time Step:   11600, Simulation Time:    199.04 s
+ Time Step:   11700, Simulation Time:    200.48 s
+ Time Step:   11800, Simulation Time:    202.20 s
+ Time Step:   11900, Simulation Time:    203.71 s
+ Time Step:   12000, Simulation Time:    205.61 s
+ Time Step:   12100, Simulation Time:    207.12 s
+ Time Step:   12200, Simulation Time:    208.83 s
+ Time Step:   12300, Simulation Time:    210.45 s
+ Time Step:   12400, Simulation Time:    212.08 s
+ Time Step:   12500, Simulation Time:    213.88 s
+ Time Step:   12600, Simulation Time:    215.43 s
+ Time Step:   12700, Simulation Time:    217.10 s
+ Time Step:   12800, Simulation Time:    218.73 s
+ Time Step:   12900, Simulation Time:    220.47 s
+ Time Step:   13000, Simulation Time:    222.02 s
+ Time Step:   13100, Simulation Time:    223.72 s
+ Time Step:   13200, Simulation Time:    225.26 s
+ Time Step:   13300, Simulation Time:    227.02 s
+ Time Step:   13400, Simulation Time:    228.56 s
+ Time Step:   13500, Simulation Time:    230.31 s
+ Time Step:   13600, Simulation Time:    231.97 s
+ Time Step:   13700, Simulation Time:    233.57 s
+ Time Step:   13800, Simulation Time:    235.17 s
+ Time Step:   13900, Simulation Time:    236.88 s
+ Time Step:   14000, Simulation Time:    238.66 s
+ Time Step:   14100, Simulation Time:    240.21 s
+ Time Step:   14200, Simulation Time:    242.03 s
+ Time Step:   14300, Simulation Time:    243.52 s
+ Time Step:   14400, Simulation Time:    245.43 s
+ Time Step:   14500, Simulation Time:    246.92 s
+ Time Step:   14600, Simulation Time:    248.71 s
+ Time Step:   14700, Simulation Time:    250.18 s
+ Time Step:   14800, Simulation Time:    251.94 s
+ Time Step:   14900, Simulation Time:    253.59 s
+ Time Step:   15000, Simulation Time:    255.20 s
+ Time Step:   15100, Simulation Time:    256.81 s
+ Time Step:   15200, Simulation Time:    258.32 s
+ Time Step:   15300, Simulation Time:    260.05 s
+ Time Step:   15400, Simulation Time:    261.60 s
+ Time Step:   15500, Simulation Time:    263.40 s
+ Time Step:   15600, Simulation Time:    264.99 s
+ Time Step:   15700, Simulation Time:    266.80 s
+ Time Step:   15800, Simulation Time:    268.44 s
+ Time Step:   15900, Simulation Time:    270.19 s
+ Time Step:   16000, Simulation Time:    271.75 s
+ Time Step:   16100, Simulation Time:    273.40 s
+ Time Step:   16200, Simulation Time:    275.08 s
+ Time Step:   16300, Simulation Time:    276.67 s
+ Time Step:   16400, Simulation Time:    278.29 s
+ Time Step:   16500, Simulation Time:    279.80 s
+ Time Step:   16600, Simulation Time:    281.41 s
+ Time Step:   16700, Simulation Time:    283.01 s
+ Time Step:   16800, Simulation Time:    284.71 s
+ Time Step:   16900, Simulation Time:    286.34 s
+ Time Step:   17000, Simulation Time:    288.03 s
+ Time Step:   17100, Simulation Time:    289.67 s
+ Time Step:   17200, Simulation Time:    291.37 s
+ Time Step:   17300, Simulation Time:    292.82 s
+ Time Step:   17400, Simulation Time:    294.40 s
+ Time Step:   17500, Simulation Time:    295.84 s
+ Time Step:   17600, Simulation Time:    297.59 s
+ Time Step:   17700, Simulation Time:    299.15 s
+ Time Step:   17746, Simulation Time:    300.00 s
+
+STOP: FDS completed successfully (CHID: gsC_c)
