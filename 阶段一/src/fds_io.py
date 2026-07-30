@@ -137,15 +137,19 @@ def extract_T_profile(times, series, fire_x, T_ambient, t_window=None):
     else:
         t0, t1 = t_window
     idx = [i for i, t in enumerate(times) if t0 <= t <= t1]
+    # 显式给定窗口却没有样本时必须失败；回退到全时段会把启动段悄悄
+    # 当成准稳态数据，进而污染网格/边界决策。
     if not idx:
-        idx = list(range(len(times)))
+        return None, None
 
     pts = []
     for fid, vals in series.items():
         if not (fid.startswith("T_") and fid[2:].isdigit()):
             continue
         x = int(fid[2:]) / 100.0
-        col = [vals[i] for i in idx]
+        col = [vals[i] for i in idx if i < len(vals) and math.isfinite(vals[i])]
+        if not col:
+            continue
         if HAS_NUMPY:
             T_bar = float(np.nanmean(col))
         else:
@@ -166,9 +170,11 @@ def parabolic_peak(xs, Ts):
     在离散最高点附近三点拟合 y=a(x-x0)^2+ymax。
     返回 (x_p, T_p)。点不足时退化为离散最大。
     """
-    if not xs:
+    valid = [(i, x, y) for i, (x, y) in enumerate(zip(xs, Ts))
+             if math.isfinite(x) and math.isfinite(y)]
+    if not valid:
         return None, None
-    imax = int(max(range(len(Ts)), key=lambda i: Ts[i]))
+    imax = max(valid, key=lambda item: item[2])[0]
     T_p = Ts[imax]
     x_p = xs[imax]
     if 0 < imax < len(xs) - 1:
@@ -183,16 +189,13 @@ def parabolic_peak(xs, Ts):
                 xv = -b / (2 * a)
                 if min(x1, x3) <= xv <= max(x1, x3):
                     x_p = xv
-                    T_p = a * (xv - 0) ** 2 + b * xv + 0  # placeholder
-                    # 重新用拟合顶点值
-                    T_p = a * xv ** 2 + b * xv + 0.0
-                    # 修正截距：用 y2 校正
                     c = y2 - a * x2 ** 2 - b * x2
                     T_p = a * xv ** 2 + b * xv + c
     return x_p, T_p
 
 
-def fit_decay(xs, Ts, x_p, side, near_exclude, H, dT_threshold=0.0):
+def fit_decay(xs, Ts, x_p, side, near_exclude, H, dT_threshold=0.0,
+              min_points=3):
     """
     单侧指数衰减拟合，返回 k (1/m) 与使用的点数。
       side='up'   : x < x_p ， ln(θ) = k_u*(x-x_p)，slope = k_u
@@ -207,10 +210,10 @@ def fit_decay(xs, Ts, x_p, side, near_exclude, H, dT_threshold=0.0):
             continue
         if side == "down" and dx <= near_exclude:
             continue
-        if T <= dT_threshold:
+        if not (math.isfinite(x) and math.isfinite(T)) or T <= dT_threshold:
             continue
         pairs.append((dx, math.log(T)))
-    if len(pairs) < 2:
+    if len(pairs) < min_points:
         return None, 0
     # 线性最小二乘 ln(θ) = slope*dx + intercept
     n = len(pairs)
@@ -223,6 +226,8 @@ def fit_decay(xs, Ts, x_p, side, near_exclude, H, dT_threshold=0.0):
         return None, 0
     slope = (n * sxy - sx * sy) / denom
     k = slope if side == "up" else -slope
+    if not math.isfinite(k) or k <= 0:
+        return None, n
     return k, n
 
 
@@ -240,7 +245,8 @@ def extract_features(times, series, fire_x, T_ambient, H,
     k_d, n_d = fit_decay(xs, Ts, x_p, "down", near_exclude, H, dT_threshold)
     return {
         "x_p": x_p, "dT_p": dT_p,
-        "k_u": k_u, "k_d": k_d, "kappa_u": k_u * H if k_u else None,
-        "kappa_d": k_d * H if k_d else None,
+        "k_u": k_u, "k_d": k_d,
+        "kappa_u": k_u * H if k_u is not None else None,
+        "kappa_d": k_d * H if k_d is not None else None,
         "n_up": n_u, "n_down": n_d,
     }

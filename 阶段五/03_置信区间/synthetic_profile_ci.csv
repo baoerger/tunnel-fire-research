@@ -1,0 +1,2 @@
+method,minimum_chi2,threshold_chi2,Q_low_MW,Q_high_MW,Q_grid_truncated,x_low_m,x_high_m,x_grid_truncated,evidence_label,decision_status
+PROFILE_CHI_SQUARE_GRID,0.0,3.841458820694124,32.0,38.0,False,50.0,50.0,False,SYNTHETIC_SOFTWARE_TEST_NOT_SCIENTIFIC_EVIDENCE,SOFTWARE_ONLY_NO_COVERAGE_OR_REAL_PRECISION_CLAIM

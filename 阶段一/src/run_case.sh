@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# run_case.sh — 运行一个 FDS 工况（默认单 mesh、单进程）
+# run_case.sh — 运行一个 FDS 工况并校验 MPI/MESH 关系
 # 用法: ./run_case.sh <case.fds> [MPI 进程数] [运行根目录]
-# FDS_BIN 可为 PATH 中的命令或绝对路径；多进程仅适用于输入已划分多个 MESH 的情况。
+# FDS_BIN 可为 PATH 中的命令或绝对路径；FDS_OMP_THREADS 控制每任务线程数。
 set -euo pipefail
 
 if [ "$#" -lt 1 ]; then
@@ -21,6 +21,20 @@ if [ ! -f "$INPUT" ]; then
 fi
 if ! [[ "$NPROC" =~ ^[1-9][0-9]*$ ]]; then
   echo "错误: MPI 进程数必须为正整数: $NPROC" >&2
+  exit 1
+fi
+OMP_THREADS="${FDS_OMP_THREADS:-1}"
+if ! [[ "$OMP_THREADS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "错误: FDS_OMP_THREADS 必须为正整数: $OMP_THREADS" >&2
+  exit 1
+fi
+MESH_COUNT="$(grep -Ec '^[[:space:]]*&MESH([[:space:]]|$)' "$INPUT" || true)"
+if [ "$MESH_COUNT" -lt 1 ]; then
+  echo "错误: 输入中未找到 MESH: $INPUT" >&2
+  exit 1
+fi
+if [ "$NPROC" -gt "$MESH_COUNT" ]; then
+  echo "错误: MPI 进程数 $NPROC 超过输入 MESH 数 $MESH_COUNT" >&2
   exit 1
 fi
 if [[ "$FDS_COMMAND" == */* ]]; then
@@ -43,7 +57,8 @@ if [ "$INPUT" != "$RUN_INPUT" ]; then
   cp "$INPUT" "$RUN_INPUT"
 fi
 
-echo "[$(date '+%F %T')] 运行 $CHID | 进程=$NPROC | 目录=$DIR"
+export OMP_NUM_THREADS="$OMP_THREADS"
+echo "[$(date '+%F %T')] 运行 $CHID | MESH=$MESH_COUNT | MPI=$NPROC | OpenMP=$OMP_NUM_THREADS | 目录=$DIR"
 cd "$DIR"
 if [ "$NPROC" -eq 1 ]; then
   time "$FDS_COMMAND" "$FILE"

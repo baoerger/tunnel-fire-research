@@ -1,0 +1,4 @@
+chid,Q_true_MW,x_f_true_m,U_mps,Df_m,H_m,W_m,n_sensors,temperature_type,Q_hat_MW,Q_relative_error,x_f_hat_m,x_f_error_m,temperature_reconstruction_rmse_C,status,reference
+Arup_Tunnel,5.344,50.0,0.0,1.595769,7.0,9.0,9,thermocouple,,,,,,WAITING_FORMAL_MODEL_FDS_VALIDATION_AND_THERMOCOUPLE_TREATMENT,"Vigne & Jönsson (2009), FSB2009 Tests 1-5"
+CSTB_Tunnel_Test_2,1.965,0.0,2.2,0.797885,2.7,3.0,6,thermocouple,,,,,,WAITING_FORMAL_MODEL_FDS_VALIDATION_AND_THERMOCOUPLE_TREATMENT,"Blanchard et al. (2014), DOI 10.1007/s10694-013-0323-z"
+IFAB-07,2.880617,5.4,1.953333,0.844402,1.25,2.5,11,thermocouple,,,,,,WAITING_FORMAL_MODEL_FDS_VALIDATION_AND_THERMOCOUPLE_TREATMENT,"Bilson, Raza & Connell (2023), FHWA-HIF-23-022"

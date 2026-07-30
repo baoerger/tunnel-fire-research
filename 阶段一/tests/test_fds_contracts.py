@@ -14,7 +14,9 @@ sys.path.insert(0, SRC)
 import check_convection_ratio as convection
 import fds_io
 import generate_fds_case as gen
+import prepare_external_validation as external
 import tunnel_config as cfg
+import validation_metrics as validation
 
 
 class GenerateFdsTests(unittest.TestCase):
@@ -162,6 +164,13 @@ class GenerateFdsTests(unittest.TestCase):
                                region=cfg.measurement_region(30, 2))
         self.assertTrue(all(6 <= x <= 24 for x in xs))
 
+    def test_offset_fire_keeps_fixed_sensor_layout(self):
+        centered = self.render(x_fire=50)
+        offset = self.render(x_fire=35)
+        sensor_pattern = re.compile(r"&DEVC ID='T_(\d+)'", re.MULTILINE)
+        self.assertEqual(sensor_pattern.findall(centered), sensor_pattern.findall(offset))
+        self.assertIn("XB=", offset)  # 火源几何仍随 x_fire 改变
+
     def test_validation_messages(self):
         invalid = [
             (dict(chid="bad id", Q=1, Df=1, dx=0.25), "只能包含"),
@@ -191,6 +200,185 @@ class GenerateFdsTests(unittest.TestCase):
                 writer.writerow(["dup", 2, 1, 0.25])
             with self.assertRaisesRegex(ValueError, "重复"):
                 gen._run_csv(path, os.path.join(tmp, "out"))
+
+    def test_official_external_snapshots_are_copied_byte_for_byte(self):
+        stage = os.path.dirname(HERE)
+        external_dir = os.path.join(stage, "05_外部试验复现")
+        csv_path = os.path.join(external_dir, "external_cases_template.csv")
+        with open(csv_path, newline="", encoding="utf-8-sig") as stream:
+            rows = list(csv.DictReader(stream))
+        self.assertEqual(
+            {"Arup_Tunnel", "CSTB_Tunnel_Test_2", "IFAB-07"},
+            {row["chid"] for row in rows},
+        )
+        with open(csv_path, encoding="utf-8-sig") as stream:
+            self.assertNotIn("TBD", stream.read())
+        with tempfile.TemporaryDirectory() as tmp:
+            gen._run_csv(csv_path, tmp)
+            for row in rows:
+                source = os.path.join(external_dir, row["source_fds"])
+                copied = os.path.join(tmp, row["chid"], os.path.basename(source))
+                with self.subTest(chid=row["chid"]):
+                    with open(source, "rb") as src, open(copied, "rb") as dst:
+                        self.assertEqual(src.read(), dst.read())
+                    companions = [x for x in row["companion_files"].split(";") if x]
+                    for name in companions:
+                        source_companion = os.path.join(os.path.dirname(source), name)
+                        copied_companion = os.path.join(tmp, row["chid"], name)
+                        with open(source_companion, "rb") as src, open(
+                                copied_companion, "rb") as dst:
+                            self.assertEqual(src.read(), dst.read())
+
+    def test_real_external_observations_are_prepared_with_traceability(self):
+        stage = os.path.dirname(HERE)
+        external_dir = os.path.join(stage, "05_外部试验复现")
+        cases = os.path.join(external_dir, "external_cases_template.csv")
+        mapping = os.path.join(external_dir, "measurement_mapping.csv")
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = external.prepare(cases, mapping, tmp)
+            self.assertEqual(4, len(paths))
+            with open(paths[-1], newline="", encoding="utf-8-sig") as stream:
+                rows = list(csv.DictReader(stream))
+        counts = {}
+        for row in rows:
+            counts[row["chid"]] = counts.get(row["chid"], 0) + 1
+            self.assertEqual("thermocouple", row["temperature_type"])
+            self.assertTrue(math.isfinite(float(row["dT_mean_C"])))
+            self.assertTrue(row["raw_files"])
+        self.assertEqual(
+            {"Arup_Tunnel": 9, "CSTB_Tunnel_Test_2": 6, "IFAB-07": 11},
+            counts,
+        )
+        arup = [row for row in rows if row["chid"] == "Arup_Tunnel"]
+        self.assertTrue(all(row["n_raw_files"] == "5" for row in arup))
+
+    def test_validation_metrics_reject_invalid_inputs(self):
+        invalid = (
+            ([], [(0, 1), (1, 2)], "至少需要两个"),
+            ([(0, 1), (0, 2)], [(0, 1), (1, 2)], "重复"),
+            ([(0, 1), (1, float("nan"))], [(0, 1), (1, 2)], "NaN/Inf"),
+            ([(0, 1), (1, 2)], [(2, 1), (3, 2)], "重叠"),
+            ([(0, 1), (1, 2)], [(0, 0), (1, 0)], "峰值温升为零"),
+        )
+        for fds_points, exp_points, message in invalid:
+            with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
+                validation.metrics(fds_points, exp_points)
+
+    def test_validation_relative_dispersion_uses_even_sample_median(self):
+        fds_points = [(0.0, -19.0), (1.0, 21.0)]
+        exp_points = [(0.0, -20.0), (1.0, 20.0)]
+        result = validation.metrics(fds_points, exp_points)
+        xs = [i / 40 for i in range(41)]
+        exp_values = [-20.0 + 40.0 * x for x in xs]
+        relative = sorted(1.0 / abs(value) for value in exp_values if abs(value) > 1e-9)
+        expected = (relative[19] + relative[20]) / 2.0
+        self.assertAlmostEqual(expected, result["rel_disp"])
+
+    def test_validation_cli_failure_has_nonzero_exit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            empty = os.path.join(tmp, "empty.csv")
+            valid = os.path.join(tmp, "valid.csv")
+            open(empty, "w", encoding="utf-8").close()
+            with open(valid, "w", encoding="utf-8") as stream:
+                stream.write("x,dT\n0,1\n1,2\n")
+            old_argv = sys.argv
+            try:
+                sys.argv = ["validation_metrics", "--fds", empty, "--exp", valid]
+                with self.assertRaises(SystemExit) as caught:
+                    validation.main()
+                self.assertNotEqual(0, caught.exception.code)
+            finally:
+                sys.argv = old_argv
+
+    def test_tracked_grid_inputs_exactly_match_csv_generator(self):
+        stage = os.path.dirname(HERE)
+        csv_path = os.path.join(stage, "03_网格敏感性", "grid_sensitivity_cases.csv")
+        with open(csv_path, newline="", encoding="utf-8-sig") as stream:
+            rows = list(csv.DictReader(stream))
+        self.assertEqual(9, len(rows))
+        for line_number, row in enumerate(rows, start=2):
+            with self.subTest(chid=row["chid"]):
+                case = gen.normalize_case(row, row_number=line_number)
+                expected = gen.render_fds(
+                    chid=case["chid"], Q=case["Q"], U=case["U"], Df=case["Df"],
+                    dx=case["dx"], L=case["L"], W=case["W"], H=case["H"],
+                    x_fire=case["x_fire"], T_end=case["T_end"],
+                    group=case["case_group"], title=case["note"],
+                    ramp_inlet=case["ramp_inlet"], n_mesh_x=case["n_mesh_x"],
+                    n_mesh_y=case["n_mesh_y"], n_mesh_z=case["n_mesh_z"],
+                    _normalized=case,
+                )
+                path = os.path.join(stage, "fds_cases", f"{case['chid']}.fds")
+                with open(path, encoding="utf-8") as stream:
+                    self.assertEqual(expected, stream.read())
+                self.assertEqual(22, len(self.parse_meshes(expected)))
+
+    def test_length_and_smoke_partition_strategies_are_valid(self):
+        stage = os.path.dirname(HERE)
+        paths = [
+            os.path.join(stage, "04_隧道长度与洞口边界", "length_boundary_cases.csv"),
+            os.path.join(stage, "00_外部计算与回传", "smoke_22mesh_cases.csv"),
+        ]
+        expected_counts = {"lenA_150": 34, "lenC_150": 34,
+                           "lenA_200": 46, "lenC_200": 46,
+                           "smoke_22mesh": 22}
+        for csv_path in paths:
+            with open(csv_path, newline="", encoding="utf-8-sig") as stream:
+                for row in csv.DictReader(stream):
+                    case = gen.normalize_case(row)
+                    text = gen.render_fds(**{
+                        "chid": case["chid"], "Q": case["Q"], "U": case["U"],
+                        "Df": case["Df"], "dx": case["dx"], "L": case["L"],
+                        "W": case["W"], "H": case["H"], "x_fire": case["x_fire"],
+                        "T_end": case["T_end"], "n_mesh_x": case["n_mesh_x"],
+                        "n_mesh_y": case["n_mesh_y"], "n_mesh_z": case["n_mesh_z"],
+                        "_normalized": case,
+                    })
+                    self.assertEqual(expected_counts[case["chid"]], len(self.parse_meshes(text)))
+
+    def test_run_scripts_reject_mpi_tasks_above_mesh_count(self):
+        stage = os.path.dirname(HERE)
+        for name in ("run_case.sh", "run_slurm_template.sh"):
+            with open(os.path.join(stage, "src", name), encoding="utf-8") as stream:
+                text = stream.read()
+            self.assertIn("MESH_COUNT", text)
+            self.assertRegex(text, r"-gt \"\$MESH_COUNT\"")
+        with open(os.path.join(stage, "src", "run_slurm_template.sh"),
+                  encoding="utf-8") as stream:
+            slurm = stream.read()
+        self.assertIn("#SBATCH --ntasks-per-node=22", slurm)
+        self.assertIn("#SBATCH --cpus-per-task=2", slurm)
+
+    def test_sensor_layout_and_sparse_subsets_contract(self):
+        stage = os.path.dirname(HERE)
+        sensor_path = os.path.join(stage, "07_温度测点与输出规范", "sensor_layout.csv")
+        subset_path = os.path.join(stage, "07_温度测点与输出规范", "sparse_subsets.csv")
+        with open(sensor_path, newline="", encoding="utf-8-sig") as stream:
+            sensors = list(csv.DictReader(stream))
+        ids = {row["id"] for row in sensors}
+        self.assertEqual(23, len(sensors))
+        self.assertEqual(23, len(ids))
+        self.assertTrue(all(15.0 <= float(row["x"]) <= 85.0 for row in sensors))
+        self.assertTrue(all(float(row["z_temp"]) == 4.5 for row in sensors))
+        self.assertTrue(all(float(row["z_vel"]) == 4.75 for row in sensors))
+        with open(subset_path, newline="", encoding="utf-8-sig") as stream:
+            for row in csv.DictReader(stream):
+                selected = row["sensor_ids"].split(";")
+                self.assertEqual(int(row["n_sensors"]), len(selected))
+                self.assertEqual(len(selected), len(set(selected)))
+                self.assertTrue(set(selected) <= ids)
+
+    def test_device_contract_has_required_consumers(self):
+        stage = os.path.dirname(HERE)
+        path = os.path.join(stage, "07_温度测点与输出规范", "device_contract.csv")
+        with open(path, newline="", encoding="utf-8-sig") as stream:
+            rows = list(csv.DictReader(stream))
+        keys = {(row["record"], row["id_or_pattern"]) for row in rows}
+        for required in (("DEVC", "T_*"), ("DEVC", "U_*"),
+                         ("DEVC", "HRR_tot"), ("HRR_CSV", "HRR"),
+                         ("HRR_CSV", "Q_RADI")):
+            self.assertIn(required, keys)
+        self.assertTrue(all(row["consumer"] and row["normalized_unit"] for row in rows))
 
 
 class FdsIoTests(unittest.TestCase):

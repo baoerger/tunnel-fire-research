@@ -39,6 +39,7 @@ import csv
 import argparse
 import math
 import re
+import shutil
 import warnings
 
 import tunnel_config as cfg
@@ -49,6 +50,9 @@ _REQUIRED_FIELDS = ("chid", "Q", "Df", "dx")
 _NUMERIC_FIELDS = ("Q", "U", "Df", "dx", "L", "W", "H", "x_fire", "T_end")
 _MESH_COUNT_FIELDS = ("n_mesh_x", "n_mesh_y", "n_mesh_z")
 _CHID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_HEAD_CHID_RE = re.compile(r"&HEAD\b[^/]*\bCHID\s*=\s*['\"]([^'\"]+)['\"]", re.IGNORECASE)
+_TIME_END_RE = re.compile(r"&TIME\b[^/]*\bT_END\s*=\s*([0-9.Ee+-]+)", re.IGNORECASE)
+_CATF_FILES_RE = re.compile(r"&CATF\b[^/]*\bOTHER_FILES\s*=\s*([^/]+)", re.IGNORECASE)
 
 
 def normalize_case(spec, row_number=None):
@@ -459,7 +463,10 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
         title = f"[{group}] {title}"
 
     region = cfg.measurement_region(L, H)
-    sensor_xs = cfg.sensor_layout(height=H, fire_x=x_fire, region=region)
+    # 传感器属于隧道布置而不是火源工况：同一几何下始终以隧道中点为
+    # 布置参考，偏移火源不得带着传感器一起平移。这样 6 个偏移工况才
+    # 能真实检验定位和平移性质。外部试验的实测位置另由测点映射表给出。
+    sensor_xs = cfg.sensor_layout(height=H, fire_x=L / 2.0, region=region)
 
     burner_block = _fmt_surf_burner(Q, bounds)
     inlet_blocks = _fmt_inlet(L, W, H, U, ramp_inlet=ramp_inlet)
@@ -519,6 +526,102 @@ def write_fds(spec, outdir, row_number=None):
     return path
 
 
+def _split_semicolon(value):
+    return [item.strip() for item in str(value or "").split(";") if item.strip()]
+
+
+def _validate_snapshot_metadata(row, row_number):
+    """校验官方验证仓库快照的描述字段，不把复杂截面误生成为矩形隧道。"""
+    prefix = f"CSV 第 {row_number} 行"
+    chid = str(row.get("chid") or "").strip()
+    if not _CHID_RE.fullmatch(chid):
+        raise ValueError(f"{prefix}: chid={chid!r} 只能包含字母、数字、下划线和连字符")
+
+    values = {"chid": chid, "input_mode": "official_snapshot"}
+    for field in _NUMERIC_FIELDS:
+        raw = row.get(field)
+        if raw in (None, "") or str(raw).upper() == "TBD":
+            raise ValueError(f"{prefix}: 官方快照缺少描述字段 {field}")
+        try:
+            values[field] = float(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{prefix}: 字段 {field}={raw!r} 不是有效数值") from exc
+    for field in ("Q", "Df", "dx", "L", "W", "H", "T_end"):
+        if values[field] <= 0:
+            raise ValueError(f"{prefix}: {field} 必须大于 0")
+    if values["U"] < 0:
+        raise ValueError(f"{prefix}: U 必须大于等于 0")
+
+    try:
+        x_min = float(row.get("x_min") or 0.0)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{prefix}: x_min 不是有效数值") from exc
+    if not x_min <= values["x_fire"] <= x_min + values["L"]:
+        raise ValueError(
+            f"{prefix}: x_fire={values['x_fire']} 不在官方计算域 "
+            f"[{x_min}, {x_min + values['L']}] 内"
+        )
+    values["x_min"] = x_min
+    return values
+
+
+def _prepare_official_snapshot(row, csv_dir, outdir, row_number):
+    """从已归档的官方源文件生成独立外部提交目录，内容保持逐字不变。"""
+    prefix = f"CSV 第 {row_number} 行"
+    values = _validate_snapshot_metadata(row, row_number)
+    source_rel = str(row.get("source_fds") or "").strip()
+    if not source_rel:
+        raise ValueError(f"{prefix}: input_mode=official_snapshot 时必须填写 source_fds")
+    source_path = os.path.abspath(os.path.join(csv_dir, source_rel))
+    csv_root = os.path.abspath(csv_dir)
+    if os.path.commonpath((source_path, csv_root)) != csv_root:
+        raise ValueError(f"{prefix}: source_fds 必须位于外部试验目录内")
+    if not os.path.isfile(source_path):
+        raise ValueError(f"{prefix}: source_fds 不存在: {source_path}")
+
+    with open(source_path, encoding="utf-8-sig") as stream:
+        text = stream.read()
+    head = _HEAD_CHID_RE.search(text)
+    if not head or head.group(1) != values["chid"]:
+        actual = head.group(1) if head else "未找到"
+        raise ValueError(f"{prefix}: 源文件 CHID={actual!r} 与 {values['chid']!r} 不一致")
+    end = _TIME_END_RE.search(text)
+    if not end or not math.isclose(float(end.group(1)), values["T_end"], abs_tol=1e-8):
+        actual = end.group(1) if end else "未找到"
+        raise ValueError(f"{prefix}: 源文件 T_END={actual} 与元数据 {values['T_end']:g} 不一致")
+    # 官方验证库中同时存在 ``&TAIL /`` 与 ``&TAIL/``；二者对 FDS
+    # 等价。快照必须逐字保留，因此只校验最后一条 namelist，而不改写。
+    if not re.search(r"&TAIL\s*/\s*$", text, re.IGNORECASE):
+        raise ValueError(f"{prefix}: 官方源文件最后一条记录不是 &TAIL /")
+
+    source_dir = os.path.dirname(source_path)
+    companion_names = _split_semicolon(row.get("companion_files"))
+    companion_paths = []
+    for name in companion_names:
+        if os.path.basename(name) != name:
+            raise ValueError(f"{prefix}: companion_files 只能填写源目录内文件名: {name}")
+        path = os.path.join(source_dir, name)
+        if not os.path.isfile(path):
+            raise ValueError(f"{prefix}: 伴随文件不存在: {path}")
+        companion_paths.append(path)
+
+    catf = _CATF_FILES_RE.search(text)
+    if catf:
+        referenced = re.findall(r"['\"]([^'\"]+)['\"]", catf.group(1))
+        missing = sorted(set(referenced) - set(companion_names))
+        if missing:
+            raise ValueError(f"{prefix}: CATF 引用文件未列入 companion_files: {', '.join(missing)}")
+
+    case_dir = os.path.join(outdir, values["chid"])
+    os.makedirs(case_dir, exist_ok=True)
+    destinations = []
+    for path in [source_path, *companion_paths]:
+        destination = os.path.join(case_dir, os.path.basename(path))
+        shutil.copyfile(path, destination)
+        destinations.append(destination)
+    return destinations
+
+
 def _to_bool(v):
     return str(v).strip().lower() in ("1", "true", "yes", "y", "t")
 
@@ -537,15 +640,26 @@ def _run_csv(csv_path, outdir):
         rows = list(reader)
 
     seen = {}
-    normalized_rows = []
+    prepared_rows = []
     for line_number, row in enumerate(rows, start=2):
         chid = (row.get("chid") or "").strip()
         if chid in seen:
             raise ValueError(f"CSV 第 {line_number} 行: chid={chid!r} 与第 {seen[chid]} 行重复")
         seen[chid] = line_number
-        normalized_rows.append(normalize_case(row, row_number=line_number))
+        mode = str(row.get("input_mode") or "generated").strip().lower()
+        if mode == "official_snapshot":
+            prepared_rows.append((mode, row, line_number))
+        elif mode in ("", "generated"):
+            prepared_rows.append(("generated", normalize_case(row, row_number=line_number), line_number))
+        else:
+            raise ValueError(f"CSV 第 {line_number} 行: 未知 input_mode={mode!r}")
 
-    for case in normalized_rows:
+    csv_dir = os.path.dirname(os.path.abspath(csv_path))
+    for mode, case, line_number in prepared_rows:
+        if mode == "official_snapshot":
+            paths = _prepare_official_snapshot(case, csv_dir, outdir, line_number)
+            print(f"[OK] {case['chid']:>20s} -> {os.path.dirname(paths[0])} ({len(paths)} files)")
+            continue
         chid = case["chid"]
         text = render_fds(
             chid=chid, Q=case["Q"], U=case["U"], Df=case["Df"], dx=case["dx"],

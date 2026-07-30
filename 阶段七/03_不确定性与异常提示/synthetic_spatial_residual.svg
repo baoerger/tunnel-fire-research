@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="300">
+<rect width="620" height="300" fill="white"/><line x1="60" x2="560" y1="150" y2="150" stroke="#777"/>
+<polyline points="60.00,150.00 131.43,150.00 202.86,150.00 274.29,260.00 345.71,260.00 417.14,150.00 488.57,150.00 560.00,150.00" fill="none" stroke="#d62728" stroke-width="2"/>
+<text x="310" y="25" text-anchor="middle" font-family="sans-serif">Synthetic spatial residual — mismatch review only</text>
+<text x="310" y="285" text-anchor="middle" font-family="sans-serif">x (m)</text></svg>

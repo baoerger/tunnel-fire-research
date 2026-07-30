@@ -1,5 +1,5 @@
-chid,case_group,Q,U,Df,dx,L,x_fire,T_end,required,note
-lenA_150,length_weak,10,1.0,3.0,0.25,150,75,300,yes,弱风 · 延长至150m (对照基线 gsA_m, L=100)
-lenC_150,length_strong,80,4.5,7.0,0.25,150,75,300,yes,强风 · 延长至150m (对照基线 gsC_m, L=100)
-lenA_200,length_weak_opt,10,1.0,3.0,0.25,200,100,300,optional,弱风 · 延长至200m [可选; 仅当150m不足以判定洞口边界时]
-lenC_200,length_strong_opt,80,4.5,7.0,0.25,200,100,300,optional,强风 · 延长至200m [可选; 仅当150m不足以判定洞口边界时]
+chid,case_group,Q,U,Df,dx,L,x_fire,T_end,n_mesh_x,n_mesh_y,n_mesh_z,required,note
+lenA_150,length_weak,10,1.0,3.0,0.25,150,75,300,17,1,2,yes,弱风 · 延长至150m (34 MESH; 对照基线 gsA_m)
+lenC_150,length_strong,80,4.5,7.0,0.25,150,75,300,17,1,2,yes,强风 · 延长至150m (34 MESH; 对照基线 gsC_m)
+lenA_200,length_weak_opt,10,1.0,3.0,0.25,200,100,300,23,1,2,optional,弱风 · 延长至200m [46 MESH; 仅当150m不足以判定]
+lenC_200,length_strong_opt,80,4.5,7.0,0.25,200,100,300,23,1,2,optional,强风 · 延长至200m [46 MESH; 仅当150m不足以判定]

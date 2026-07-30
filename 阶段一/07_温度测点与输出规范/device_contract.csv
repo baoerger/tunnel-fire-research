@@ -1,0 +1,14 @@
+record,id_or_pattern,quantity,normalized_unit,purpose,consumer,required_for,retention
+DEVC,T_*,TEMPERATURE,C,顶棚中心线主体温度,fds_io/time_average/解析与反演,all_cases,all_cases
+DEVC,U_*,U-VELOCITY,m/s,入口方向与上游回流,quasi_steady/grid/boundary,all_cases,all_cases
+DEVC,HRR_tot,HRRPUV VOLUME INTEGRAL,kW,火源非零与功率闭合,result_check/quasi_steady,all_cases,all_cases
+DEVC,Qw_*,NET HEAT FLUX,kW/m2,代表顶棚壁面热流,grid/full_field,grid_length_representative,all_cases
+HRR_CSV,HRR,HRR,kW,总热释放速率,result_check/convection_ratio,all_cases,all_cases
+HRR_CSV,Q_RADI,Q_RADI,kW,火源辐射与对流份额,convection_ratio,all_cases,all_cases
+SLCF,PBY_center_temperature,TEMPERATURE,C,纵剖面温度与流态,Smokeview/field_reader,representative,grid_length_external_representative
+SLCF,PBY_center_velocity,VELOCITY VECTOR,m/s,入口方向与纵向流动,Smokeview/field_reader,representative,grid_length_external_representative
+SLCF,PBY_center_density,DENSITY,kg/m3,纵剖面密度,field_reader,representative,grid_length_external_representative
+SLCF,PBX_*_temperature,TEMPERATURE,C,横截面超温焓 C_T,field_reader/full_field,representative,grid_length_external_representative
+SLCF,PBX_*_velocity,VELOCITY VECTOR,m/s,纵向超温焓流 J_T,field_reader/full_field,representative,grid_length_external_representative
+SLCF,PBX_*_density,DENSITY,kg/m3,横截面超温焓与焓流,field_reader/full_field,representative,grid_length_external_representative
+BNDF,wall_temperature,WALL TEMPERATURE,C,壁面吸热与热损失趋势,Smokeview/full_field,representative,grid_length_external_representative

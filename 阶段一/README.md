@@ -8,6 +8,7 @@
 - `src/generate_fds_case.py`：所有 `.fds` 的生成与工况校验。
 - `02_FDS基准模型/tunnel_benchmark.fds`：生成器产物，不独立手改。
 - `src/fds_io.py`：读取 FDS CSV 单位行并归一到 °C、kW、kW/m²、m/s。
+- `01_文献调研/empirical_formula_catalog.csv`：传统最大温升/临界风速公式的逐分支、单位、DOI、证据等级和实现路径。
 - `../CLAUDE.md`：FDS 6.10.1 已验证语法、错误速查和首次运行门。
 
 本机已确认 FDS 6.10.1 可解析并推进修正后的短工况，且产生非零 HRR、`_devc.csv` 和 `_hrr.csv`。这只证明输入/启动链路有效，不代表网格收敛、洞口无关性、外部验证或正式准稳态计算已经完成。
@@ -17,7 +18,7 @@
 1. 基准 L×W×H=100×10×5 m；L=100 m 的洞口影响必须用 150/200 m 对照检查。
 2. 正庚烷直接使用 `REAC FUEL='N-HEPTANE'`，不额外写 SPEC 或 SIMPLE_CHEMISTRY。
 3. 预设 HRR 燃烧器使用 `TAU_Q=10 s`。生成器将燃烧器边界吸附到网格面，并按离散面积及 kW/m² 单位计算 HRRPUA；正式 Q 在约 `3×TAU_Q` 后且进入准稳态时由 CSV 时间平均核验。
-4. 粗/中/细均匀单 mesh 为 0.5/0.25/0.125 m；生产网格由核心目标量收敛决定。
+4. 粗/中/细均匀网格为 0.5/0.25/0.125 m；当前 9 个网格敏感性输入均划分为 `11×1×2=22 MESH`，生产网格仍由核心目标量收敛决定。
 5. 温度/纵向速度测点分别为 0.90H/0.95H；自定义几何按其 H 重算。
 6. 火源对流 HRR 从 `_hrr.csv` 推导：`Q_c,source=HRR+Q_RADI`，不使用无效的 `CONVECTIVE HRR` 设备。
 
@@ -29,20 +30,22 @@
 python -m unittest discover -s tests -v
 python src/generate_fds_case.py --csv 03_网格敏感性/grid_sensitivity_cases.csv
 python src/generate_fds_case.py --csv 04_隧道长度与洞口边界/length_boundary_cases.csv
+python src/generate_fds_case.py --csv 05_外部试验复现/external_cases_template.csv --outdir outputs/external_inputs
+python src/prepare_external_validation.py
 ```
 
-外部模板含 `TBD` 时生成器会快速失败并列出未填写字段；必须按文献补齐后再生成，不会猜值或静默跳过。
+外部验证已固定为 Arup FSB2009 Tests 1–5、CSTB Tunnel Test 2 和 IFAB-07。它们使用 firemodels 官方输入快照，生成器只静态校验并逐字复制到独立目录，不把复杂截面重新生成为矩形模型；IFAB 的 `mesh.txt/output.txt` 会一并复制。真实热电偶观测由 `prepare_external_validation.py` 整理到 `05_外部试验复现/observations/`，不得作为主体气体温度或合成训练数据。
 
 ## 运行
 
-单 mesh 默认单进程：
+`run_case.sh` 默认单进程，仅适用于单 MESH 输入。当前 9 个网格敏感性输入为 22 MESH，正式运行时必须显式设置合适的 MPI/OpenMP 配置并先做同一短算例性能比较：
 
 ```bash
-bash src/run_case.sh outputs/inputs/gsB_m.fds
-bash src/run_batch.sh 03_网格敏感性/grid_sensitivity_cases.csv
+bash src/run_case.sh outputs/inputs/gsB_m.fds 22
+bash src/run_batch.sh 03_网格敏感性/grid_sensitivity_cases.csv outputs/inputs 22 1 outputs/runs
 ```
 
-只有输入明确划分多个 MESH 时才增加 MPI 进程。批处理严格按 CSV 的 CHID 运行，不会误跑输出目录中的旧 `.fds`。自定义目录时，`run_batch.sh` 的位置参数依次为输入目录、MPI 进程数、并发数、运行根目录。
+MPI 进程数不得超过 MESH 数。批处理严格按 CSV 的 CHID 运行，不会误跑输出目录中的旧 `.fds`。自定义目录时，`run_batch.sh` 的位置参数依次为输入目录、MPI 进程数、并发数、运行根目录。
 
 所有脚本的默认产物统一放在：
 
@@ -57,18 +60,37 @@ outputs/
 │   ├── boundary_effect/
 │   ├── convection_ratio/
 │   └── validation/
+├── external_inputs/<chid>/ # 官方外部验证输入快照与伴随文件
 ├── sensors/                # 测点表和布置图
 └── logs/                   # Slurm 日志
 ```
 
 默认路径锚定到本 `阶段一` 目录，从其他目录启动脚本也不会把文件散落到当前工作目录；各脚本的 `--outdir`、`--rundir` 仍可覆盖默认值。
 
+## 外部平台计算与回传
+
+外部计算采用精简流程：每个 CHID 在外部平台使用独立文件夹，计算结束后把整个文件夹复制到本地：
+
+```text
+C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\<chid>\
+```
+
+文件夹至少保留实际执行的 `<chid>.fds`、`<chid>.out`、`<chid>_devc.csv` 和 `<chid>_hrr.csv`，建议同时保留 `<chid>.end`。详细说明见 `00_外部计算与回传/README.md`。
+
+复制完成后运行轻量检查：
+
+```bash
+python src/check_fds_results.py
+```
+
+检查结果写入 `outputs/analysis/quality/result_check.csv`。`PASS` 可进入后处理；`REVIEW` 不自动判废，但需查看版本、WARNING、`.end` 或 HRR 偏差；`FAIL` 不得直接分析。
+
 Slurm 提交前先创建日志目录并设置 CSV/工况目录：
 
 ```bash
 mkdir -p outputs/logs
 sbatch --array=0-8 \
-  --export=ALL,CASES_CSV="$PWD/03_网格敏感性/grid_sensitivity_cases.csv",CASES_DIR="$PWD/outputs/inputs",RUNS_DIR="$PWD/outputs/runs" \
+  --export=ALL,CASES_CSV="$PWD/03_网格敏感性/grid_sensitivity_cases.csv",CASES_DIR="$PWD/outputs/inputs",RUNS_DIR="$PWD/outputs/runs",FDS_NTASKS=22,FDS_OMP_THREADS=2 \
   src/run_slurm_template.sh
 ```
 
@@ -78,10 +100,12 @@ Slurm 模板已做 shell 语法检查，但模块名、MPI 类型和调度行为
 
 ```bash
 python src/quasi_steady_detect.py --chids gsA_m gsB_m gsC_m
-python src/time_average_bootstrap.py --chid gsB_m --t0 <t0> --t1 <t1>
-python src/analyze_grid_convergence.py --csv 03_网格敏感性/grid_sensitivity_cases.csv --t0 <t0> --t1 <t1>
-python src/analyze_boundary_effect.py --length 04_隧道长度与洞口边界/length_boundary_cases.csv --baseline 03_网格敏感性/grid_sensitivity_cases.csv --t0 <t0> --t1 <t1>
-python src/check_convection_ratio.py --chids gsA_m gsB_m gsC_m --t0 <t0> --t1 <t1>
+python src/time_average_bootstrap.py --steady-windows outputs/analysis/steady/steady_windows.csv
+python src/analyze_grid_convergence.py --csv 03_网格敏感性/grid_sensitivity_cases.csv --steady-windows outputs/analysis/steady/steady_windows.csv
+python src/analyze_boundary_effect.py --length 04_隧道长度与洞口边界/length_boundary_cases.csv --baseline 03_网格敏感性/grid_sensitivity_cases.csv --steady-windows outputs/analysis/steady/steady_windows.csv
+python src/check_convection_ratio.py --chids gsA_m gsB_m gsC_m \
+  --cases-csv 03_网格敏感性/grid_sensitivity_cases.csv \
+  --steady-windows outputs/analysis/steady/steady_windows.csv
 ```
 
 每次首次运行必须检查目标 FDS 版本、第一条 ERROR、全部 WARNING、无 VENT rejected、`HRR_tot>0`、入口方向为 +x，以及 `_hrr.csv` 含 `HRR/Q_RADI`。

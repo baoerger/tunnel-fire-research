@@ -1,0 +1,8 @@
+﻿Q_MW,Q_convective_MW,Q_star,Uc_m_s,Uc_star,method,source_chid,evidence_path,chi_r_assumed,H_m
+5,3.500000,0.05654202,2.177350,0.31089146,Li_2010_piecewise_preliminary,,,0.300,5
+10,7.000000,0.11308404,2.743289,0.39169870,Li_2010_piecewise_preliminary,,,0.300,5
+20,14.000000,0.22616808,3.011535,0.43000000,Li_2010_piecewise_preliminary,,,0.300,5
+40,28.000000,0.45233616,3.011535,0.43000000,Li_2010_piecewise_preliminary,,,0.300,5
+60,42.000000,0.67850425,3.011535,0.43000000,Li_2010_piecewise_preliminary,,,0.300,5
+80,56.000000,0.90467233,3.011535,0.43000000,Li_2010_piecewise_preliminary,,,0.300,5
+100,70.000000,1.13084041,3.011535,0.43000000,Li_2010_piecewise_preliminary,,,0.300,5
