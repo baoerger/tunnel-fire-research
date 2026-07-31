@@ -6,6 +6,8 @@ import csv
 import math
 from pathlib import Path
 
+import numpy as np
+
 
 EXPECTED_UNITS = {
     "rho": "kg/m3", "cp": "J/(kg K)", "T": "K", "T0": "K",
@@ -44,6 +46,45 @@ def integrate_cross_section(cells, units, epsilon_J_per_m=1e-9):
         "U_e_field_mps": J_T / denominator,
         "area_m2": area, "n_cells": len(cells),
         "status": "PASS" if abs(C_T) > epsilon_J_per_m else "NEAR_ZERO_C_T_REVIEW",
+    }
+
+
+def integrate_nodal_cross_section(y_m, z_m, rho_kg_m3, cp_J_kgK, T_K, T0_K,
+                                  u_x_mps, epsilon_J_per_m=1e-9):
+    y = np.asarray(y_m, dtype=float)
+    z = np.asarray(z_m, dtype=float)
+    rho = np.asarray(rho_kg_m3, dtype=float)
+    temperature = np.asarray(T_K, dtype=float)
+    velocity = np.asarray(u_x_mps, dtype=float)
+    cp = float(cp_J_kgK)
+    T0 = float(T0_K)
+    epsilon = float(epsilon_J_per_m)
+    expected_shape = (y.size, z.size)
+    if y.ndim != 1 or z.ndim != 1 or y.size < 2 or z.size < 2:
+        raise ValueError("y/z 坐标必须为至少含两个节点的一维数组")
+    if any(array.shape != expected_shape for array in (rho, temperature, velocity)):
+        raise ValueError(f"节点场形状必须精确为 {expected_shape}")
+    if np.any(np.diff(y) <= 0) or np.any(np.diff(z) <= 0):
+        raise ValueError("y/z 坐标必须严格递增且不得重复")
+    if not all(np.all(np.isfinite(array)) for array in (y, z, rho, temperature, velocity)):
+        raise ValueError("节点坐标或场数据含非有限值")
+    if not all(math.isfinite(value) for value in (cp, T0, epsilon)):
+        raise ValueError("cp/T0/epsilon 必须为有限值")
+    if np.any(rho <= 0) or cp <= 0 or T0 <= 0 or epsilon <= 0:
+        raise ValueError("rho/cp/T0/epsilon 必须为正")
+
+    excess = rho * cp * (temperature - T0)
+    C_T = float(np.trapezoid(np.trapezoid(excess, z, axis=1), y, axis=0))
+    J_T = float(np.trapezoid(np.trapezoid(excess * velocity, z, axis=1), y, axis=0))
+    area = float((y[-1] - y[0]) * (z[-1] - z[0]))
+    denominator = C_T + math.copysign(epsilon, C_T if C_T != 0 else 1.0)
+    return {
+        "C_T_J_per_m": C_T,
+        "J_T_W": J_T,
+        "U_e_field_mps": J_T / denominator,
+        "area_m2": area,
+        "n_nodes": int(y.size * z.size),
+        "status": "PASS" if abs(C_T) > epsilon else "NEAR_ZERO_C_T_REVIEW",
     }
 
 

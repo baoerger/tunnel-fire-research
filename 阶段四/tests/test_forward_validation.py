@@ -5,12 +5,18 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "src"))
 import field_integrals as field
 import forward_validation as validation
 import empirical_baselines as empirical
+
+STAGE1_SRC = HERE.parent.parent / "阶段一" / "src"
+sys.path.insert(0, str(STAGE1_SRC))
+import extract_cross_section_integrals as extractor
 
 
 class ForwardValidationTests(unittest.TestCase):
@@ -137,6 +143,86 @@ class ForwardValidationTests(unittest.TestCase):
         cells[0]["rho"] = -1
         with self.assertRaisesRegex(ValueError, "必须为正"):
             field.integrate_cross_section(cells, field.EXPECTED_UNITS)
+
+    def test_nodal_cross_section_trapezoid_matches_constant_field(self):
+        y = np.linspace(0, 10, 21)
+        z = np.linspace(0, 5, 11)
+        shape = (y.size, z.size)
+        result = field.integrate_nodal_cross_section(
+            y, z, np.full(shape, 1.2), 1000, np.full(shape, 303.15), 293.15,
+            np.full(shape, 2.0),
+        )
+        self.assertAlmostEqual(result["area_m2"], 50.0)
+        self.assertAlmostEqual(result["C_T_J_per_m"], 600000.0)
+        self.assertAlmostEqual(result["J_T_W"], 1200000.0)
+        self.assertAlmostEqual(result["U_e_field_mps"], 2.0)
+
+    def test_nodal_cross_section_rejects_axis_and_field_mismatch(self):
+        y = np.array([0.0, 1.0])
+        z = np.array([0.0, 1.0])
+        values = np.ones((2, 2))
+        with self.assertRaisesRegex(ValueError, "严格递增"):
+            field.integrate_nodal_cross_section(
+                [0, 0], z, values, 1005, values + 293.15, 293.15, values
+            )
+        with self.assertRaisesRegex(ValueError, "形状"):
+            field.integrate_nodal_cross_section(
+                y, z, values, 1005, values + 293.15, 293.15, np.ones((2, 3))
+            )
+
+    def test_multimesh_paired_integration_counts_each_subdomain_once(self):
+        class Mesh:
+            def __init__(self, mesh_id):
+                self.id = mesh_id
+
+        class Subslice:
+            def __init__(self, mesh_id, z, data, vector=False):
+                self.mesh = Mesh(mesh_id)
+                self._z = np.asarray(z)
+                self.data = np.asarray(data, dtype=float)
+                self.filename = f"{mesh_id}.sf"
+                self.vector_filenames = {"u": f"{mesh_id}_u.sf"} if vector else {}
+                self.vector_data = {"u": np.asarray(data, dtype=float)} if vector else {}
+
+            def get_coordinates(self, ignore_cell_centered=False):
+                return {"x": np.array([50.0]), "y": np.array([0.0, 1.0]), "z": self._z}
+
+        class Slice:
+            orientation = 1
+            cell_centered = False
+            times = np.array([0.0])
+
+            def __init__(self, values, vector=False):
+                self.subslices = [
+                    Subslice("lower", [0.0, 0.5], values[0], vector),
+                    Subslice("upper", [0.5, 1.0], values[1], vector),
+                ]
+
+        temperature = Slice(([[[30.0, 30.0], [30.0, 30.0]]],
+                             [[[30.0, 30.0], [30.0, 30.0]]]))
+        density = Slice(([[[1.0, 1.0], [1.0, 1.0]]],
+                         [[[1.0, 1.0], [1.0, 1.0]]]))
+        velocity = Slice(([[[2.0, 2.0], [2.0, 2.0]]],
+                          [[[4.0, 4.0], [4.0, 4.0]]]), vector=True)
+        times, results = extractor.integrate_paired_slices(
+            temperature, density, velocity, 1000, 293.15
+        )
+        self.assertEqual([0.0], times.tolist())
+        self.assertAlmostEqual(results[0]["area_m2"], 1.0)
+        self.assertAlmostEqual(results[0]["C_T_J_per_m"], 10000.0)
+        self.assertAlmostEqual(results[0]["J_T_W"], 30000.0)
+        self.assertAlmostEqual(results[0]["U_e_field_mps"], 3.0)
+
+    def test_axis_mismatch_and_manifest_hash_are_explicit(self):
+        extractor._assert_same_axis("time", np.array([0.0, 5.0]), np.array([0.0, 5.0]))
+        with self.assertRaisesRegex(ValueError, "time"):
+            extractor._assert_same_axis("time", np.array([0.0, 5.0]), np.array([0.0, 6.0]))
+        row = {field_name: "value" for field_name in extractor.OUTPUT_FIELDS}
+        first = extractor._canonical_rows_sha256([row])
+        second = extractor._canonical_rows_sha256([dict(row)])
+        self.assertEqual(first, second)
+        self.assertIn("cp_model", extractor.OUTPUT_FIELDS)
+        self.assertIn("data_csv_sha256", extractor.MANIFEST_FIELDS)
 
     def test_station_order_and_duplicate_rejection(self):
         cell = {"rho": 1.2, "cp": 1000, "T": 303, "T0": 293, "u_x": 2, "dA": 1}

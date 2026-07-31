@@ -59,6 +59,12 @@ outputs/
 !阶段一/03_网格敏感性/runs/*/*_devc.csv
 !阶段一/03_网格敏感性/runs/*/*_hrr.csv
 
+# ---------- 网格敏感性派生场积分：仅版本化最终长表和溯源清单 ----------
+阶段一/03_网格敏感性/derived/**
+!阶段一/03_网格敏感性/derived/
+!阶段一/03_网格敏感性/derived/cross_section_integrals.csv
+!阶段一/03_网格敏感性/derived/cross_section_integrals_manifest.csv
+
 # ---------- 大文件 / 压缩包 ----------
 # 单个超过 50MB 的文件建议用 Git LFS 或网盘,不要直接提交
 *.zip
