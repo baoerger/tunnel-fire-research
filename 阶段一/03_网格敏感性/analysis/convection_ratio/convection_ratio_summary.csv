@@ -1,0 +1,2 @@
+﻿status,reason,n_total,n_pass,chi_r_min,chi_r_max,chi_r_spread,slope_vs_Q_MW,slope_vs_U,slope_vs_Df,candidate_mode
+READY_FOR_SCIENTIFIC_REVIEW,χ_r 极差超预设阈值；修正接口为候选,9,9,0.2505571842244664,0.3373065557460061,0.08674937152153972,-0.0009100648655126617,-0.018201297310253235,-0.016118085497083563,correction

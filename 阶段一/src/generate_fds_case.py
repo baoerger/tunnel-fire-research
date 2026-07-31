@@ -629,7 +629,7 @@ def _to_bool(v):
 # ----------------------------------------------------------------------------
 # 7. CLI
 # ----------------------------------------------------------------------------
-def _run_csv(csv_path, outdir):
+def _run_csv(csv_path, outdir, required_only=False):
     with open(csv_path, newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         if not reader.fieldnames:
@@ -638,6 +638,14 @@ def _run_csv(csv_path, outdir):
         if missing_columns:
             raise ValueError(f"CSV 缺少必需列: {', '.join(missing_columns)}")
         rows = list(reader)
+        if required_only:
+            if "required" not in reader.fieldnames:
+                raise ValueError("--required-only 要求 CSV 含 required 列")
+            rows = [row for row in rows
+                    if str(row.get("required") or "").strip().lower()
+                    in ("1", "true", "yes", "y", "required")]
+            if not rows:
+                raise ValueError("CSV 中没有 required=yes 的工况")
 
     seen = {}
     prepared_rows = []
@@ -679,13 +687,16 @@ def _run_csv(csv_path, outdir):
 def main():
     ap = argparse.ArgumentParser(description="隧道火灾 FDS 输入文件生成器")
     ap.add_argument("--csv", help="按 CSV 批量生成（推荐）")
+    ap.add_argument("--required-only", action="store_true",
+                    help="仅生成 CSV 中 required=yes 的工况")
     ap.add_argument("--outdir", default=str(FDS_INPUTS_DIR),
                     help="FDS 输入文件目录（默认: outputs/inputs）")
     ap.add_argument("--chid", help="单工况：案例标识")
     ap.add_argument("--Q", type=float, help="火源总功率 [MW]")
     ap.add_argument("--U", type=float, default=0.0, help="纵向风速 [m/s]")
     ap.add_argument("--Df", type=float, help="火源等效直径 [m]")
-    ap.add_argument("--dx", type=float, default=0.25, help="网格尺寸 [m]")
+    ap.add_argument("--dx", type=float, default=cfg.WORKING_GRID_DX,
+                    help=f"网格尺寸 [m]（默认工作网格 {cfg.WORKING_GRID_DX:g}）")
     ap.add_argument("--L", type=float, help="隧道长度 [m]")
     ap.add_argument("--W", type=float, help="隧道宽度 [m]（外部试验可覆盖）")
     ap.add_argument("--H", type=float, help="隧道高度 [m]（外部试验可覆盖）")
@@ -700,7 +711,7 @@ def main():
 
     if args.csv:
         try:
-            _run_csv(args.csv, args.outdir)
+            _run_csv(args.csv, args.outdir, required_only=args.required_only)
         except (OSError, ValueError) as exc:
             ap.error(str(exc))
         return

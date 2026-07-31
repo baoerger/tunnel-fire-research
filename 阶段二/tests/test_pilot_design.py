@@ -62,7 +62,9 @@ class PilotDesignTests(unittest.TestCase):
         regimes = {row["flow_layer"] for row in rows}
         self.assertEqual({"no_wind", "weak", "near_critical", "strong"}, regimes)
         self.assertEqual(3, sum(bool(row["reuse_chid"]) for row in rows))
-        self.assertTrue(all(row["design_status"] == "WAITING_STAGE1_GATE" for row in rows))
+        self.assertTrue(all(row["design_status"] == design.DESIGN_STATUS for row in rows))
+        self.assertTrue(all(float(row["dx"]) == cfg.WORKING_GRID_DX for row in rows))
+        self.assertTrue(all(float(row["L"]) == cfg.L for row in rows))
         lower, upper = cfg.HRRPUA_CANDIDATE_RANGE
         self.assertTrue(all(lower <= float(row["HRRPUA_kW_m2"]) <= upper for row in rows))
 
@@ -75,6 +77,19 @@ class PilotDesignTests(unittest.TestCase):
                 design.DEFAULT_CASES.read_bytes(), cases_path.read_bytes()
             )
             self.assertEqual(design.DEFAULT_UC.read_bytes(), uc_path.read_bytes())
+
+    def test_conditionally_authorized_cases_generate_valid_fds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            outdir = Path(tmp) / "pilot_inputs"
+            design.fds_generator._run_csv(design.DEFAULT_CASES, outdir)
+            files = sorted(outdir.glob("*.fds"))
+            self.assertEqual(12, len(files))
+            for path in files:
+                text = path.read_text(encoding="utf-8")
+                self.assertEqual(22, text.count("&MESH "))
+                self.assertIn("&TIME T_END=300.0 /", text)
+                self.assertIn("DT_DEVC=1.0, DT_HRR=1.0", text)
+                self.assertTrue(text.rstrip().endswith("&TAIL /"))
 
     def test_fds_override_is_traceable_and_recomputes_ratio(self):
         with tempfile.TemporaryDirectory() as tmp:

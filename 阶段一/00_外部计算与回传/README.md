@@ -137,3 +137,42 @@ C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\<chid>\
 ```
 
 外部官方输入使用自己的热电偶 ID，不要求主体模型的 `T_*/U_*/HRR_tot/Qw_*`。检查器会从 `05_外部试验复现/measurement_mapping.csv` 读取应有通道，并强制要求 `HRR/Q_RADI`、非零火源、完整时长及 `.smv`、切片/三维场和 `.bf`；主体工况原判据保持不变。
+
+## 7. 与外部验证并行的 12 个先导
+
+用户于 2026-07-31 授权按 100 m、0.25 m、22 MESH 生成并提交阶段二先导：
+
+```bash
+uv run --python 3.12 python 阶段二/src/design_pilot_cases.py
+uv run --python 3.12 python 阶段一/src/generate_fds_case.py \
+  --csv 阶段二/01_先导工况设计/pilot_cases_candidate.csv \
+  --outdir 阶段一/outputs/pilot_inputs
+```
+
+本机输入目录：
+
+```text
+C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\pilot_inputs\
+```
+
+服务器每个 CHID 仍使用独立 `/project/fds_tunnel/runs/<chid>/` 工作目录，初始
+MPI 数不得超过 22。`gsA_m/gsB_m/gsC_m` 与网格批次同名：优先恢复原
+`.out/.end`；若无法恢复，使用本批输入重跑，以获得同版本和完整质量记录。
+
+若服务器保留本项目目录结构，可从项目根目录批量运行（下面并发数为 1，避免
+单节点同时启动多个 22-MESH 工况；跨节点并发应由调度器数组控制）：
+
+```bash
+cd /project/fds_tunnel/project
+bash 阶段一/src/run_batch.sh \
+  阶段二/01_先导工况设计/pilot_cases_candidate.csv \
+  阶段一/outputs/pilot_inputs 22 1 阶段一/outputs/runs
+```
+
+输入对应 `/project/fds_tunnel/project/阶段一/outputs/pilot_inputs/<chid>.fds`，
+输出对应 `/project/fds_tunnel/project/阶段一/outputs/runs/<chid>/`。每组至少下载
+实际 `.fds`、`.out`、`_devc.csv`、`_hrr.csv`、`.end`；建议保留 `.smv`、温度/
+速度/密度切片和 `.bf`，以支持近场、回流和结构残差复核。
+
+先导与外部验证可以同时计算，但 68 组数据库不能同时启动。只有三组外部验证
+通过质量/精度检查，且 12 个先导满足阶段二结构判伪门后，才能生成数据库输入。

@@ -25,6 +25,7 @@ import csv
 import argparse
 import math
 from collections import defaultdict
+from pathlib import Path
 
 import tunnel_config as cfg
 import fds_io
@@ -151,6 +152,74 @@ def _read_steady_windows(path):
     return windows
 
 
+def _read_field_integrals(path):
+    """读取由真实切片派生的横截面超温焓与纵向焓流。"""
+    if not path or not Path(path).is_file():
+        return {}
+    required = {"chid", "time_s", "x_m", "C_T_J_per_m", "J_T_W", "status"}
+    by_chid = defaultdict(list)
+    seen = set()
+    with Path(path).open(newline="", encoding="utf-8-sig") as stream:
+        reader = csv.DictReader(stream)
+        if not required.issubset(reader.fieldnames or ()):
+            missing = ",".join(sorted(required - set(reader.fieldnames or ())))
+            raise ValueError(f"场积分文件缺少字段: {missing}")
+        for row in reader:
+            chid = row["chid"].strip()
+            time = float(row["time_s"])
+            x = float(row["x_m"])
+            c_t = float(row["C_T_J_per_m"])
+            j_t = float(row["J_T_W"])
+            if not all(math.isfinite(value) for value in (time, x, c_t, j_t)):
+                raise ValueError(f"{chid} 的场积分含非有限值")
+            key = (chid, time, x)
+            if key in seen:
+                raise ValueError(f"场积分存在重复行: {key}")
+            seen.add(key)
+            by_chid[chid].append((time, x, c_t, j_t, row["status"].strip()))
+    return dict(by_chid)
+
+
+def _average_field_profile(entries, t_window):
+    """按准稳态窗口平均 C_T(x) 与 J_T(x)，并检查时间/截面覆盖。"""
+    if not entries or t_window is None:
+        return None, "缺少场积分或准稳态窗口"
+    t0, t1 = t_window
+    selected = [row for row in entries if t0 <= row[0] <= t1]
+    if not selected:
+        return None, "场积分没有覆盖平均窗口"
+    if any(row[4] != "PASS" for row in selected):
+        return None, "平均窗口内存在非 PASS 场积分"
+    times = sorted({row[0] for row in selected})
+    stations = sorted({row[1] for row in selected})
+    if len(times) < 4 or times[-1] - times[0] < 0.8 * (t1 - t0):
+        return None, "场积分时间覆盖不足"
+    values = {(time, x): (c_t, j_t) for time, x, c_t, j_t, _ in selected}
+    if any((time, x) not in values for time in times for x in stations):
+        return None, "场积分的时刻/截面网格不完整"
+    profile = {}
+    for x in stations:
+        profile[x] = (
+            sum(values[(time, x)][0] for time in times) / len(times),
+            sum(values[(time, x)][1] for time in times) / len(times),
+        )
+    return profile, ""
+
+
+def _profile_rel_change(fine, medium, component):
+    """两个同站位剖面的 L2 相对差，component=0/1 对应 C_T/J_T。"""
+    if not fine or not medium or set(fine) != set(medium):
+        return None
+    fine_values = [fine[x][component] for x in sorted(fine)]
+    medium_values = [medium[x][component] for x in sorted(fine)]
+    denominator = math.sqrt(sum(value * value for value in fine_values))
+    if denominator <= 1e-12:
+        return None
+    numerator = math.sqrt(sum((f_value - m_value) ** 2
+                              for f_value, m_value in zip(fine_values, medium_values)))
+    return numerator / denominator
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", required=True, help="grid_sensitivity_cases.csv")
@@ -162,6 +231,8 @@ def main():
     ap.add_argument("--t0", type=float, default=None, help="准稳态窗口起点 [s]")
     ap.add_argument("--t1", type=float, default=None, help="准稳态窗口终点 [s]")
     ap.add_argument("--steady-windows", help="逐工况 steady_windows.csv（优先推荐）")
+    ap.add_argument("--field-integrals",
+                    help="cross_section_integrals.csv；默认自动查找 runs 同级 derived")
     ap.add_argument("--threshold_pct", type=float, default=5.0,
                     help="中→细相对变化阈值 %%（默认 5）")
     args = ap.parse_args()
@@ -171,11 +242,17 @@ def main():
         ap.error("--steady-windows 与统一 --t0/--t1 不能同时使用")
     common_window = (args.t0, args.t1) if args.t0 is not None else None
     steady_windows = _read_steady_windows(args.steady_windows)
+    field_path = (Path(args.field_integrals) if args.field_integrals else
+                  Path(args.rundir).resolve().parent / "derived" /
+                  "cross_section_integrals.csv")
+    field_data = _read_field_integrals(field_path)
 
     os.makedirs(args.outdir, exist_ok=True)
     cases = _read_cases(args.csv)
 
     rows = []
+    field_profiles = {}
+    field_profile_rows = []
     for c in cases:
         fire_x = float(c.get("x_fire") or cfg.X_FIRE_DEFAULT)
         t_window = steady_windows.get(c["chid"], common_window)
@@ -183,22 +260,52 @@ def main():
             rows.append(dict(chid=c["chid"], group=c["case_group"], dx=float(c["dx"]),
                              status="FAIL", reason="没有 PASS 准稳态平均窗口", t0=None, t1=None,
                              **{k: None for k in ["x_p", "dT_p", "kappa_u", "kappa_d",
+                                                  "n_up", "n_down",
                                                   "L_back", "qw_rep", "dT_up_2H", "dT_fire",
                                                   "dT_down_2H"]}))
             continue
+        profile, profile_reason = _average_field_profile(
+            field_data.get(c["chid"]), t_window)
+        if profile:
+            field_profiles[c["chid"]] = profile
+            for x, (c_t, j_t) in sorted(profile.items()):
+                field_profile_rows.append({
+                    "chid": c["chid"], "group": c["case_group"],
+                    "dx": float(c["dx"]), "t0": t_window[0], "t1": t_window[1],
+                    "x_m": x, "C_T_bar_J_per_m": c_t, "J_T_bar_W": j_t,
+                })
         feat = analyze_one(args.rundir, c["chid"], fire_x, args.near_exclude, t_window)
         if not feat:
             rows.append(dict(chid=c["chid"], group=c["case_group"], dx=float(c["dx"]),
                              status="FAIL", reason="缺少/无效结果、窗口为空或拟合点不足",
                              t0=t_window[0], t1=t_window[1], **{k: None for k in
-                       ["x_p", "dT_p", "kappa_u", "kappa_d", "L_back", "qw_rep",
+                       ["x_p", "dT_p", "kappa_u", "kappa_d", "n_up", "n_down",
+                        "L_back", "qw_rep",
                         "dT_up_2H", "dT_fire", "dT_down_2H"]}))
             continue
+        feature_values = {
+            "dT_p": feat["dT_p"], "x_p": feat["x_p"],
+            "kappa_u": feat["kappa_u"], "kappa_d": feat["kappa_d"],
+            "L_back": feat["L_back"], "qw_rep": feat["qw_rep"],
+        }
+        missing_features = [
+            name for name, value in feature_values.items()
+            if value is None or not math.isfinite(value)
+        ]
+        feature_status = "INCOMPLETE" if missing_features else "PASS"
+        feature_reason = ("缺少特征: " + ",".join(missing_features)
+                          if missing_features else "")
+        if "kappa_d" in missing_features:
+            feature_reason += f"（下游拟合点 {feat['n_down']} 个）"
         rows.append(dict(
             chid=c["chid"], group=c["case_group"], dx=float(c["dx"]),
-            status="PASS", reason="", t0=t_window[0], t1=t_window[1],
+            status=feature_status, reason=feature_reason,
+            t0=t_window[0], t1=t_window[1],
+            field_profile_status="PASS" if profile else "UNAVAILABLE",
+            field_profile_reason=profile_reason,
             x_p=feat["x_p"], dT_p=feat["dT_p"],
             kappa_u=feat["kappa_u"], kappa_d=feat["kappa_d"],
+            n_up=feat["n_up"], n_down=feat["n_down"],
             L_back=feat["L_back"], qw_rep=feat["qw_rep"],
             dT_up_2H=feat["dT_up_2H"], dT_fire=feat["dT_fire"],
             dT_down_2H=feat["dT_down_2H"],
@@ -206,8 +313,10 @@ def main():
 
     # 写逐工况表
     feat_path = os.path.join(args.outdir, "grid_convergence_features.csv")
-    cols = ["chid", "group", "dx", "status", "reason", "t0", "t1", "dT_p", "x_p",
-            "kappa_u", "kappa_d", "L_back", "qw_rep", "dT_up_2H", "dT_fire",
+    cols = ["chid", "group", "dx", "status", "reason", "t0", "t1",
+            "field_profile_status", "field_profile_reason", "dT_p", "x_p",
+            "kappa_u", "kappa_d", "n_up", "n_down", "L_back", "qw_rep",
+            "dT_up_2H", "dT_fire",
             "dT_down_2H"]
     with open(feat_path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
@@ -216,69 +325,99 @@ def main():
             w.writerow([r.get(k) for k in cols])
     print(f"[OK] 逐工况特征 -> {feat_path}")
 
-    # 按工况收敛性
+    field_profile_path = os.path.join(args.outdir, "grid_convergence_field_profiles.csv")
+    field_cols = ["chid", "group", "dx", "t0", "t1", "x_m",
+                  "C_T_bar_J_per_m", "J_T_bar_W"]
+    with open(field_profile_path, "w", newline="", encoding="utf-8-sig") as stream:
+        writer = csv.DictWriter(stream, fieldnames=field_cols)
+        writer.writeheader()
+        writer.writerows(field_profile_rows)
+    print(f"[OK] 场积分平均剖面 -> {field_profile_path}")
+
+    # 按工况收敛性。生产网格决策取决于中→细变化；粗网格不稳定时，
+    # 仍保留可计算的中→细结果，而不是把整组指标全部抹成 NA。
     by_group = defaultdict(list)
     for r in rows:
         by_group[r["group"]].append(r)
+    threshold = args.threshold_pct / 100
     summ_rows = []
     for g, rs in by_group.items():
-        rs = sorted(rs, key=lambda r: r["dx"])  # 细→粗？我们想要 粗<中<细 dx 降序
-        rs = sorted(rs, key=lambda r: -r["dx"])  # dx 大→小 = 粗→细
+        rs = sorted(rs, key=lambda r: -r["dx"])  # dx 大→小 = 粗→中→细
         if len(rs) != 3 or len({r["dx"] for r in rs}) != 3:
-            summ_rows.append(dict(group=g, status="FAIL", reason="必须恰有粗/中/细三个唯一网格"))
+            summ_rows.append(dict(
+                group=g, status="INCOMPLETE", converged=False,
+                reason="必须恰有粗/中/细三个唯一网格",
+                assessment_scope="UNAVAILABLE", coarse_complete=False,
+                missing_core_metrics="全部",
+            ))
             continue
         coarse, med, fine = rs
-        if not all(_valid_feature_row(r) for r in rs):
-            bad = ",".join(r["chid"] for r in rs if not _valid_feature_row(r))
-            summ_rows.append(dict(group=g, status="FAIL", reason=f"无效工况: {bad}",
-                                  dx_coarse=coarse["dx"], dx_med=med["dx"], dx_fine=fine["dx"]))
-            continue
+        xp_shift = (abs(fine["x_p"] - med["x_p"])
+                    if all(value is not None and math.isfinite(value)
+                           for value in (fine.get("x_p"), med.get("x_p"))) else None)
         metrics = dict(
-            dTp_rel_cm=_rel_change(med["dT_p"], coarse["dT_p"]),
-            dTp_rel_mf=_rel_change(fine["dT_p"], med["dT_p"]),
-            xp_shift_mf=abs(fine["x_p"] - med["x_p"]),
-            ku_rel_mf=_rel_change(fine["kappa_u"], med["kappa_u"]),
-            kd_rel_mf=_rel_change(fine["kappa_d"], med["kappa_d"]),
-            Lback_rel_mf=_rel_change(fine["L_back"], med["L_back"]),
-            qw_rel_mf=_rel_change(fine["qw_rep"], med["qw_rep"]),
+            dTp_rel_cm=_rel_change(med.get("dT_p"), coarse.get("dT_p")),
+            dTp_rel_mf=_rel_change(fine.get("dT_p"), med.get("dT_p")),
+            xp_shift_mf=xp_shift,
+            ku_rel_mf=_rel_change(fine.get("kappa_u"), med.get("kappa_u")),
+            kd_rel_mf=_rel_change(fine.get("kappa_d"), med.get("kappa_d")),
+            Lback_rel_mf=_rel_change(fine.get("L_back"), med.get("L_back")),
+            qw_rel_mf=_rel_change(fine.get("qw_rep"), med.get("qw_rep")),
+            CT_profile_rel_mf=_profile_rel_change(
+                field_profiles.get(fine["chid"]), field_profiles.get(med["chid"]), 0),
+            JT_profile_rel_mf=_profile_rel_change(
+                field_profiles.get(fine["chid"]), field_profiles.get(med["chid"]), 1),
         )
-        if any(v is None for v in metrics.values()):
-            status, reason = "FAIL", "存在无法计算的相对变化"
+        core = {
+            "ΔT_p": metrics["dTp_rel_mf"],
+            "x_p": (metrics["xp_shift_mf"] / cfg.H
+                    if metrics["xp_shift_mf"] is not None else None),
+            "κ_u": metrics["ku_rel_mf"],
+            "κ_d": metrics["kd_rel_mf"],
+        }
+        missing = [name for name, value in core.items() if value is None]
+        coarse_complete = _valid_feature_row(coarse)
+        scope = "THREE_GRID" if coarse_complete else "MEDIUM_FINE_ONLY"
+        if missing:
+            converged = False
+            status = "INCOMPLETE"
+            reason = "中/细网格缺少核心量: " + ",".join(missing)
         else:
-            status, reason = "READY", "等待按阈值判定"
+            converged = all(value <= threshold for value in core.values())
+            status = "PASS" if converged else "FAIL"
+            reason = ("核心量中→细变化满足阈值" if converged
+                      else "至少一个核心量中→细变化超阈值")
+        if not coarse_complete:
+            reason += "；粗网格未形成完整特征，中→细结果仍保留"
         summ_rows.append(dict(
-                group=g,
-                status=status, reason=reason,
-                dx_coarse=coarse["dx"], dx_med=med["dx"], dx_fine=fine["dx"],
-                **metrics,
-            ))
-
-    threshold = args.threshold_pct / 100
-    for s in summ_rows:
-        if s["status"] != "READY":
-            s["converged"] = False
-            continue
-        values = (s["dTp_rel_mf"], s["ku_rel_mf"], s["kd_rel_mf"])
-        s["converged"] = (all(v <= threshold for v in values)
-                          and s["xp_shift_mf"] / cfg.H <= threshold)
-        s["status"] = "PASS" if s["converged"] else "FAIL"
-        s["reason"] = ("核心量中→细变化满足阈值" if s["converged"]
-                       else "至少一个核心量中→细变化超阈值")
+            group=g, status=status, reason=reason, converged=converged,
+            assessment_scope=scope, coarse_complete=coarse_complete,
+            missing_core_metrics=",".join(missing),
+            dx_coarse=coarse["dx"], dx_med=med["dx"], dx_fine=fine["dx"],
+            **metrics,
+        ))
 
     summ_path = os.path.join(args.outdir, "grid_convergence_summary.csv")
     with open(summ_path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
-        w.writerow(["group", "status", "reason", "dx_coarse", "dx_med", "dx_fine",
+        w.writerow(["group", "status", "reason", "assessment_scope",
+                    "coarse_complete", "missing_core_metrics",
+                    "dx_coarse", "dx_med", "dx_fine",
                     "dTp_rel(粗→中)%", "dTp_rel(中→细)%", "xp_shift(中→细)/H[%]",
                     "kappa_u_rel(中→细)%", "kappa_d_rel(中→细)%",
-                    "L_back_rel(中→细)%", "qw_rel(中→细)%"])
+                    "L_back_rel(中→细)%", "qw_rel(中→细)%",
+                    "C_T_profile_rel(中→细)%", "J_T_profile_rel(中→细)%"])
         for s in summ_rows:
-            w.writerow([s["group"], s["status"], s["reason"], s.get("dx_coarse"),
+            w.writerow([s["group"], s["status"], s["reason"],
+                        s.get("assessment_scope"), s.get("coarse_complete"),
+                        s.get("missing_core_metrics"), s.get("dx_coarse"),
                         s.get("dx_med"), s.get("dx_fine"), _pct(s.get("dTp_rel_cm")),
                         _pct(s.get("dTp_rel_mf")),
                         _pct(s.get("xp_shift_mf") / cfg.H if s.get("xp_shift_mf") is not None else None),
                         _pct(s.get("ku_rel_mf")), _pct(s.get("kd_rel_mf")),
-                        _pct(s.get("Lback_rel_mf")), _pct(s.get("qw_rel_mf"))])
+                        _pct(s.get("Lback_rel_mf")), _pct(s.get("qw_rel_mf")),
+                        _pct(s.get("CT_profile_rel_mf")),
+                        _pct(s.get("JT_profile_rel_mf"))])
     print(f"[OK] 收敛性汇总 -> {summ_path}")
 
     # 决策门提示
@@ -287,7 +426,8 @@ def main():
     print(f"中→细相对变化阈值 = {args.threshold_pct}%")
     for s in summ_rows:
         print(f"  {s['group']}: status={s['status']}  ΔTp(中→细)={_pct(s.get('dTp_rel_mf'))}%  "
-              f"κ_d(中→细)={_pct(s.get('kd_rel_mf'))}%  κ_u(中→细)={_pct(s.get('ku_rel_mf'))}%")
+              f"κ_d(中→细)={_pct(s.get('kd_rel_mf'))}%  κ_u(中→细)={_pct(s.get('ku_rel_mf'))}%  "
+              f"C_T/J_T={_pct(s.get('CT_profile_rel_mf'))}%/{_pct(s.get('JT_profile_rel_mf'))}%")
     print(f"=> 核心目标量是否趋于稳定: {'是 → 中网格(0.25m)可作为生产网格' if ok else '否 → 需进一步加密或核查'}")
 
     # 收敛图

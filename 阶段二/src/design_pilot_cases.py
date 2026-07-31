@@ -1,4 +1,4 @@
-"""生成并审计阶段二 12 组先导候选；不生成正式 FDS 输入。"""
+"""生成并审计阶段二 12 组条件性先导设计；FDS 由阶段一生成器生成。"""
 from __future__ import annotations
 
 import argparse
@@ -22,6 +22,15 @@ DESIGN_DIR = STAGE2_ROOT / "01_先导工况设计"
 DEFAULT_TARGETS = DESIGN_DIR / "pilot_design_targets.csv"
 DEFAULT_CASES = DESIGN_DIR / "pilot_cases_candidate.csv"
 DEFAULT_UC = DESIGN_DIR / "critical_velocity_estimates.csv"
+
+# 2026-07-31 用户确认以 100 m、0.25 m 的资源约束范围继续，并授权先导工况
+# 与外部试验复现并行。该状态只授权生成/提交，不代表阶段一外部验证或阶段二
+# 结构判伪已经通过。
+DESIGN_STATUS = "CONDITIONAL_PARALLEL_PENDING_EXTERNAL_VALIDATION"
+DESIGN_NOTE = (
+    "用户授权按100m/0.25m与外部验证并行；结果仅作先导判伪，"
+    "外部验证和先导决策门通过前不得扩展68组数据库"
+)
 
 CASE_FIELDS = (
     "chid", "case_group", "Q", "U", "Df", "dx", "L", "W", "H",
@@ -178,8 +187,10 @@ def build(targets_path=DEFAULT_TARGETS, cases_path=DEFAULT_CASES,
             raise ValueError(f"{chid}: U/Uc={ratio:.3f} 超出 [0,1.6]")
 
         normalized = fds_generator.normalize_case({
-            "chid": chid, "Q": Q, "U": U, "Df": Df, "dx": 0.25,
-            "L": 100, "W": 10, "H": 5, "x_fire": 50, "T_end": 300,
+            "chid": chid, "Q": Q, "U": U, "Df": Df,
+            "dx": cfg.WORKING_GRID_DX,
+            "L": cfg.L, "W": cfg.W, "H": cfg.H,
+            "x_fire": cfg.L / 2.0, "T_end": 300,
             "n_mesh_x": 11, "n_mesh_y": 1, "n_mesh_z": 2,
         }, row_number=line_number)
         x0, x1, y0, y1 = normalized["burner_bounds"]
@@ -206,17 +217,19 @@ def build(targets_path=DEFAULT_TARGETS, cases_path=DEFAULT_CASES,
         evidence_path = override["evidence_path"] if override else ""
         case_rows.append({
             "chid": chid, "case_group": "pilot_candidate", "Q": f"{Q:g}",
-            "U": f"{U:.6f}", "Df": f"{Df:g}", "dx": "0.25", "L": "100",
-            "W": "10", "H": "5", "x_fire": "50", "T_end": "300",
+            "U": f"{U:.6f}", "Df": f"{Df:g}",
+            "dx": f"{cfg.WORKING_GRID_DX:g}", "L": f"{cfg.L:g}",
+            "W": f"{cfg.W:g}", "H": f"{cfg.H:g}",
+            "x_fire": f"{cfg.L / 2.0:g}", "T_end": "300",
             "n_mesh_x": "11", "n_mesh_y": "1", "n_mesh_z": "2",
-            "subset": "development_pilot", "design_status": "WAITING_STAGE1_GATE",
+            "subset": "development_pilot", "design_status": DESIGN_STATUS,
             "reuse_chid": reuse, "Uc_m_s": f"{uc:.6f}",
             "U_over_Uc": f"{ratio:.6f}", "flow_layer": _flow_layer(ratio, U),
             "critical_velocity_method": method, "chi_r_assumed": f"{chi_r:.3f}",
             "HRRPUA_kW_m2": f"{hrrpua:.3f}", "selection_reason": selection_reason,
             "backup_chid": backup_chid, "backup_Q_MW": f"{backup_q:g}",
             "backup_U_over_Uc": f"{backup_ratio:g}", "backup_Df_m": f"{backup_df:g}",
-            "note": "候选；阶段一通过后按冻结网格/长度重生成，当前不得提交 FDS",
+            "note": DESIGN_NOTE,
         })
         uc_by_q[Q] = {
             "Q_MW": f"{Q:g}", "Q_convective_MW": f"{Q * (1-chi_r):.6f}",
@@ -274,7 +287,7 @@ def main():
     print(f"[OK] 12 组先导候选 -> {args.out_cases}")
     print(f"[OK] {len(estimates)} 个功率档 Uc 初估 -> {args.out_uc}")
     print("覆盖:", ", ".join(f"{key}={value}" for key, value in sorted(counts.items())))
-    print("状态: WAITING_STAGE1_GATE（未生成正式 FDS）")
+    print(f"状态: {DESIGN_STATUS}（可与外部验证并行，不授权扩展数据库）")
 
 
 if __name__ == "__main__":

@@ -336,6 +336,18 @@ class GenerateFdsTests(unittest.TestCase):
                     })
                     self.assertEqual(expected_counts[case["chid"]], len(self.parse_meshes(text)))
 
+    def test_required_only_generates_mandatory_length_cases(self):
+        stage = os.path.dirname(HERE)
+        csv_path = os.path.join(
+            stage, "04_隧道长度与洞口边界", "length_boundary_cases.csv")
+        with tempfile.TemporaryDirectory() as outdir:
+            gen._run_csv(csv_path, outdir, required_only=True)
+            self.assertEqual(
+                ["lenA_150.fds", "lenC_150.fds"],
+                sorted(os.listdir(outdir)),
+            )
+        self.assertEqual(0.25, cfg.WORKING_GRID_DX)
+
     def test_run_scripts_reject_mpi_tasks_above_mesh_count(self):
         stage = os.path.dirname(HERE)
         for name in ("run_case.sh", "run_slurm_template.sh"):

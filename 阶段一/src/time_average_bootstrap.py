@@ -40,7 +40,7 @@ def _autocorr_block_len(values):
     return max(1, n // 4)
 
 
-def validate_window(times, t0, t1, min_duration=10.0, max_dt_deviation=0.10):
+def validate_window(times, t0, t1, min_duration=10.0, max_gap_factor=1.25):
     if times is None or len(times) < 4:
         raise ValueError("时间样本少于 4 个")
     if not (math.isfinite(t0) and math.isfinite(t1) and t1 > t0):
@@ -51,8 +51,10 @@ def validate_window(times, t0, t1, min_duration=10.0, max_dt_deviation=0.10):
     if any(delta <= 0 for delta in deltas):
         raise ValueError("时间必须严格递增且不得重复")
     dt = median(deltas)
-    if max(abs(delta - dt) / dt for delta in deltas) > max_dt_deviation:
-        raise ValueError("时间间隔不规则，超过允许偏差")
+    # FDS 自适应时间步会使输出略早或略晚；较短间隔不会丢失信息，
+    # 这里只拒绝会破坏自相关估计的长采样空档。
+    if max(deltas) > max_gap_factor * dt:
+        raise ValueError("时间序列存在过长采样空档")
     idx = [i for i, time in enumerate(times) if t0 <= time <= t1]
     if len(idx) < 4:
         raise ValueError("平均窗口内有效时间样本少于 4 个")

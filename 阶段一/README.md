@@ -1,6 +1,6 @@
 # 阶段一：FDS 模型建立与外部验证
 
-本目录用于建立可复现的隧道火灾 FDS 平台，并完成网格敏感性、洞口边界、外部试验复现、HRR 能量口径和准稳态统计。当前输入语法与最小启动已在本机 **FDS 6.10.1** 验证；正式 300 s 工况和论文统计结论仍须运行后填写。
+本目录用于建立可复现的隧道火灾 FDS 平台，并完成网格敏感性、洞口边界、外部试验复现、HRR 能量口径和准稳态统计。当前输入语法与最小启动已在本机 **FDS 6.10.1** 验证。网格目录现有 9 组 300 s 回传 CSV；其派生清单按日志记录为 **FDS 6.9.1**，不得与 6.10.1 短试算混写。
 
 ## 状态与单一事实源
 
@@ -9,16 +9,24 @@
 - `02_FDS基准模型/tunnel_benchmark.fds`：生成器产物，不独立手改。
 - `src/fds_io.py`：读取 FDS CSV 单位行并归一到 °C、kW、kW/m²、m/s。
 - `01_文献调研/empirical_formula_catalog.csv`：传统最大温升/临界风速公式的逐分支、单位、DOI、证据等级和实现路径。
+- `03_网格敏感性/runs/`：9 组网格工况的实际 `.fds`、DEVC 和 HRR CSV。
+- `03_网格敏感性/derived/`：真实切片派生的 `C_T/J_T` 长表与哈希清单。
+- `03_网格敏感性/analysis/`：9 组准稳态、Bootstrap 和网格比较结果；当前结论为未收敛。
 - `../CLAUDE.md`：FDS 6.10.1 已验证语法、错误速查和首次运行门。
 
 本机已确认 FDS 6.10.1 可解析并推进修正后的短工况，且产生非零 HRR、`_devc.csv` 和 `_hrr.csv`。这只证明输入/启动链路有效，不代表网格收敛、洞口无关性、外部验证或正式准稳态计算已经完成。
 
+网格回传的 9/9 工况已找到准稳态窗口，但中→细多个核心量超过 5%，且
+`gsC_f` 缺少足够的峰值下游温度点拟合 κ_d。用户基于计算资源明确不再加密，
+后续统一采用 0.25 m **工作网格**；这是一项资源约束选择，不代表网格收敛。
+回传目录还缺 `.out`/`.end`，日志错误和警告审计仍未通过。
+
 ## 关键模型决策
 
-1. 基准 L×W×H=100×10×5 m；L=100 m 的洞口影响必须用 150/200 m 对照检查。
+1. 基准 L×W×H=100×10×5 m。用户于 2026-07-31 固定 L=100 m 并取消 150/200 m 对照；因此后续只形成 100 m 数值隧道内的条件性结论，不宣称洞口独立。
 2. 正庚烷直接使用 `REAC FUEL='N-HEPTANE'`，不额外写 SPEC 或 SIMPLE_CHEMISTRY。
 3. 预设 HRR 燃烧器使用 `TAU_Q=10 s`。生成器将燃烧器边界吸附到网格面，并按离散面积及 kW/m² 单位计算 HRRPUA；正式 Q 在约 `3×TAU_Q` 后且进入准稳态时由 CSV 时间平均核验。
-4. 粗/中/细均匀网格为 0.5/0.25/0.125 m；当前 9 个网格敏感性输入均划分为 `11×1×2=22 MESH`，生产网格仍由核心目标量收敛决定。
+4. 粗/中/细均匀网格为 0.5/0.25/0.125 m；当前 9 个网格敏感性输入均划分为 `11×1×2=22 MESH`。中→细结果未收敛，后续按资源约束统一使用 0.25 m 工作网格。
 5. 温度/纵向速度测点分别为 0.90H/0.95H；自定义几何按其 H 重算。
 6. 火源对流 HRR 从 `_hrr.csv` 推导：`Q_c,source=HRR+Q_RADI`，不使用无效的 `CONVECTIVE HRR` 设备。
 
@@ -29,10 +37,12 @@
 ```bash
 python -m unittest discover -s tests -v
 python src/generate_fds_case.py --csv 03_网格敏感性/grid_sensitivity_cases.csv
-python src/generate_fds_case.py --csv 04_隧道长度与洞口边界/length_boundary_cases.csv
 python src/generate_fds_case.py --csv 05_外部试验复现/external_cases_template.csv --outdir outputs/external_inputs
 python src/prepare_external_validation.py
 ```
+
+`lenA_150/lenC_150` 输入曾按原计划生成并保留，但当前不列入运行批次；只有用户
+以后重新开启洞口边界验证时，才使用 `--required-only` 重新生成并提交。
 
 外部验证已固定为 Arup FSB2009 Tests 1–5、CSTB Tunnel Test 2 和 IFAB-07。它们使用 firemodels 官方输入快照，生成器只静态校验并逐字复制到独立目录，不把复杂截面重新生成为矩形模型；IFAB 的 `mesh.txt/output.txt` 会一并复制。真实热电偶观测由 `prepare_external_validation.py` 整理到 `05_外部试验复现/observations/`，不得作为主体气体温度或合成训练数据。
 

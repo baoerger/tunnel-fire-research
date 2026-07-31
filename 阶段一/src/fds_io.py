@@ -214,7 +214,8 @@ def fit_decay(xs, Ts, x_p, side, near_exclude, H, dT_threshold=0.0,
             continue
         pairs.append((dx, math.log(T)))
     if len(pairs) < min_points:
-        return None, 0
+        # 保留实际可用点数，便于区分“完全没有数据”和“只有 2 点、不能拟合”。
+        return None, len(pairs)
     # 线性最小二乘 ln(θ) = slope*dx + intercept
     n = len(pairs)
     sx = sum(p[0] for p in pairs)
