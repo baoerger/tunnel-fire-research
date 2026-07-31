@@ -51,6 +51,18 @@ results/
 output/
 outputs/
 
+# ---------- 可版本化的外部计算输入包 ----------
+# outputs 默认仍全部忽略；只重新纳入小型、可复现的 FDS 输入。
+!阶段一/outputs/
+阶段一/outputs/**
+!阶段一/outputs/pilot_inputs/
+!阶段一/outputs/pilot_inputs/*.fds
+!阶段一/outputs/external_inputs/
+!阶段一/outputs/external_inputs/**/
+!阶段一/outputs/external_inputs/**/*.fds
+!阶段一/outputs/external_inputs/IFAB-07/mesh.txt
+!阶段一/outputs/external_inputs/IFAB-07/output.txt
+
 # ---------- 网格敏感性回传：默认只版本化复现和分析所需的最小数据 ----------
 阶段一/03_网格敏感性/runs/**
 !阶段一/03_网格敏感性/runs/
