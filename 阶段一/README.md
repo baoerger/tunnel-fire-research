@@ -1,6 +1,6 @@
 # 阶段一：FDS 模型建立与外部验证
 
-本目录用于建立可复现的隧道火灾 FDS 平台，并完成网格敏感性、洞口边界、外部试验复现、HRR 能量口径和准稳态统计。当前输入语法与最小启动已在本机 **FDS 6.10.1** 验证。网格目录现有 9 组 300 s 回传 CSV；其派生清单按日志记录为 **FDS 6.9.1**，不得与 6.10.1 短试算混写。
+本目录用于建立可复现的隧道火灾 FDS 平台，并完成网格敏感性、洞口边界、外部试验复现、HRR 能量口径和准稳态统计。用户于 2026-08-01 确认以已回传和 firemodels 官方库采用的 **FDS 6.9.1** 作为正式证据基线。FDS 6.10.1 本机短试算仅保留为兼容性记录，不与 6.9.1 正式结果混写。
 
 ## 状态与单一事实源
 
@@ -12,9 +12,15 @@
 - `03_网格敏感性/runs/`：9 组网格工况的实际 `.fds`、DEVC 和 HRR CSV。
 - `03_网格敏感性/derived/`：真实切片派生的 `C_T/J_T` 长表与哈希清单。
 - `03_网格敏感性/analysis/`：9 组准稳态、Bootstrap 和网格比较结果；当前结论为未收敛。
-- `../CLAUDE.md`：FDS 6.10.1 已验证语法、错误速查和首次运行门。
+- `../CLAUDE.md`：FDS 6.9.1 正式证据政策、6.10.1 兼容性实跑记录、错误速查和首次运行门。
 
 本机已确认 FDS 6.10.1 可解析并推进修正后的短工况，且产生非零 HRR、`_devc.csv` 和 `_hrr.csv`。这只证明输入/启动链路有效，不代表网格收敛、洞口无关性、外部验证或正式准稳态计算已经完成。
+
+2026-08-01 扫描发现 3 个外部验证和 12 个先导的完整 FDS 6.9.1 回传。
+按现有版本基线重新检查后为 15/15 `PASS`：0 条真正的 FDS `ERROR(...)`、
+0 WARNING、0 rejected，DEVC/HRR 均覆盖 `T_END`、火源非零，且 `.out` 均写有
+`STOP: FDS completed successfully`。缺 `.end` 已由上述三项完成证据替代。
+质量表位于 `outputs/analysis/quality/`；质量通过不等于外部精度或阶段二结构门通过。
 
 网格回传的 9/9 工况已找到准稳态窗口，但中→细多个核心量超过 5%，且
 `gsC_f` 缺少足够的峰值下游温度点拟合 κ_d。用户基于计算资源明确不再加密，
@@ -45,6 +51,17 @@ python src/prepare_external_validation.py
 以后重新开启洞口边界验证时，才使用 `--required-only` 重新生成并提交。
 
 外部验证已固定为 Arup FSB2009 Tests 1–5、CSTB Tunnel Test 2 和 IFAB-07。它们使用 firemodels 官方输入快照，生成器只静态校验并逐字复制到独立目录，不把复杂截面重新生成为矩形模型；IFAB 的 `mesh.txt/output.txt` 会一并复制。真实热电偶观测由 `prepare_external_validation.py` 整理到 `05_外部试验复现/observations/`，不得作为主体气体温度或合成训练数据。
+
+现有回传由 `src/analyze_external_validation.py` 正式提取。当前 6.9.1 指标
+NRMSE 为 Arup 0.2403、CSTB 0.2659、IFAB 0.1928，详见
+`outputs/analysis/validation/external_validation_metrics.csv`。三组质量证据均为
+`FORMAL_QUALITY_PASS`；偏差数值本身并未因版本规则调整而改善。
+
+`src/diagnose_external_validation.py` 已进一步用真实试验/FDS 时序核查偏差来源。
+三组全部 DEVC 坐标及 `THERMOCOUPLE` 量名匹配；在原窗口前后平移半个窗口长度
+时，最佳 NRMSE 仅改善 3.86%~4.82%，且 Arup/IFAB 始终低估、CSTB 始终高估。
+因此回传、映射和时间窗均不是主要问题，外部精度门仍未通过。诊断表位于
+`outputs/analysis/validation/diagnostics/`，完整解释见外部试验验证报告。
 
 ## 运行
 
@@ -93,7 +110,19 @@ C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\<chid>\
 python src/check_fds_results.py
 ```
 
-检查结果写入 `outputs/analysis/quality/result_check.csv`。`PASS` 可进入后处理；`REVIEW` 不自动判废，但需查看版本、WARNING、`.end` 或 HRR 偏差；`FAIL` 不得直接分析。
+检查结果写入 `outputs/analysis/quality/result_check.csv`。`PASS` 可进入后处理；`REVIEW` 不自动判废，但需查看版本、WARNING、完成证据或 HRR 偏差；`FAIL` 不得直接分析。
+
+当前外部验证回传采用历史平铺位置 `outputs/<chid>/`。正式提取命令为：
+
+```bash
+uv run --python 3.12 --with numpy --with matplotlib python \
+  阶段一/src/analyze_external_validation.py
+uv run --python 3.12 --with numpy python \
+  阶段一/src/diagnose_external_validation.py
+```
+
+后续新回传仍统一放入 `outputs/runs/<chid>/`，按 6.9.1 证据基线重新检查并使用
+`--rundir outputs/runs` 分析，不得覆盖已有原始结果。
 
 Slurm 提交前先创建日志目录并设置 CSV/工况目录：
 

@@ -1,0 +1,3 @@
+chid,parent_chid,case_group,Q,U,Df,dx,L,W,H,x_fire,T_end,n_mesh_x,n_mesh_y,n_mesh_z,U_over_Uc,flow_layer,les_random_seed,subset,design_status,evidence_basis,note
+pilot_06_q40_r100_d45_seed104729,pilot_06_q40_r100_d45,pilot_random_seed_repeat,40,3.011535,4.5,0.25,100,10,5,50,300,11,1,2,1.000000,near_critical,104729,seed_repeat,WAITING_EXTERNAL_FDS_6_9_1,FDS-6.9.1_User_Guide_RND_SEED,与默认RND_SEED=0基准配对的近临界独立重复
+pilot_11_q100_r160_d70_seed204729,pilot_11_q100_r160_d70,pilot_random_seed_repeat,100,4.818457,7,0.25,100,10,5,50,300,11,1,2,1.600000,strong,204729,seed_repeat,WAITING_EXTERNAL_FDS_6_9_1,FDS-6.9.1_User_Guide_RND_SEED,与默认RND_SEED=0基准配对的高功率强风独立重复

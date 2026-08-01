@@ -15,16 +15,58 @@ from project_paths import FDS_RUNS_DIR, STAGE_ROOT, output_path
 DEFAULT_EXTERNAL_MAPPING = (
     STAGE_ROOT / "05_外部试验复现" / "measurement_mapping.csv"
 )
+DEFAULT_EXPECTED_VERSION = "6.9.1"
 
 
 SUMMARY_FIELDS = (
-    "chid", "status", "fds_version", "version_match", "t_end_s",
+    "chid", "run_chid", "status", "fds_version", "version_match", "t_end_s",
     "devc_t_final_s", "hrr_t_final_s", "error_count", "warning_count",
     "rejected_count", "burner_issue", "required_devc_ok",
     "required_hrr_ok", "time_series_ok", "hrr_nonzero",
     "target_hrr_kW", "tail_hrr_kW", "hrr_closure_rel_error",
+    "end_marker_present", "out_completed_successfully",
     "full_field_present", "issues",
 )
+
+
+def _run_artifacts(case_dir, logical_chid):
+    """Resolve the files produced by FDS, including CATF concatenated runs.
+
+    CATF writes and runs a second input whose HEAD CHID normally ends in
+    ``_cat``.  The returned directory still belongs to the logical validation
+    case, so select the input with the most complete matching output quartet
+    instead of assuming that every output prefix equals the folder name.
+    """
+    case_dir = Path(case_dir)
+    candidates = []
+    for fds_path in sorted(case_dir.glob("*.fds")):
+        try:
+            meta = _parse_input(fds_path)
+        except (OSError, ValueError):
+            continue
+        run_chid = meta["chid"] or fds_path.stem
+        paths = {
+            "fds": fds_path,
+            "out": case_dir / f"{run_chid}.out",
+            "devc": case_dir / f"{run_chid}_devc.csv",
+            "hrr": case_dir / f"{run_chid}_hrr.csv",
+        }
+        complete_count = sum(
+            path.is_file() and path.stat().st_size > 0 for path in paths.values()
+        )
+        candidates.append((complete_count, run_chid == logical_chid, run_chid, paths, meta))
+    if candidates:
+        _, _, run_chid, paths, meta = max(candidates, key=lambda item: (item[0], item[1]))
+        return run_chid, paths, meta
+    paths = {
+        "fds": case_dir / f"{logical_chid}.fds",
+        "out": case_dir / f"{logical_chid}.out",
+        "devc": case_dir / f"{logical_chid}_devc.csv",
+        "hrr": case_dir / f"{logical_chid}_hrr.csv",
+    }
+    return logical_chid, paths, {
+        "chid": None, "t_end": None, "tau_q": None, "target_hrr_kW": None,
+    }
 
 
 def _read_text(path):
@@ -85,6 +127,15 @@ def _find_version(out_text):
     return ""
 
 
+def _completed_successfully(out_text):
+    """Recognize FDS' own success line and archived scheduler wrappers."""
+    return bool(re.search(
+        r"STOP:\s*FDS completed successfully|\bRun completed\b",
+        out_text,
+        re.I,
+    ))
+
+
 def _exact_key(series, wanted):
     normalized = wanted.upper().replace(" ", "_")
     for key in series:
@@ -127,32 +178,35 @@ def _check_times(times, series, t_end, label, hard_issues):
     return ok, times[-1]
 
 
-def check_case(case_dir, expected_version="6.10.1", closure_tolerance=0.20,
+def check_case(case_dir, expected_version=DEFAULT_EXPECTED_VERSION, closure_tolerance=0.20,
                required_temperature_channels=None, require_full_field=False):
     case_dir = Path(case_dir)
     chid = case_dir.name
     hard_issues = []
     review_issues = []
-    required = {
-        "fds": case_dir / f"{chid}.fds",
-        "out": case_dir / f"{chid}.out",
-        "devc": case_dir / f"{chid}_devc.csv",
-        "hrr": case_dir / f"{chid}_hrr.csv",
-    }
+    run_chid, required, meta = _run_artifacts(case_dir, chid)
     for label, path in required.items():
         if not path.is_file() or path.stat().st_size == 0:
             hard_issues.append(f"缺少或空文件: {path.name}")
-    end_path = case_dir / f"{chid}.end"
-    if not end_path.is_file() or end_path.stat().st_size == 0:
-        review_issues.append("缺少 .end；将以 CSV 最终时间判断是否完成")
+    end_path = case_dir / f"{run_chid}.end"
+    end_marker_present = end_path.is_file() and end_path.stat().st_size > 0
 
-    meta = {"chid": None, "t_end": None, "tau_q": None, "target_hrr_kW": None}
     if required["fds"].is_file():
         meta = _parse_input(required["fds"])
-        if meta["chid"] != chid:
-            hard_issues.append(f"文件夹名 {chid} 与输入 CHID={meta['chid']!r} 不一致")
+        if meta["chid"] != run_chid:
+            hard_issues.append(
+                f"输出前缀 {run_chid} 与执行输入 CHID={meta['chid']!r} 不一致"
+            )
+        if run_chid != chid:
+            logical_input = case_dir / f"{chid}.fds"
+            logical_text = _read_text(logical_input) if logical_input.is_file() else ""
+            if not re.search(r"&CATF\b", logical_text, re.I):
+                hard_issues.append(
+                    f"文件夹名 {chid} 与执行输入 CHID={run_chid!r} 不一致且无 CATF 依据"
+                )
 
     out_text = _read_text(required["out"]) if required["out"].is_file() else ""
+    out_completed_successfully = _completed_successfully(out_text)
     version = _find_version(out_text)
     version_match = not expected_version or expected_version.lower() == "any" or version == expected_version
     if not version:
@@ -163,7 +217,7 @@ def check_case(case_dir, expected_version="6.10.1", closure_tolerance=0.20,
         )
     lines = out_text.splitlines()
     errors = [line.strip() for line in lines
-              if re.search(r"\bERROR(?:\(\d+\))?\b", line, re.I)]
+              if re.match(r"^\s*ERROR(?:\(\d+\))?\s*:", line, re.I)]
     warnings = [line.strip() for line in lines if re.search(r"\bWARNING\b", line, re.I)]
     rejected = [line.strip() for line in lines if re.search(r"\brejected\b", line, re.I)]
     burner_issue = any(
@@ -186,14 +240,20 @@ def check_case(case_dir, expected_version="6.10.1", closure_tolerance=0.20,
     if warnings:
         review_issues.append(f"存在 {len(warnings)} 条 WARNING，需查看 .out")
 
-    devc_times, devc_series, devc_units = fds_io.read_devc(str(case_dir), chid)
-    hrr_times, hrr_series, hrr_units = fds_io.read_hrr(str(case_dir), chid)
+    devc_times, devc_series, devc_units = fds_io.read_devc(str(case_dir), run_chid)
+    hrr_times, hrr_series, hrr_units = fds_io.read_hrr(str(case_dir), run_chid)
     devc_time_ok, devc_final = _check_times(
         devc_times, devc_series, meta["t_end"], "DEVC", hard_issues
     )
     hrr_time_ok, hrr_final = _check_times(
         hrr_times, hrr_series, meta["t_end"], "HRR", hard_issues
     )
+    if not end_marker_present and not (
+        out_completed_successfully and devc_time_ok and hrr_time_ok
+    ):
+        review_issues.append(
+            "缺少 .end，且 .out 正常结束与 CSV 达到 T_END 的替代证据不完整"
+        )
 
     external_channel_keys = []
     if required_temperature_channels:
@@ -281,16 +341,25 @@ def check_case(case_dir, expected_version="6.10.1", closure_tolerance=0.20,
                     )
         else:
             review_issues.append("T_END 不长于 3×TAU_Q，只能作为短试算")
-    else:
+    elif not required_temperature_channels:
         review_issues.append("无法从输入和 _hrr.csv 完成功率闭合检查")
 
-    full_field_present = (
-        any(case_dir.glob(f"{chid}*.smv"))
-        and (any(case_dir.glob(f"{chid}*.sf*")) or any(case_dir.glob(f"{chid}*.s3d*")))
-        and any(case_dir.glob(f"{chid}*.bf"))
+    input_text = _read_text(required["fds"]) if required["fds"].is_file() else ""
+    boundary_requested = bool(re.search(r"&BNDF\b", input_text, re.I))
+    has_smv = any(case_dir.glob(f"{run_chid}*.smv"))
+    has_slice = (
+        any(case_dir.glob(f"{run_chid}*.sf*"))
+        or any(case_dir.glob(f"{run_chid}*.s3d*"))
+    )
+    has_boundary = any(case_dir.glob(f"{run_chid}*.bf"))
+    full_field_present = has_smv and has_slice and (
+        has_boundary or not boundary_requested
     )
     if require_full_field and not full_field_present:
-        hard_issues.append("外部验证缺少 .smv、切片/三维场或 .bf 全场文件")
+        required_fields = ".smv 与切片/三维场"
+        if boundary_requested:
+            required_fields += "及输入所请求的 .bf"
+        hard_issues.append(f"外部验证缺少必需全场文件：{required_fields}")
     if hard_issues:
         status = "FAIL"
     elif review_issues:
@@ -299,6 +368,7 @@ def check_case(case_dir, expected_version="6.10.1", closure_tolerance=0.20,
         status = "PASS"
     return {
         "chid": chid,
+        "run_chid": run_chid,
         "status": status,
         "fds_version": version,
         "version_match": version_match,
@@ -316,6 +386,8 @@ def check_case(case_dir, expected_version="6.10.1", closure_tolerance=0.20,
         "target_hrr_kW": target_hrr,
         "tail_hrr_kW": tail_hrr,
         "hrr_closure_rel_error": closure_error,
+        "end_marker_present": end_marker_present,
+        "out_completed_successfully": out_completed_successfully,
         "full_field_present": full_field_present,
         "issues": "; ".join(hard_issues + review_issues),
     }
@@ -335,7 +407,7 @@ def _load_external_channels(path=DEFAULT_EXTERNAL_MAPPING):
     return result
 
 
-def check_all(run_root, out_path, chids=None, expected_version="6.10.1",
+def check_all(run_root, out_path, chids=None, expected_version=DEFAULT_EXPECTED_VERSION,
               closure_tolerance=0.20, external_mapping=DEFAULT_EXTERNAL_MAPPING):
     run_root = Path(run_root)
     if chids:
@@ -369,7 +441,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rundir", default=str(FDS_RUNS_DIR))
     parser.add_argument("--chids", nargs="*", help="只检查指定工况；省略时扫描全部子文件夹")
-    parser.add_argument("--expected-version", default="6.10.1",
+    parser.add_argument("--expected-version", default=DEFAULT_EXPECTED_VERSION,
                         help="版本不一致只标记 REVIEW；填 any 可只记录不比较")
     parser.add_argument("--hrr-closure-tolerance", type=float, default=0.20)
     parser.add_argument("--external-mapping", default=str(DEFAULT_EXTERNAL_MAPPING),

@@ -80,6 +80,29 @@ class TransportModelTests(unittest.TestCase):
         self.assertEqual(3, len(candidates))
         self.assertIn(best, candidates)
         self.assertTrue(all(math.isfinite(row["nrmse"]) for row in candidates))
+        self.assertEqual(0.2, best["sigma_factor"])
+        self.assertLess(best["nrmse"], 0.01)
+
+    def test_finite_source_fit_improves_over_point_for_broad_source(self):
+        xs = [20 + index for index in range(61)]
+        values = model.finite_source_profile(xs, 220, 50.5, 0.22, 0.08, 2.5)
+        point = model.fit_point_profile(xs, values, H=5, near_exclusion_H=0.3)
+        point_score = model.profile_nrmse(
+            xs, values, model.predict_point_fit(xs, point), point["xp"], 0.0, 5
+        )
+        finite, _ = model.fit_finite_source_profile(
+            xs, values, Df=5, sigma_factors=(0.2, 0.5, 0.8), H=5
+        )
+        self.assertEqual(0.5, finite["sigma_factor"])
+        self.assertLess(finite["nrmse"], point_score)
+
+    def test_finite_source_optimizer_rejects_invalid_controls(self):
+        xs = [20 + index for index in range(61)]
+        values = model.point_profile(xs, 100, 50, 0.2, 0.1)
+        with self.assertRaisesRegex(ValueError, "optimization_rounds"):
+            model.fit_finite_source_profile(xs, values, 5, optimization_rounds=0)
+        with self.assertRaisesRegex(ValueError, "quadrature_points"):
+            model.fit_finite_source_profile(xs, values, 5, quadrature_points=50)
 
     def test_synthetic_output_is_explicitly_marked(self):
         with tempfile.TemporaryDirectory() as tmp:

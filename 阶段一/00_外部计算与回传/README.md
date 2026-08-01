@@ -54,7 +54,7 @@ python src/check_fds_results.py
 python src/check_fds_results.py --chids gsA_c gsA_m gsA_f
 ```
 
-如果外部平台使用的不是 6.10.1：
+如果需要只记录版本而不与当前 6.9.1 证据基线比较：
 
 ```bash
 # 记录版本但不与目标版本比较
@@ -82,10 +82,12 @@ C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\analysis\quality\result_che
 ## 4. 状态解释
 
 - `PASS`：没有自动发现问题，可以进入后处理；
-- `REVIEW`：结果不自动判废，但需要人工查看，例如存在 WARNING、版本不同、缺少 `.end` 或 HRR 功率偏差较大；
+- `REVIEW`：结果不自动判废，但需要人工查看，例如存在 WARNING、版本不同、无法证明正常结束或 HRR 功率偏差较大；
 - `FAIL`：缺少关键文件、计算未到 T_END、存在 ERROR/rejected、火源为零或关键 CSV 无效，不能直接进入分析。
 
-版本不同不会自动判为失败。如果正式数据库需要混用版本，应先用一个代表工况比较 HRR、温度峰值、峰值位置和衰减参数，确认版本差异可以接受并记录所用版本。
+当前正式证据基线为 FDS 6.9.1。版本不同不会自动判为失败；若以后混用其他
+版本，应先用代表工况比较 HRR、温度峰值、峰值位置和衰减参数。缺少 `.end`
+时，`.out` 正常结束且 DEVC/HRR 均达到 `T_END` 可作为完整替代证据。
 
 ## 5. 22 MESH 专用短试算与并行基准
 
@@ -108,7 +110,7 @@ python3 src/generate_fds_case.py \
 sbatch --export=ALL,CASES_CSV="$PWD/00_外部计算与回传/smoke_22mesh_cases.csv",CASES_DIR="$PWD/outputs/inputs",RUNS_DIR="$PWD/outputs/runs",FDS_NTASKS=22,FDS_OMP_THREADS=2 src/run_slurm_template.sh
 ```
 
-短试算必须检查：FDS 6.10.1、第一条 ERROR、全部 WARNING/rejected、22 MESH 通信与负载、时间推进、`HRR_tot>0`、入口 +x、DEVC 关键列、`_hrr.csv HRR/Q_RADI` 和结束时间。60 s 虽超过约 `3×TAU_Q`，仍不作为准稳态、网格收敛、洞口或外部验证结论。
+短试算必须检查：本批声明版本（正式证据默认 FDS 6.9.1）、第一条 ERROR、全部 WARNING/rejected、22 MESH 通信与负载、时间推进、`HRR_tot>0`、入口 +x、DEVC 关键列、`_hrr.csv HRR/Q_RADI` 和结束时间。60 s 虽超过约 `3×TAU_Q`，仍不作为准稳态、网格收敛、洞口或外部验证结论。
 
 ## 6. 外部验证官方快照提交
 
@@ -130,13 +132,17 @@ cd /project/fds_tunnel/runs/CSTB_Tunnel_Test_2 && mpiexec -np 12 fds CSTB_Tunnel
 cd /project/fds_tunnel/runs/IFAB-07 && mpiexec -np 12 fds IFAB-07.fds
 ```
 
-关键输出位于 `/project/fds_tunnel/runs/<chid>/<chid>.out`、`<chid>_devc.csv`、`<chid>_hrr.csv`、`<chid>.smv`，以及同目录切片/三维场和 `.bf`。计算完成后把整个目录回传到：
+关键输出位于 `/project/fds_tunnel/runs/<chid>/`。Arup/CSTB 使用逻辑 CHID
+前缀；IFAB 的 CATF 实际执行输入和输出前缀通常为 `IFAB-07_cat`，必须把
+逻辑输入、CATF 生成输入和实际前缀的全部输出一起保留。至少包括 `.out`、
+`_devc.csv`、`_hrr.csv`、`.smv` 和切片/三维场；只有输入请求 BNDF 时才要求
+对应 `.bf`。计算完成后把整个目录回传到：
 
 ```text
 C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\<chid>\
 ```
 
-外部官方输入使用自己的热电偶 ID，不要求主体模型的 `T_*/U_*/HRR_tot/Qw_*`。检查器会从 `05_外部试验复现/measurement_mapping.csv` 读取应有通道，并强制要求 `HRR/Q_RADI`、非零火源、完整时长及 `.smv`、切片/三维场和 `.bf`；主体工况原判据保持不变。
+外部官方输入使用自己的热电偶 ID，不要求主体模型的 `T_*/U_*/HRR_tot/Qw_*`。检查器会从 `05_外部试验复现/measurement_mapping.csv` 读取应有通道，并强制要求 `HRR/Q_RADI`、非零火源、完整时长及 `.smv`、切片/三维场；输入声明 BNDF 时再要求 `.bf`。主体工况原判据保持不变。
 
 ## 7. 与外部验证并行的 12 个先导
 
@@ -156,8 +162,8 @@ C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\pilot_inputs\
 ```
 
 服务器每个 CHID 仍使用独立 `/project/fds_tunnel/runs/<chid>/` 工作目录，初始
-MPI 数不得超过 22。`gsA_m/gsB_m/gsC_m` 与网格批次同名：优先恢复原
-`.out/.end`；若无法恢复，使用本批输入重跑，以获得同版本和完整质量记录。
+MPI 数不得超过 22。`gsA_m/gsB_m/gsC_m` 与网格批次同名；当前 6.9.1
+回传的 `.out`、DEVC/HRR 和全场文件已经通过质量检查，不因缺 `.end` 重跑。
 
 若服务器保留本项目目录结构，可从项目根目录批量运行（下面并发数为 1，避免
 单节点同时启动多个 22-MESH 工况；跨节点并发应由调度器数组控制）：
@@ -171,8 +177,68 @@ bash 阶段一/src/run_batch.sh \
 
 输入对应 `/project/fds_tunnel/project/阶段一/outputs/pilot_inputs/<chid>.fds`，
 输出对应 `/project/fds_tunnel/project/阶段一/outputs/runs/<chid>/`。每组至少下载
-实际 `.fds`、`.out`、`_devc.csv`、`_hrr.csv`、`.end`；建议保留 `.smv`、温度/
+实际 `.fds`、`.out`、`_devc.csv`、`_hrr.csv`；建议保留 `.end`、`.smv`、温度/
 速度/密度切片和 `.bf`，以支持近场、回流和结构残差复核。
 
 先导与外部验证可以同时计算，但 68 组数据库不能同时启动。只有三组外部验证
 通过质量/精度检查，且 12 个先导满足阶段二结构判伪门后，才能生成数据库输入。
+
+## 8. 2026-08-01 当前外部状态
+
+用户已决定以现有 FDS 6.9.1 作为正式证据基线。3 个外部验证和 12 个先导
+均重新检查为 `PASS`，无需版本桥接，也不得仅因缺 `.end` 重跑。外部验证
+已在该质量口径下正式提取指标；其数值偏差仍须如实处理，版本放行不等于
+验证精度通过。
+
+当前不提交原 15 组复算，也不生成 68 组数据库。真实先导复核仍为 4/12
+通过，且 `pilot_12_q100_r160_d80` 在峰值下游近场外只有 1 个有效测点；
+现有数据无法区分测量域截断与结构失配。下一批只需按 6.9.1 基线运行两个
+诊断 CHID：
+
+| 目的 | 逻辑 CHID | 服务器工作目录 |
+|---|---|---|
+| 强风测量域诊断 | `pilot_diag_q100_r160_d70_x41` | `/project/fds_tunnel/runs/pilot_diag_q100_r160_d70_x41/` |
+| 强风测量域诊断 | `pilot_diag_q100_r160_d80_x41` | `/project/fds_tunnel/runs/pilot_diag_q100_r160_d80_x41/` |
+
+已生成输入：
+
+```text
+C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\pilot_diagnostic_inputs\pilot_diag_q100_r160_d70_x41.fds
+C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\pilot_diagnostic_inputs\pilot_diag_q100_r160_d80_x41.fds
+```
+
+服务器分别将输入上传到表中工作目录，并在该目录启动 FDS。结果回传到：
+
+```text
+C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\pilot_diag_q100_r160_d70_x41\
+C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\pilot_diag_q100_r160_d80_x41\
+```
+
+每组至少回传实际 `.fds`、`.out`、`_devc.csv`、`_hrr.csv`；为判断出口/测量域
+影响，还应回传 `.smv`、温度/速度切片和输入已请求的边界文件。`.end` 建议保留，
+但当前 6.9.1 完成证据规则允许以正常 `.out` 加两类 CSV 达到 `T_END` 替代。
+
+5 °C 工程传感器阈值已依据 IEC 60584-1 的 K 型 2 级允差并经用户批准，证据
+记录在 `阶段二/03_删失与峰值/sensor_threshold_evidence_template.csv`。正式
+删失阈值仍需要随机种子重复工况的噪声证据，并最终取
+`max(5 °C, DeltaT_noise)`。
+
+已按 FDS 6.9.1 官方用户指南/源码确认的 `MISC RND_SEED` 语法准备两组独立
+重复输入。该语法尚未在本项目的外部 6.9.1 结果中实跑确认，第一组运行必须
+先检查输入解析、日志版本、时间推进和非零 HRR：
+
+| 逻辑 CHID | 基准父工况 | RND_SEED | 本机输入 | 服务器工作目录 |
+|---|---|---:|---|---|
+| `pilot_06_q40_r100_d45_seed104729` | `pilot_06_q40_r100_d45` | 104729 | `outputs/pilot_seed_inputs/pilot_06_q40_r100_d45_seed104729.fds` | `/project/fds_tunnel/runs/pilot_06_q40_r100_d45_seed104729/` |
+| `pilot_11_q100_r160_d70_seed204729` | `pilot_11_q100_r160_d70` | 204729 | `outputs/pilot_seed_inputs/pilot_11_q100_r160_d70_seed204729.fds` | `/project/fds_tunnel/runs/pilot_11_q100_r160_d70_seed204729/` |
+
+回传目录分别为：
+
+```text
+C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\pilot_06_q40_r100_d45_seed104729\
+C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\pilot_11_q100_r160_d70_seed204729\
+```
+
+每组至少回传实际 `.fds`、`.out`、`_devc.csv`、`_hrr.csv`；建议保留 `.end`、
+`.smv` 和温度/速度切片。两份重复输入与各自父工况除 `HEAD` 和
+`MISC RND_SEED` 外逐行一致。

@@ -233,8 +233,12 @@ def _check_time_profiles(times, profiles, sensor_xs):
     if any(right <= left for left, right in zip(times, times[1:])):
         raise ValueError("时间必须严格递增")
     gaps = [right - left for left, right in zip(times, times[1:])]
-    if max(gaps) - min(gaps) > max(1e-8, statistics.median(gaps) * 0.01):
-        raise ValueError("时间间隔不规则")
+    median_gap = statistics.median(gaps)
+    # FDS 的 DT_DEVC 是目标输出间隔，自适应时间步会使实际间隔略短或
+    # 略长。较短间隔不丢失信息；这里只拒绝超过中位间隔 1.25 倍的空档，
+    # 与阶段一准稳态和时间平均检查保持同一口径。
+    if max(gaps) > 1.25 * median_gap:
+        raise ValueError("时间间隔存在过长空档")
     if len(sensor_xs) < 7 or any(len(row) != len(sensor_xs) for row in profiles):
         raise ValueError("每帧温度列必须与至少 7 个传感器一致")
     checked = [[_finite(value, "temperature") for value in row] for row in profiles]

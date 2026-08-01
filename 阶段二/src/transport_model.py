@@ -263,36 +263,96 @@ def profile_nrmse(xs, observed, predicted, xp, exclusion_H, H=5.0,
     return rmse / scale
 
 
+def _scaled_profile_score(xs, values, unit_profile, xp, near_exclusion_H, H):
+    selected = [
+        (float(y), g) for x, y, g in zip(xs, values, unit_profile)
+        if abs(float(x) - xp) / H >= near_exclusion_H
+    ]
+    denominator = sum(g * g for _, g in selected)
+    if denominator <= 1e-15:
+        raise ValueError("有限源尺度拟合矩阵退化")
+    scale = sum(y * g for y, g in selected) / denominator
+    if scale <= 0:
+        raise ValueError("有限源拟合得到非正源强尺度")
+    prediction = [scale * value for value in unit_profile]
+    score = profile_nrmse(
+        xs, values, prediction, xp, near_exclusion_H, H
+    )
+    return scale, prediction, score
+
+
 def fit_finite_source_profile(xs, values, Df, sigma_factors=(0.1, 0.2, 0.3, 0.4),
-                              H=5.0, near_exclusion_H=0.0):
-    """在点源远场参数基础上网格比较单一高斯宽度系数。"""
+                              H=5.0, near_exclusion_H=0.0,
+                              optimization_rounds=3, quadrature_points=101):
+    """受限拟合高斯有限源，并比较全局宽度系数候选。
+
+    点源远场拟合作为初值；每个 ``sigma_factor`` 分别对源中心、上下游
+    衰减率作确定性坐标网格收缩，源强在每个候选上解析最小二乘求解。
+    这避免把点源参数原样套给有限源后就宣称后者没有改善，同时仍只维护
+    单一高斯源族，不引入无约束黑箱优化。
+    """
     Df = _finite(Df, "Df")
     if Df <= 0:
         raise ValueError("Df 必须为正")
+    if isinstance(optimization_rounds, bool) or int(optimization_rounds) != optimization_rounds:
+        raise ValueError("optimization_rounds 必须为正整数")
+    optimization_rounds = int(optimization_rounds)
+    if optimization_rounds < 1:
+        raise ValueError("optimization_rounds 必须为正整数")
+    if quadrature_points < 51 or quadrature_points % 2 == 0:
+        raise ValueError("quadrature_points 必须是至少 51 的奇数")
     point_fit = fit_point_profile(xs, values, H=H, near_exclusion_H=max(0.3, near_exclusion_H))
     candidates = []
     for factor in sigma_factors:
         factor = _finite(factor, "sigma_factor")
         if factor <= 0:
             raise ValueError("sigma_factor 必须为正")
-        unit = finite_source_profile(
-            xs, 1.0, point_fit["xp"], point_fit["k_u"], point_fit["k_d"],
-            factor * Df,
-        )
-        selected = [
-            (float(y), g) for x, y, g in zip(xs, values, unit)
-            if abs(float(x) - point_fit["xp"]) / H >= near_exclusion_H
-        ]
-        denominator = sum(g * g for _, g in selected)
-        scale = sum(y * g for y, g in selected) / denominator
-        prediction = [scale * g for g in unit]
-        score = profile_nrmse(
-            xs, values, prediction, point_fit["xp"], near_exclusion_H, H
-        )
+        sigma_s = factor * Df
+        current = {
+            "xp": point_fit["xp"], "k_u": point_fit["k_u"],
+            "k_d": point_fit["k_d"],
+        }
+        xp_step = max(0.2 * H, 0.2 * Df)
+        log_step = math.log(1.5)
+        best = None
+        for _ in range(optimization_rounds):
+            round_best = None
+            for xp_shift in (-xp_step, 0.0, xp_step):
+                xp = current["xp"] + xp_shift
+                if not float(xs[0]) < xp < float(xs[-1]):
+                    continue
+                for ku_shift in (-log_step, 0.0, log_step):
+                    k_u = current["k_u"] * math.exp(ku_shift)
+                    for kd_shift in (-log_step, 0.0, log_step):
+                        k_d = current["k_d"] * math.exp(kd_shift)
+                        unit = finite_source_profile(
+                            xs, 1.0, xp, k_u, k_d, sigma_s,
+                            quadrature_points=quadrature_points,
+                        )
+                        try:
+                            scale, prediction, score = _scaled_profile_score(
+                                xs, values, unit, xp, near_exclusion_H, H
+                            )
+                        except ValueError:
+                            continue
+                        row = {
+                            "xp": xp, "k_u": k_u, "k_d": k_d,
+                            "source_scale": scale, "prediction": prediction,
+                            "nrmse": score,
+                        }
+                        if round_best is None or row["nrmse"] < round_best["nrmse"]:
+                            round_best = row
+            if round_best is None:
+                raise ValueError("有限源坐标优化没有有效候选")
+            best = round_best
+            current = round_best
+            xp_step /= 2.0
+            log_step /= 2.0
         candidates.append({
-            "sigma_factor": factor, "sigma_s": factor * Df,
-            "source_scale": scale, "nrmse": score, "prediction": prediction,
-            "xp": point_fit["xp"], "k_u": point_fit["k_u"], "k_d": point_fit["k_d"],
+            "sigma_factor": factor, "sigma_s": sigma_s,
+            "source_scale": best["source_scale"], "nrmse": best["nrmse"],
+            "prediction": best["prediction"], "xp": best["xp"],
+            "k_u": best["k_u"], "k_d": best["k_d"],
         })
     return min(candidates, key=lambda item: item["nrmse"]), candidates
 
@@ -337,7 +397,8 @@ def select_near_field_exclusion(profiles, candidates_H=(0.3, 0.4, 0.5), H=5.0):
     return min(valid, key=lambda row: (row["median_nrmse"], row["near_exclusion_H"])), summaries
 
 
-def interval_sensitivity(xs, values, windows_H, H=5.0):
+def interval_sensitivity(xs, values, windows_H, H=5.0,
+                         detection_threshold=0.1):
     """按 (near_H,max_H) 窗口扰动并报告相对基准参数变化。"""
     if not windows_H:
         raise ValueError("拟合窗口列表为空")
@@ -346,6 +407,7 @@ def interval_sensitivity(xs, values, windows_H, H=5.0):
         fit = fit_point_profile(
             xs, values, H=H, near_exclusion_H=near_H,
             max_distance_H=max_H,
+            detection_threshold=detection_threshold,
         )
         fit["window_near_H"] = float(near_H)
         fit["window_max_H"] = float(max_H)

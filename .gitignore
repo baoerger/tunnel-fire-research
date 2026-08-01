@@ -57,6 +57,10 @@ outputs/
 阶段一/outputs/**
 !阶段一/outputs/pilot_inputs/
 !阶段一/outputs/pilot_inputs/*.fds
+!阶段一/outputs/pilot_diagnostic_inputs/
+!阶段一/outputs/pilot_diagnostic_inputs/*.fds
+!阶段一/outputs/pilot_seed_inputs/
+!阶段一/outputs/pilot_seed_inputs/*.fds
 !阶段一/outputs/external_inputs/
 !阶段一/outputs/external_inputs/**/
 !阶段一/outputs/external_inputs/**/*.fds

@@ -31,7 +31,7 @@ class LightweightResultCheckTests(unittest.TestCase):
             encoding="utf-8",
         )
         (self.case_dir / f"{self.chid}.out").write_text(
-            "Fire Dynamics Simulator FDS-6.10.1-0-release\nRun completed\n",
+            "Fire Dynamics Simulator FDS-6.9.1-0-release\nRun completed\n",
             encoding="utf-8",
         )
         (self.case_dir / f"{self.chid}.end").write_text("completed\n", encoding="utf-8")
@@ -71,23 +71,41 @@ class LightweightResultCheckTests(unittest.TestCase):
 
     def test_version_mismatch_only_requires_review(self):
         out = self.case_dir / f"{self.chid}.out"
-        out.write_text("Fire Dynamics Simulator FDS-6.9.1\nRun completed\n", encoding="utf-8")
+        out.write_text("Fire Dynamics Simulator FDS-6.10.1\nRun completed\n", encoding="utf-8")
         result = checker.check_case(self.case_dir)
         self.assertEqual("REVIEW", result["status"])
         self.assertFalse(result["version_match"])
 
     def test_any_version_disables_comparison(self):
         out = self.case_dir / f"{self.chid}.out"
-        out.write_text("Fire Dynamics Simulator FDS-6.9.1\nRun completed\n", encoding="utf-8")
+        out.write_text("Fire Dynamics Simulator FDS-6.10.1\nRun completed\n", encoding="utf-8")
         result = checker.check_case(self.case_dir, expected_version="any")
         self.assertEqual("PASS", result["status"], result["issues"])
         self.assertTrue(result["version_match"])
+
+    def test_missing_end_is_accepted_with_successful_out_and_complete_csv(self):
+        (self.case_dir / f"{self.chid}.end").unlink()
+        result = checker.check_case(self.case_dir)
+        self.assertEqual("PASS", result["status"], result["issues"])
+        self.assertFalse(result["end_marker_present"])
+        self.assertTrue(result["out_completed_successfully"])
 
     def test_warning_requires_review(self):
         out = self.case_dir / f"{self.chid}.out"
         out.write_text(out.read_text(encoding="utf-8") + "WARNING: inspect me\n", encoding="utf-8")
         result = checker.check_case(self.case_dir)
         self.assertEqual("REVIEW", result["status"])
+
+    def test_runtime_maximum_velocity_error_is_not_fds_error(self):
+        out = self.case_dir / f"{self.chid}.out"
+        out.write_text(
+            out.read_text(encoding="utf-8")
+            + "       Maximum Velocity Error:  0.12E-01 on Mesh 1 at (1,2,3)\n",
+            encoding="utf-8",
+        )
+        result = checker.check_case(self.case_dir)
+        self.assertEqual("PASS", result["status"], result["issues"])
+        self.assertEqual(0, result["error_count"])
 
     def test_rejected_burner_fails(self):
         out = self.case_dir / f"{self.chid}.out"
@@ -118,6 +136,11 @@ class LightweightResultCheckTests(unittest.TestCase):
         self.assertTrue(out.is_file())
 
     def test_external_contract_uses_mapped_thermocouples_and_full_field(self):
+        fds = self.case_dir / f"{self.chid}.fds"
+        fds.write_text(
+            fds.read_text(encoding="utf-8").replace("&TAIL /", "&BNDF QUANTITY='WALL TEMPERATURE' /\n&TAIL /"),
+            encoding="utf-8",
+        )
         devc = self.case_dir / f"{self.chid}_devc.csv"
         self._write_csv(devc, [
             ["s", "C", "C"],
@@ -145,6 +168,45 @@ class LightweightResultCheckTests(unittest.TestCase):
         )
         self.assertEqual("FAIL", missing_field["status"])
         self.assertIn("全场文件", missing_field["issues"])
+
+    def test_external_without_bndf_only_requires_declared_field_outputs(self):
+        devc = self.case_dir / f"{self.chid}_devc.csv"
+        self._write_csv(devc, [
+            ["s", "C", "C"],
+            ["Time", "TC_A", "TC_B"],
+            [0, 20, 20], [30, 80, 60], [60, 90, 70],
+        ])
+        for suffix in (".smv", "_0001.sf"):
+            (self.case_dir / f"{self.chid}{suffix}").write_text(
+                "field\n", encoding="utf-8"
+            )
+        result = checker.check_case(
+            self.case_dir,
+            required_temperature_channels=["TC_A", "TC_B"],
+            require_full_field=True,
+        )
+        self.assertEqual("PASS", result["status"], result["issues"])
+
+    def test_catf_concatenated_run_chid_is_resolved(self):
+        logical_fds = self.case_dir / f"{self.chid}.fds"
+        logical_fds.write_text(
+            logical_fds.read_text(encoding="utf-8").replace("&TAIL /", "&CATF OTHER_FILES='mesh.txt' /\n&TAIL /"),
+            encoding="utf-8",
+        )
+        cat_chid = f"{self.chid}_cat"
+        cat_fds = self.case_dir / f"{cat_chid}.fds"
+        cat_fds.write_text(
+            logical_fds.read_text(encoding="utf-8")
+            .replace(f"CHID='{self.chid}'", f"CHID='{cat_chid}'")
+            .replace("&CATF OTHER_FILES='mesh.txt' /\n", ""),
+            encoding="utf-8",
+        )
+        for suffix in (".out", ".end", "_devc.csv", "_hrr.csv"):
+            source = self.case_dir / f"{self.chid}{suffix}"
+            source.rename(self.case_dir / f"{cat_chid}{suffix}")
+        result = checker.check_case(self.case_dir)
+        self.assertEqual("PASS", result["status"], result["issues"])
+        self.assertEqual(cat_chid, result["run_chid"])
 
 
 if __name__ == "__main__":

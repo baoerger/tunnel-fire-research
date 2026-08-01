@@ -23,10 +23,10 @@
 从项目根目录执行：
 
 ```bash
-uv run --python 3.12 python 阶段四/src/dimensionless_model.py
-uv run --python 3.12 python 阶段四/src/forward_validation.py
-uv run --python 3.12 python 阶段四/src/field_integrals.py
-uv run --python 3.12 python -m unittest discover -s 阶段四/tests -v
+uv run --python 3.12 --with numpy --with matplotlib python 阶段四/src/dimensionless_model.py
+uv run --python 3.12 --with numpy --with matplotlib python 阶段四/src/forward_validation.py
+uv run --python 3.12 --with numpy --with matplotlib python 阶段四/src/field_integrals.py
+uv run --python 3.12 --with numpy --with matplotlib python -m unittest discover -s 阶段四/tests -v
 ```
 
 强风上游删失、无明显回流和下游点不足的工况返回 `CENSORED_NO_FULL_PARAMETERS`，不会强制生成高不确定性的完整 `Pe_e/Da_e/Pi_S`。这些工况以后只通过删失全曲线损失进入闭合拟合。

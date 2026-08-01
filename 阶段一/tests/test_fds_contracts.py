@@ -80,6 +80,29 @@ class GenerateFdsTests(unittest.TestCase):
         self.assertEqual(2, text.count("SURF_ID='OPEN'"))
         self.assertNotIn("&RAMP", text)
 
+    def test_fds_691_random_seed_is_explicit_and_validated(self):
+        default = self.render()
+        seeded = self.render(rnd_seed=104729)
+        self.assertNotIn("RND_SEED", default)
+        self.assertIn(
+            "&MISC SIMULATION_MODE='LES', RESTART=.FALSE., TMPA=20.0, "
+            "RND_SEED=104729 /",
+            seeded,
+        )
+        alias = gen.normalize_case(dict(
+            chid="seeded", Q=40, U=2.5, Df=5, dx=0.25,
+            les_random_seed="104729",
+        ))
+        self.assertEqual(104729, alias["rnd_seed"])
+        for value in (-1, 1.5, True, 2_000_000_001):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "RND_SEED|整数"):
+                self.render(rnd_seed=value)
+        with self.assertRaisesRegex(ValueError, "不一致"):
+            gen.normalize_case(dict(
+                chid="bad_seed", Q=40, Df=5, dx=0.25,
+                rnd_seed="1", les_random_seed="2",
+            ))
+
     def test_grid_levels_and_extended_length(self):
         for dx, ijk in ((0.5, "IJK=200 20 10"),
                         (0.25, "IJK=400 40 20"),

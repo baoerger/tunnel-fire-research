@@ -74,6 +74,21 @@ class CensoringPeakTests(unittest.TestCase):
         self.assertGreaterEqual(first["block_len_samples"], 1)
         self.assertLess(first["xp_ci_width"], 0.5)
 
+    def test_time_block_accepts_bounded_fds_adaptive_output_gaps(self):
+        sensor_xs = [45 + index for index in range(11)]
+        gaps = [0.98, 1.02] * 30
+        times = [0.0]
+        for gap in gaps:
+            times.append(times[-1] + gap)
+        profiles = [
+            [140.0 - 3.0 * (x - 50.2) ** 2 for x in sensor_xs]
+            for _ in times
+        ]
+        summary, _ = cp.time_block_peak_bootstrap(
+            times, profiles, sensor_xs, n_boot=20, seed=7
+        )
+        self.assertEqual(20, summary["n_success"])
+
     def test_sensor_perturbation_bootstrap_is_deterministic(self):
         xs = [44 + 0.5 * index for index in range(25)]
         values = [180.0 - 3.0 * (x - 50.15) ** 2 for x in xs]
@@ -118,7 +133,7 @@ class CensoringPeakTests(unittest.TestCase):
     def test_invalid_inputs_fail(self):
         with self.assertRaisesRegex(ValueError, "sigma"):
             cp.censored_gaussian_nll([1], [1], 0, 5)
-        with self.assertRaisesRegex(ValueError, "不规则"):
+        with self.assertRaisesRegex(ValueError, "过长空档"):
             cp.time_block_peak_bootstrap(
                 [0, 1, 2, 4, 5, 6, 7, 8, 9, 10],
                 [[1] * 7 for _ in range(10)], list(range(7)), n_boot=20,

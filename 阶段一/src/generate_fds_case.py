@@ -30,7 +30,8 @@ generate_fds_case.py — 隧道火灾 FDS 输入文件生成器（阶段一核�
 
 CSV 必填列：chid,Q,U,Df,dx,L,x_fire,T_end
 可选列：U0(纵向风 m/s，缺省=U)、case_group、note、
-        n_mesh_x、n_mesh_y、n_mesh_z（各方向 MESH 数，缺省=1）
+        n_mesh_x、n_mesh_y、n_mesh_z（各方向 MESH 数，缺省=1）、
+        rnd_seed 或 les_random_seed（映射到 FDS 6.9.1 MISC RND_SEED）
 
 依赖：仅标准库 + tunnel_config（同目录）。
 """
@@ -49,6 +50,7 @@ from project_paths import FDS_INPUTS_DIR
 _REQUIRED_FIELDS = ("chid", "Q", "Df", "dx")
 _NUMERIC_FIELDS = ("Q", "U", "Df", "dx", "L", "W", "H", "x_fire", "T_end")
 _MESH_COUNT_FIELDS = ("n_mesh_x", "n_mesh_y", "n_mesh_z")
+_RND_SEED_FIELDS = ("rnd_seed", "les_random_seed")
 _CHID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _HEAD_CHID_RE = re.compile(r"&HEAD\b[^/]*\bCHID\s*=\s*['\"]([^'\"]+)['\"]", re.IGNORECASE)
 _TIME_END_RE = re.compile(r"&TIME\b[^/]*\bT_END\s*=\s*([0-9.Ee+-]+)", re.IGNORECASE)
@@ -93,6 +95,27 @@ def normalize_case(spec, row_number=None):
             raise ValueError(f"{prefix}: {field} 必须大于 0，当前为 {values[field]}")
     if values["U"] < 0:
         raise ValueError(f"{prefix}: U 必须大于等于 0；入口方向由生成器用负 VEL 表示")
+
+    seed_values = []
+    for field in _RND_SEED_FIELDS:
+        value = raw.get(field)
+        if value in (None, ""):
+            continue
+        if isinstance(value, bool):
+            raise ValueError(f"{prefix}: {field}={value!r} 不是有效整数")
+        try:
+            seed = int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{prefix}: {field}={value!r} 不是有效整数") from exc
+        if str(value).strip() != str(seed):
+            raise ValueError(f"{prefix}: {field}={value!r} 必须是整数")
+        seed_values.append((field, seed))
+    if len({value for _, value in seed_values}) > 1:
+        raise ValueError(f"{prefix}: rnd_seed 与 les_random_seed 不一致")
+    rnd_seed = seed_values[0][1] if seed_values else 0
+    if not 0 <= rnd_seed <= 2_000_000_000:
+        raise ValueError(f"{prefix}: RND_SEED 必须位于 0~2000000000")
+    values["rnd_seed"] = rnd_seed
 
     for field in _MESH_COUNT_FIELDS:
         value = raw.get(field, 1)
@@ -418,7 +441,7 @@ def _fmt_slices(L, W, H, x_fire):
 # ----------------------------------------------------------------------------
 def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=None,
                title=None, group=None, ramp_inlet=True, n_mesh_x=1, n_mesh_y=1,
-               n_mesh_z=1, _normalized=None):
+               n_mesh_z=1, rnd_seed=0, _normalized=None):
     """
     渲染一份完整 FDS 输入字符串。
 
@@ -437,12 +460,13 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     title     : 标题（可空）
     group     : 工况分组标签（仅写入 &HEAD 的 TITLE，便于检索）
     ramp_inlet: 风速是否渐升（默认 True）
+    rnd_seed : FDS 6.9.1 ``MISC RND_SEED``；0 表示沿用默认固定序列
     """
     normalized = _normalized or normalize_case(dict(
         chid=chid, Q=Q, U=U, Df=Df, dx=dx, L=L, W=W, H=H,
         x_fire=x_fire, T_end=T_end, case_group=group, note=title,
         ramp_inlet=ramp_inlet, n_mesh_x=n_mesh_x, n_mesh_y=n_mesh_y,
-        n_mesh_z=n_mesh_z,
+        n_mesh_z=n_mesh_z, rnd_seed=rnd_seed,
     ))
     Q = normalized["Q"]
     U = normalized["U"]
@@ -457,6 +481,7 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     n_mesh_x = normalized["n_mesh_x"]
     n_mesh_y = normalized["n_mesh_y"]
     n_mesh_z = normalized["n_mesh_z"]
+    rnd_seed = normalized["rnd_seed"]
     group = normalized["case_group"]
     title = normalized["note"] or f"Q={Q}MW U={U}m/s Df={Df}m dx={dx}m L={L} W={W} H={H}"
     if group:
@@ -479,7 +504,10 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
         f"&DUMP DT_DEVC={cfg.DT_DEVC}, DT_HRR={cfg.DT_HRR}, "
         f"DT_SLCF={cfg.DT_SLCF}, DT_BNDF={cfg.DT_BNDF} /"
     )
-    parts.append(f"&MISC SIMULATION_MODE='LES', RESTART=.FALSE., TMPA={cfg.T_AMBIENT_C} /")
+    misc = f"&MISC SIMULATION_MODE='LES', RESTART=.FALSE., TMPA={cfg.T_AMBIENT_C}"
+    if rnd_seed:
+        misc += f", RND_SEED={rnd_seed}"
+    parts.append(misc + " /")
     parts.append(_fmt_reac())
     parts.append(_fmt_matl())
     parts.append(_fmt_surf_wall())
@@ -705,6 +733,8 @@ def main():
     ap.add_argument("--n_mesh_x", type=int, default=1, help="x 方向 MESH 数")
     ap.add_argument("--n_mesh_y", type=int, default=1, help="y 方向 MESH 数")
     ap.add_argument("--n_mesh_z", type=int, default=1, help="z 方向 MESH 数")
+    ap.add_argument("--rnd_seed", type=int, default=0,
+                    help="FDS 6.9.1 MISC RND_SEED；0 使用默认固定序列")
     ap.add_argument("--group", help="工况分组标签")
     ap.add_argument("--note", help="标题备注")
     args = ap.parse_args()
@@ -722,7 +752,8 @@ def main():
     spec = dict(chid=args.chid, Q=args.Q, U=args.U, Df=args.Df, dx=args.dx,
                 L=args.L, W=args.W, H=args.H, x_fire=args.x_fire, T_end=args.T_end,
                 n_mesh_x=args.n_mesh_x, n_mesh_y=args.n_mesh_y,
-                n_mesh_z=args.n_mesh_z, case_group=args.group, note=args.note)
+                n_mesh_z=args.n_mesh_z, rnd_seed=args.rnd_seed,
+                case_group=args.group, note=args.note)
     path = write_fds(spec, args.outdir)
     print(f"[OK] {args.chid} -> {path}")
 

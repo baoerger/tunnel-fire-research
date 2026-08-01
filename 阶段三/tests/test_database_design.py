@@ -122,7 +122,7 @@ class DatabaseDesignTests(unittest.TestCase):
             "&TAIL /",
         ]) + "\n", encoding="utf-8")
         (case_dir / f"{chid}.out").write_text(
-            "Fire Dynamics Simulator FDS-6.10.1-0-release\nRun completed\n",
+            "Fire Dynamics Simulator FDS-6.9.1-0-release\nRun completed\n",
             encoding="utf-8",
         )
         (case_dir / f"{chid}.end").write_text("completed\n", encoding="utf-8")

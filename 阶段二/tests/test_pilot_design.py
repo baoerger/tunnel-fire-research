@@ -89,7 +89,44 @@ class PilotDesignTests(unittest.TestCase):
                 self.assertEqual(22, text.count("&MESH "))
                 self.assertIn("&TIME T_END=300.0 /", text)
                 self.assertIn("DT_DEVC=1.0, DT_HRR=1.0", text)
+
+    def test_measurement_domain_diagnostics_are_separate_and_generatable(self):
+        diagnostic = HERE.parent / "01_先导工况设计" / "pilot_diagnostic_cases.csv"
+        with diagnostic.open(newline="", encoding="utf-8-sig") as stream:
+            rows = list(csv.DictReader(stream))
+        self.assertEqual(2, len(rows))
+        self.assertEqual({"7", "8"}, {row["Df"] for row in rows})
+        self.assertTrue(all(row["x_fire"] == "41" for row in rows))
+        self.assertTrue(all(row["subset"] == "diagnostic_only" for row in rows))
+        with tempfile.TemporaryDirectory() as tmp:
+            outdir = Path(tmp)
+            design.fds_generator._run_csv(diagnostic, outdir)
+            for row in rows:
+                text = (outdir / f"{row['chid']}.fds").read_text(encoding="utf-8")
+                self.assertIn("&TIME T_END=300.0 /", text)
+                self.assertIn("CHID='" + row["chid"] + "'", text)
                 self.assertTrue(text.rstrip().endswith("&TAIL /"))
+
+    def test_random_seed_repeats_are_separate_and_generatable(self):
+        repeats = HERE.parent / "01_先导工况设计" / "pilot_seed_repeat_cases.csv"
+        with repeats.open(newline="", encoding="utf-8-sig") as stream:
+            rows = list(csv.DictReader(stream))
+        self.assertEqual(2, len(rows))
+        self.assertEqual(
+            {"pilot_06_q40_r100_d45", "pilot_11_q100_r160_d70"},
+            {row["parent_chid"] for row in rows},
+        )
+        seeds = {int(row["les_random_seed"]) for row in rows}
+        self.assertEqual(2, len(seeds))
+        self.assertTrue(all(seed > 0 for seed in seeds))
+        with tempfile.TemporaryDirectory() as tmp:
+            outdir = Path(tmp)
+            design.fds_generator._run_csv(repeats, outdir)
+            for row in rows:
+                text = (outdir / f"{row['chid']}.fds").read_text(encoding="utf-8")
+                self.assertIn(f"RND_SEED={row['les_random_seed']}", text)
+                self.assertEqual(22, text.count("&MESH "))
+                self.assertIn("&TIME T_END=300.0 /", text)
 
     def test_fds_override_is_traceable_and_recomputes_ratio(self):
         with tempfile.TemporaryDirectory() as tmp:
