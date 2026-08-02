@@ -16,5 +16,16 @@
   "independent_test_accessed": false,
   "decoder_status": "SYNTHETIC_CONSTANT_LATENT_CLOSURE_NOT_FORMAL",
   "evidence_label": "SYNTHETIC_SOFTWARE_TEST_NOT_SCIENTIFIC_EVIDENCE",
+  "protocol_version": "100M_CONDITIONAL_DOMAIN_V2",
+  "domain_geometry_m": {
+    "L": 100.0,
+    "W": 10.0,
+    "H": 5.0,
+    "dx": 0.25
+  },
+  "measurement_bounds_m": [
+    15.0,
+    85.0
+  ],
   "decision_status": "SYNTHETIC_PIPELINE_ONLY_NO_MODEL_ADVANTAGE_CLAIM"
 }

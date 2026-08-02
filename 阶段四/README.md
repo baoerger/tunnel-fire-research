@@ -4,7 +4,7 @@
 
 ## 当前文件
 
-- `src/dimensionless_model.py`：`xi/phi/Pe_e/Da_e/Pi_S` 统一接口、无量纲上下游核、与有量纲温升转换、双侧参数批量提取、删失工况显式降级和多扰动 Bootstrap。
+- `src/dimensionless_model.py`：`xi/phi/Pe_e/Da_e/Pi_S` 统一接口、无量纲上下游核、与有量纲温升转换、双侧/单侧参数批量提取、逐侧拟合窗口稳定性、独立参数掩码和多扰动 Bootstrap。
 - `01_无量纲核与参数提取/synthetic_parameter_check.csv`：明确标记为非科研证据的合成恢复检查。
 - `01_无量纲核与参数提取/无量纲核与参数提取软件验证报告.md`：数学合同、软件证据和真实数据依赖。
 - `tests/test_dimensionless_model.py`：极限、约束、参数恢复、删失与不确定性测试。
@@ -29,11 +29,23 @@ uv run --python 3.12 --with numpy --with matplotlib python 阶段四/src/field_i
 uv run --python 3.12 --with numpy --with matplotlib python -m unittest discover -s 阶段四/tests -v
 ```
 
-强风上游删失、无明显回流和下游点不足的工况返回 `CENSORED_NO_FULL_PARAMETERS`，不会强制生成高不确定性的完整 `Pe_e/Da_e/Pi_S`。这些工况以后只通过删失全曲线损失进入闭合拟合。
+100 m 条件域 V2 将删失分为 `upstream_censored`、
+`downstream_domain_censored` 和 `no_obvious_backflow`。上游删失只允许稳定的
+下游衰减参数，下游域删失只允许稳定的上游衰减参数；缺一侧时不生成
+`Pe_e/Da_e/Pi_S`。闭合参数阶段按掩码跳过不可用目标，同时所有质量通过剖面
+仍可进入全曲线损失。`insufficient_downstream` 只作为 V1 迁移别名保留。
+
+正式闭合筛选应传入预先固定的 `interval_windows`。每一侧的 `kappa` 分别按
+20% 最大相对变化门标记稳定性；窗口点数不足或变化超限时，参数估计值仍保留
+用于探索和诊断，但正式闭合训练掩码关闭。任一侧不稳定时双侧组合参数同样不
+进入正式闭合目标，峰值、平台、参数估计和全剖面都不删除。
 
 ## 等待项
 
-必须在真实开发数据库完成后，才能生成逐工况参数表、确定近场排除、比较点源/有限源、拟合闭合公式、填入五类真实预测并评价稳定性。全场积分还需正式代表工况切片导出的严格 SI 单元表。独立测试结果在公式和超参数固定前保持封存。
+必须在 50 个真实开发工况完成后，才能生成正式逐工况参数表、比较闭合公式、
+填入五类真实预测并评价稳定性。当前只有 12/50 个开发结果可用，不能定稿。
+全场积分还需正式代表工况切片导出的严格 SI 单元表。独立测试结果在公式和
+超参数固定前保持封存。所有结论限于 100 m 条件域。
 
 传统峰值式的书目信息、逐分支公式和证据等级见
 `阶段一/01_文献调研/empirical_formula_catalog.csv`。它们不得被扩展成虚构的纵向

@@ -8,11 +8,14 @@ import math
 import statistics
 from pathlib import Path
 
+import uncertainty_anomaly
+
 
 STAGE7_ROOT = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = STAGE7_ROOT.parent
 EXTERNAL_ROOT = PROJECT_ROOT / "阶段一" / "05_外部试验复现"
-WAITING_STATUS = "WAITING_FORMAL_MODEL_FDS_VALIDATION_AND_THERMOCOUPLE_TREATMENT"
+WAITING_STATUS = "WAITING_FORMAL_MODEL_AND_THERMOCOUPLE_TREATMENT_FOR_EXTERNAL_GENERALIZATION"
+OOD_SCIENTIFIC_USE = "EXTERNAL_GENERALIZATION_EVALUATION_NO_CORE_DOMAIN_VALIDATION_CLAIM"
 
 
 def _read_csv(path):
@@ -57,14 +60,27 @@ def build_external_inputs(cases_path=None, profiles_path=None, mapping_path=None
                 "temperature_type": "thermocouple", "uncertainty_basis": row["uncertainty_basis"],
                 "raw_files": row["raw_files"],
             })
-        values = {name: float(case[name]) for name in ("Q", "U", "Df", "H", "W", "x_fire")}
+        values = {
+            name: float(case[name])
+            for name in ("Q", "U", "Df", "dx", "L", "H", "W", "x_fire")
+        }
         if not all(math.isfinite(value) for value in values.values()):
             raise ValueError(f"{chid} 已知参数非有限")
+        applicability = uncertainty_anomaly.assess_100m_applicability({
+            "protocol_version": uncertainty_anomaly.PROTOCOL_VERSION,
+            "L": values["L"], "W": values["W"], "H": values["H"],
+            "dx": values["dx"],
+            "sensor_xs": [sensor["x"] for sensor in sensors],
+            "domain_censor_state": "none",
+        })
         outputs.append({
             "case_id": chid, "chid": chid, "sensors": sensors,
             "Q_MW": values["Q"], "x_f": values["x_fire"], "U": values["U"],
-            "Df": values["Df"], "H": values["H"], "W": values["W"],
+            "Df": values["Df"], "dx": values["dx"], "L": values["L"],
+            "H": values["H"], "W": values["W"],
             "T0_K": statistics.median(baselines) + 273.15,
+            **applicability,
+            "scientific_use_policy": OOD_SCIENTIFIC_USE,
             "observation_temperature_type": "thermocouple",
             "model_target_temperature_type": "ceiling_gas_temperature",
             "temperature_compatibility": "REQUIRES_RESPONSE_MODEL_OR_EXPLICIT_DISCREPANCY",
@@ -80,7 +96,12 @@ def evaluation_template(inputs):
         rows.append({
             "chid": sample["chid"], "Q_true_MW": sample["Q_MW"],
             "x_f_true_m": sample["x_f"], "U_mps": sample["U"], "Df_m": sample["Df"],
-            "H_m": sample["H"], "W_m": sample["W"], "n_sensors": len(sample["sensors"]),
+            "L_m": sample["L"], "H_m": sample["H"], "W_m": sample["W"],
+            "dx_m": sample["dx"], "n_sensors": len(sample["sensors"]),
+            "protocol_version": sample["protocol_version"],
+            "applicability_status": sample["applicability_status"],
+            "ood_reasons": sample["ood_reasons"],
+            "scientific_use_policy": sample["scientific_use_policy"],
             "temperature_type": sample["observation_temperature_type"],
             "Q_hat_MW": "", "Q_relative_error": "", "x_f_hat_m": "",
             "x_f_error_m": "", "temperature_reconstruction_rmse_C": "",

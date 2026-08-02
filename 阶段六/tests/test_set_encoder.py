@@ -21,7 +21,10 @@ def sample(n=8):
             {"dT": 70.0 * math.exp(-abs(x - 50.0) / 12.0), "x": x, "m": 1.0}
             for x in xs
         ],
-        "U": 2.0, "Df": 5.0, "H": 5.0, "W": 10.0, "T0_K": 293.15,
+        "U": 2.0, "Df": 5.0, "L": 100.0, "H": 5.0, "W": 10.0,
+        "dx": 0.25, "T0_K": 293.15,
+        "protocol_version": network.direct_inversion.PROTOCOL_VERSION,
+        "domain_censor_state": "none",
     }
 
 
@@ -104,6 +107,20 @@ class SetEncoderTests(unittest.TestCase):
         bad_mask["sensors"][0]["m"] = 0.5
         with self.assertRaisesRegex(ValueError, "0/1"):
             self.model.predict(bad_mask)
+        domain_in_sensor = sample(4)
+        domain_in_sensor["sensors"][0]["domain_censored"] = True
+        with self.assertRaisesRegex(ValueError, "物理域删失"):
+            self.model.predict(domain_in_sensor)
+        missing_protocol = dict(self.sample)
+        missing_protocol.pop("protocol_version")
+        self.assertEqual(
+            "APPLICABILITY_UNDETERMINED",
+            self.model.predict(missing_protocol)["applicability_status"],
+        )
+        self.assertEqual(
+            "OOD_EXPLORATORY",
+            self.model.predict({**self.sample, "L": 120.0})["applicability_status"],
+        )
 
     def test_synthetic_interface_outputs_have_no_performance_claim(self):
         with tempfile.TemporaryDirectory() as temporary:

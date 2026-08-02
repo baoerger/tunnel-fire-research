@@ -59,7 +59,10 @@ class PaperMaterialsTests(unittest.TestCase):
                          {f"I{index}" for index in range(1, 5)})
         self.assertEqual({row["record_id"] for row in outputs},
                          {f"O{index}" for index in range(1, 13)})
-        self.assertTrue(all(row["evidence_path"].strip() == "" for row in rows))
+        v2_rows = [row for row in rows if "V2" in row["status"] or "56_FDS" in row["status"]]
+        self.assertTrue(v2_rows)
+        self.assertTrue(all(row["evidence_path"].strip() for row in v2_rows))
+        self.assertTrue(all(row["status"] != "PASS" for row in rows))
         self.assertTrue(all("WAITING" in row["status"] or
                             "FRAMEWORK" in row["status"] or
                             "SYNTHETIC" in row["status"] or
@@ -93,6 +96,9 @@ class PaperMaterialsTests(unittest.TestCase):
                       "analysis_script", "metric_or_figure", "evidence_path"):
             self.assertIn(field, methods)
         self.assertIn("不得作为科学结论", methods)
+        self.assertIn("100M_CONDITIONAL_DOMAIN_V2", methods)
+        self.assertIn("4/12 FAIL", methods)
+        self.assertIn("OOD_EXPLORATORY", results)
         self.assertIn("WAITING", results)
 
 

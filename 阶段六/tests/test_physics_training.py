@@ -31,7 +31,10 @@ def decoder_sample(xs):
     return {
         "sensors": [{"id": f"s{i}", "x": x, "dT": 0.0, "m": 1.0, "sigma_C": 2.0}
                     for i, x in enumerate(xs)],
-        "U": 2.0, "Df": 5.0, "H": 5.0, "W": 10.0, "T0_K": 293.15,
+        "U": 2.0, "Df": 5.0, "L": 100.0, "H": 5.0, "W": 10.0,
+        "dx": 0.25, "T0_K": 293.15,
+        "protocol_version": direct_inversion.PROTOCOL_VERSION,
+        "domain_censor_state": "none",
         "Q_MW": 35.0, "x_f": 50.0, "censor_threshold_C": 2.0,
     }
 
@@ -78,6 +81,9 @@ class PhysicsTrainingTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertTrue(all(row["evidence_label"] == training.SYNTHETIC_LABEL for row in first))
         self.assertTrue(all(row["decision_status"] == training.NO_SCIENTIFIC_CLAIM for row in first))
+        self.assertTrue(all(row["L"] == 100.0 and row["dx"] == 0.25 for row in first))
+        self.assertTrue(all(row["protocol_version"] == direct_inversion.PROTOCOL_VERSION
+                            for row in first))
         self.assertTrue(all(any(sensor["m"] == 1.0 for sensor in row["sensors"]) for row in first))
         self.assertTrue(any(sensor["m"] == 0.0 for row in first for sensor in row["sensors"]))
         self.assertTrue(any(sensor["x"] != sensor["nominal_x"] for row in first for sensor in row["sensors"]))
@@ -134,6 +140,20 @@ class PhysicsTrainingTests(unittest.TestCase):
                 set_encoder.SetEncoder(), sample, self.decoder,
                 lambda_source=0.0, lambda_reconstruction=0.0, lambda_censor=0.0,
             )
+
+    def test_domain_censor_contract_is_separate_from_sensor_masks(self):
+        sample = training.generate_synthetic_samples(1, seed=21)[0]
+        sample["domain_censor_state"] = "downstream_domain_censored"
+        sample["parameter_target_mask"] = {"kappa_u": 1, "kappa_d": 0}
+        contract = training.validate_domain_censor_contract(sample)
+        self.assertEqual({"kappa_u": 1, "kappa_d": 0}, contract["parameter_target_mask"])
+        sample["parameter_target_mask"] = {"kappa_u": 1, "kappa_d": 1}
+        with self.assertRaisesRegex(ValueError, "不一致"):
+            training.validate_domain_censor_contract(sample)
+        missing = training.generate_synthetic_samples(1, seed=22)[0]
+        missing.pop("dx")
+        contract = training.validate_domain_censor_contract(missing)
+        self.assertEqual("APPLICABILITY_UNDETERMINED", contract["applicability_status"])
 
     def test_exported_dataset_remains_separate_synthetic_evidence(self):
         with tempfile.TemporaryDirectory() as temporary:

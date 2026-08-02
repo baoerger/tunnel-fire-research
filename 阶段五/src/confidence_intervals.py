@@ -104,12 +104,14 @@ def local_hessian_interval(closure_model, scenario, sensor_xs, observed,
     q_high = math.exp(eta_hat[0] + z_value * se_log_q)
     x_low = H * (eta_hat[1] - z_value * se_x_h)
     x_high = H * (eta_hat[1] + z_value * se_x_h)
+    applicability = fisher_layout.validate_100m_scenario(scenario, sensor_xs)
     return {
         "eta_hat": eta_hat, "hessian": hessian, "covariance_eta": covariance_eta,
         "se_logQ": se_log_q, "se_xf_over_H": se_x_h,
         "Q_low_MW": q_low, "Q_high_MW": q_high, "Q_width_MW": q_high - q_low,
         "x_low_m": x_low, "x_high_m": x_high, "x_width_m": x_high - x_low,
         "method": "LOCAL_HESSIAN_NORMAL_ETA",
+        **applicability,
     }
 
 
@@ -172,6 +174,7 @@ def correlated_direct_invert(closure_model, scenario, sensor_xs, observed,
         raise ValueError("相关反演网格、多初值或迭代数无效")
     if not (0 < Q_bounds[0] < Q_bounds[1] and x_bounds[0] < x_bounds[1]):
         raise ValueError("相关反演边界无效")
+    applicability = fisher_layout.validate_100m_scenario(scenario, sensor_xs)
     H = _finite(scenario.get("H", cfg.H), "H")
     log_lo, log_hi = math.log(Q_bounds[0]), math.log(Q_bounds[1])
 
@@ -210,7 +213,7 @@ def correlated_direct_invert(closure_model, scenario, sensor_xs, observed,
                 step_x *= 0.5
         solutions.append({"nll": best, "Q_hat_MW": math.exp(eta_q), "x_f_hat_m": eta_x * H})
     solutions.sort(key=lambda row: row["nll"])
-    return {**solutions[0], "local_solutions": solutions}
+    return {**solutions[0], "local_solutions": solutions, **applicability}
 
 
 def _quantile(values, probability):
@@ -315,10 +318,15 @@ def run_synthetic_software_check(output_dir):
     output_dir = Path(output_dir)
     model = _synthetic_model()
     catalog = fisher_layout.load_sensor_catalog()
+    domain = {
+        "L": 100.0, "W": cfg.W, "H": cfg.H, "dx": cfg.WORKING_GRID_DX,
+        "protocol_version": direct_inversion.PROTOCOL_VERSION,
+        "domain_censor_state": "none",
+    }
     scenario_set = [
-        {"scenario_id": "syn_left", "Q_MW": 15.0, "x_f": 38.0, "U": 0.8, "Df": 3.0},
-        {"scenario_id": "syn_center", "Q_MW": 35.0, "x_f": 50.0, "U": 2.0, "Df": 5.0},
-        {"scenario_id": "syn_right", "Q_MW": 80.0, "x_f": 62.0, "U": 4.0, "Df": 7.0},
+        {**domain, "scenario_id": "syn_left", "Q_MW": 15.0, "x_f": 38.0, "U": 0.8, "Df": 3.0},
+        {**domain, "scenario_id": "syn_center", "Q_MW": 35.0, "x_f": 50.0, "U": 2.0, "Df": 5.0},
+        {**domain, "scenario_id": "syn_right", "Q_MW": 80.0, "x_f": 62.0, "U": 4.0, "Df": 7.0},
     ]
     layouts = fisher_layout.greedy_layout_sequence(
         model, scenario_set, catalog, sizes=(4, 8, 12, 16), objective="balanced_logdet"

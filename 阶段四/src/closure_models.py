@@ -12,6 +12,10 @@ import dimensionless_model
 
 FAMILIES = ("power_law", "constrained_nonlinear", "response_surface", "additive_gam")
 OUTPUTS = ("Pe_e", "Da_e", "Pi_S", "delta_over_H")
+OUTPUT_MASK_FIELDS = {
+    "Pe_e": "Pe_e_Da_e_available", "Da_e": "Pe_e_Da_e_available",
+    "Pi_S": "Pi_S_available", "delta_over_H": "delta_over_H_available",
+}
 
 
 def softplus(value):
@@ -116,6 +120,32 @@ def _latent_target(row, output, epsilon):
     return inverse_softplus(value / q)
 
 
+def _strict_bool(value, label):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and value in (0, 1):
+        return bool(value)
+    normalized = str(value).strip().lower()
+    if normalized in {"true", "1", "yes"}:
+        return True
+    if normalized in {"false", "0", "no"}:
+        return False
+    raise ValueError(f"{label} 必须为明确布尔值")
+
+
+def target_available(row, output):
+    if output not in OUTPUTS:
+        raise ValueError(f"未知闭合输出 {output}")
+    mask_field = OUTPUT_MASK_FIELDS[output]
+    if mask_field in row:
+        return _strict_bool(row[mask_field], mask_field)
+    value = row.get(output)
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
 def fit_closure(rows, family="power_law", ridge=1e-8, epsilon=1e-6):
     if family not in FAMILIES or not rows or ridge <= 0 or epsilon <= 0:
         raise ValueError("闭合 family/rows/ridge/epsilon 无效")
@@ -126,11 +156,15 @@ def fit_closure(rows, family="power_law", ridge=1e-8, epsilon=1e-6):
     for output in OUTPUTS:
         features, targets = [], []
         for row in rows:
+            if not target_available(row, output):
+                continue
             latent = _latent_target(row, output, epsilon)
             if latent is None:
                 continue
             features.append(basis(row, family))
             targets.append(latent)
+        if not features:
+            raise ValueError(f"{output} 没有可用且未删失的参数目标")
         coefficients[output] = _ridge_fit(features, targets, ridge)
     return {"family": family, "epsilon": epsilon, "coefficients": coefficients}
 
@@ -165,20 +199,31 @@ def grouped_cross_validation(rows, family="power_law", n_folds=5):
         for row in validation:
             prediction = predict_closure(model, row)
             for output in OUTPUTS:
+                if not target_available(row, output):
+                    continue
                 scale = max(abs(float(row[output])), 1e-8)
                 errors[output].append(abs(prediction[output] - float(row[output])) / scale)
+        finite_fold_errors = []
+        output_metrics = {}
+        for output, values in errors.items():
+            metric = statistics.median(values) if values else math.nan
+            output_metrics[f"{output}_median_relative_error"] = metric
+            if math.isfinite(metric):
+                finite_fold_errors.append(metric)
+        if not finite_fold_errors:
+            raise ValueError(f"fold={fold} 没有可评价的参数目标")
         fold_rows.append({
             "fold": fold,
             "train_groups": sorted({str(row["case_id"]) for row in train}),
             "validation_groups": sorted({str(row["case_id"]) for row in validation}),
-            **{f"{output}_median_relative_error": statistics.median(values)
-               for output, values in errors.items()},
+            **output_metrics,
+            "available_parameter_metric_count": len(finite_fold_errors),
+            "fold_median_relative_error": statistics.median(finite_fold_errors),
         })
     return {
         "family": family, "folds": fold_rows,
         "median_relative_error": statistics.median(
-            statistics.fmean(row[f"{output}_median_relative_error"] for output in OUTPUTS)
-            for row in fold_rows
+            row["fold_median_relative_error"] for row in fold_rows
         ),
     }
 
@@ -298,4 +343,3 @@ def validate_symbolic_expression(expression, domain_rows, max_complexity=30):
         if not isinstance(value, (int, float)) or not math.isfinite(value):
             raise ValueError("符号表达式在研究域产生非有限值")
     return {"expression": expression, "complexity": len(nodes), "status": "PASS"}
-

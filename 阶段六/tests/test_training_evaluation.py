@@ -46,6 +46,24 @@ class TrainingEvaluationTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             pipeline.train_network(model, labeled_samples(2, "mystery"))
 
+    def test_training_and_evaluation_label_incomplete_or_ood_domain_metadata(self):
+        model = set_encoder.SetEncoder(seed=2)
+        training = labeled_samples(2)
+        training[0].pop("dx")
+        logs = pipeline.train_network(model, training, epochs=1)
+        self.assertEqual(1, len(logs))
+        self.assertEqual(
+            "APPLICABILITY_UNDETERMINED",
+            set_encoder.validate_100m_sample(training[0])["applicability_status"],
+        )
+        evaluation = labeled_samples(1, "synthetic_software_evaluation")
+        evaluation[0]["protocol_version"] = "UNKNOWN"
+        metrics = pipeline.evaluate_model(
+            "perfect", lambda row: {"Q_hat_MW": row["Q_MW"], "x_f_hat_m": row["x_f"]},
+            evaluation,
+        )
+        self.assertEqual(1, metrics["ood_exploratory_case_count"])
+
     def test_grouped_folds_never_split_case(self):
         samples = labeled_samples(8)
         folds = pipeline.grouped_kfold(samples, n_folds=4)

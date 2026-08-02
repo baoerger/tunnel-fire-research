@@ -25,10 +25,14 @@ def constant_latent_model():
 
 
 def scenarios():
+    domain = {
+        "L": 100.0, "W": 10.0, "H": 5.0, "dx": 0.25,
+        "protocol_version": inverse.PROTOCOL_VERSION, "domain_censor_state": "none",
+    }
     return [
-        {"scenario_id": "low_left", "Q_MW": 12.0, "x_f": 38.0, "U": 0.5, "Df": 3.0},
-        {"scenario_id": "mid_center", "Q_MW": 35.0, "x_f": 50.0, "U": 2.0, "Df": 5.0},
-        {"scenario_id": "high_right", "Q_MW": 85.0, "x_f": 62.0, "U": 4.5, "Df": 7.0},
+        {**domain, "scenario_id": "low_left", "Q_MW": 12.0, "x_f": 38.0, "U": 0.5, "Df": 3.0},
+        {**domain, "scenario_id": "mid_center", "Q_MW": 35.0, "x_f": 50.0, "U": 2.0, "Df": 5.0},
+        {**domain, "scenario_id": "high_right", "Q_MW": 85.0, "x_f": 62.0, "U": 4.5, "Df": 7.0},
     ]
 
 
@@ -45,6 +49,22 @@ class FisherLayoutTests(unittest.TestCase):
         self.assertTrue(all(row[0] > 0 for row in jacobian))
         self.assertLess(jacobian[0][1], 0.0)
         self.assertGreater(jacobian[1][1], 0.0)
+
+    def test_scientific_interfaces_label_missing_or_ood_metadata(self):
+        missing = {"Q_MW": 35.0, "x_f": 50.0, "U": 2.0, "Df": 5.0}
+        jacobian = fisher.sensitivity_matrix(self.model, missing, [30.0, 75.0])
+        self.assertEqual(2, len(jacobian))
+        assessed = fisher.validate_100m_scenario(missing, [30.0, 75.0])
+        self.assertEqual("APPLICABILITY_UNDETERMINED", assessed["applicability_status"])
+        outside = dict(scenarios()[1], L=120.0)
+        objective = fisher.correlated_objective(
+            self.model, outside, [30.0, 75.0], [10.0, 20.0], 35.0, 50.0
+        )
+        self.assertTrue(math.isfinite(objective))
+        self.assertEqual(
+            "OOD_EXPLORATORY",
+            fisher.validate_100m_scenario(outside, [30.0, 75.0])["applicability_status"],
+        )
 
     def test_exponential_covariance_is_symmetric_positive_definite(self):
         covariance = fisher.exponential_covariance([15.0, 30.0, 50.0, 85.0], 2.0, 8.0, 0.1)

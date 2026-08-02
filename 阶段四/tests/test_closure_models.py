@@ -108,6 +108,21 @@ class ClosureModelTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Fr=0"):
             closure.fit_closure(broken)
 
+    def test_parameter_masks_skip_domain_censored_targets(self):
+        rows = [dict(row) for row in self.rows]
+        rows[1].update({
+            "Pe_e": "", "Da_e": "", "Pi_S": "",
+            "Pe_e_Da_e_available": False, "Pi_S_available": False,
+            "delta_over_H_available": True,
+            "domain_censor_state": "downstream_domain_censored",
+        })
+        model = closure.fit_closure(rows)
+        prediction = closure.predict_closure(model, rows[1])
+        self.assertGreater(prediction["Da_e"], 0)
+        self.assertGreater(prediction["Pi_S"], 0)
+        self.assertTrue(closure.target_available(rows[1], "delta_over_H"))
+        self.assertFalse(closure.target_available(rows[1], "Pe_e"))
+
 
 if __name__ == "__main__":
     unittest.main()

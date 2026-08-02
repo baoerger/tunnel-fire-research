@@ -25,6 +25,13 @@ import tunnel_config as cfg  # noqa: E402
 
 SYNTHETIC_LABEL = set_encoder.SYNTHETIC_LABEL
 NO_SCIENTIFIC_CLAIM = "SYNTHETIC_TRAINING_FRAMEWORK_ONLY_NO_SCIENTIFIC_CLAIM"
+DOMAIN_PARAMETER_MASKS = {
+    "none": {"kappa_u": 1, "kappa_d": 1},
+    "bilateral_identifiable": {"kappa_u": 1, "kappa_d": 1},
+    "upstream_censored": {"kappa_u": 0, "kappa_d": 1},
+    "no_obvious_backflow": {"kappa_u": 0, "kappa_d": 1},
+    "downstream_domain_censored": {"kappa_u": 1, "kappa_d": 0},
+}
 
 
 def _finite(value, name):
@@ -32,6 +39,38 @@ def _finite(value, name):
     if not math.isfinite(value):
         raise ValueError(f"{name} 必须有限")
     return value
+
+
+def validate_domain_censor_contract(sample):
+    """区分传感器缺测、低温升删失和 100 m 物理域删失。"""
+    applicability = set_encoder.validate_100m_sample(sample)
+    supplied_state = sample.get("domain_censor_state")
+    state = str(supplied_state or "none").strip()
+    if state not in DOMAIN_PARAMETER_MASKS:
+        raise ValueError(f"未知 domain_censor_state={state!r}")
+    for sensor in sample.get("sensors", ()):
+        if any(key in sensor for key in ("domain_censored", "domain_mask", "physical_domain_mask")):
+            raise ValueError("物理域删失不能写入单传感器或复用 m 缺测掩码")
+    expected = DOMAIN_PARAMETER_MASKS[state]
+    supplied = sample.get("parameter_target_mask")
+    if supplied is not None:
+        if not isinstance(supplied, dict):
+            raise ValueError("parameter_target_mask 必须是字典")
+        normalized = {}
+        for name in ("kappa_u", "kappa_d"):
+            value = supplied.get(name)
+            if value not in (0, 1, False, True):
+                raise ValueError("parameter_target_mask 必须使用 0/1")
+            normalized[name] = int(value)
+        if normalized != expected:
+            raise ValueError(f"parameter_target_mask 与 {state} 不一致")
+    return {
+        **applicability, "domain_censor_state": state,
+        "domain_censor_assumption": (
+            "REPORTED" if supplied_state else "ASSUMED_NONE_FOR_EXPLORATORY_COMPUTATION"
+        ),
+        "parameter_target_mask": dict(expected),
+    }
 
 
 class ConstantClosurePhysicsDecoder:
@@ -144,8 +183,11 @@ def generate_synthetic_samples(n_samples, seed=20260729, sensor_catalog=None,
         base_sample = {
             "sensors": [{"id": row["id"], "x": row["x"], "dT": 0.0, "m": 1.0}
                         for row in chosen],
-            "U": U, "Df": Df, "H": cfg.H, "W": cfg.W,
-            "T0_K": cfg.T_AMBIENT_K,
+            "U": U, "Df": Df, "L": 100.0, "H": cfg.H, "W": cfg.W,
+            "dx": cfg.WORKING_GRID_DX,
+            "T0_K": cfg.T_AMBIENT_K, "domain_censor_state": "none",
+            "protocol_version": set_encoder.direct_inversion.PROTOCOL_VERSION,
+            "parameter_target_mask": dict(DOMAIN_PARAMETER_MASKS["none"]),
         }
         clean = decoder.predict(Q, x_f, base_sample)
         xs = [row["x"] for row in chosen]
@@ -157,9 +199,10 @@ def generate_synthetic_samples(n_samples, seed=20260729, sensor_catalog=None,
             scaled_distance = (row["x"] - x_f) / cfg.H
             residual = residual_offset + residual_slope * scaled_distance / (1.0 + abs(scaled_distance))
             observed = clean_value + residual + noise[sensor_index]
+            perturbed_x = min(85.0, max(15.0, row["x"] + rng.gauss(0.0, position_sigma_m)))
             sensors.append({
                 "id": row["id"], "dT": observed,
-                "x": row["x"] + rng.gauss(0.0, position_sigma_m),
+                "x": perturbed_x,
                 "nominal_x": row["x"], "clean_dT": clean_value,
                 "m": 0.0 if rng.random() < missing_probability else 1.0,
                 "sigma_C": sigma_C, "censored": observed <= censor_threshold_C,
@@ -168,8 +211,12 @@ def generate_synthetic_samples(n_samples, seed=20260729, sensor_catalog=None,
             sensors[rng.randrange(len(sensors))]["m"] = 1.0
         samples.append({
             "sample_id": f"synthetic_{index + 1:05d}", "sensors": sensors,
-            "U": U, "Df": Df, "H": cfg.H, "W": cfg.W,
+            "U": U, "Df": Df, "L": 100.0, "H": cfg.H, "W": cfg.W,
+            "dx": cfg.WORKING_GRID_DX,
             "T0_K": cfg.T_AMBIENT_K, "Q_MW": Q, "x_f": x_f,
+            "protocol_version": set_encoder.direct_inversion.PROTOCOL_VERSION,
+            "domain_censor_state": "none",
+            "parameter_target_mask": dict(DOMAIN_PARAMETER_MASKS["none"]),
             "censor_threshold_C": censor_threshold_C,
             "generator_seed": int(seed), "generator_index": index,
             "decoder_status": decoder.model_status,
@@ -203,6 +250,7 @@ def joint_loss(model, sample, decoder, lambda_source=1.0,
         raise ValueError("联合损失权重必须为有限非负数")
     if not any(value > 0 for value in weights[:3]):
         raise ValueError("至少一个联合损失分量权重为正")
+    domain_contract = validate_domain_censor_contract(sample)
     output = model.forward_values(sample)
     Q_true = _finite(sample["Q_MW"], "Q_MW")
     x_true = _finite(sample["x_f"], "x_f")
@@ -237,6 +285,8 @@ def joint_loss(model, sample, decoder, lambda_source=1.0,
         "censor": censor, "Q_hat_MW": output["Q_hat_MW"],
         "x_f_hat_m": output["x_f_hat_m"], "n_uncensored": len(squared),
         "n_censored": len(censored),
+        "domain_censor_state": domain_contract["domain_censor_state"],
+        "parameter_target_mask": domain_contract["parameter_target_mask"],
     }
 
 

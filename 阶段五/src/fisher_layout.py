@@ -34,6 +34,13 @@ def _finite(value, name):
     return value
 
 
+def validate_100m_scenario(scenario, sensor_xs):
+    """评估 Fisher 场景范围，不阻断带标志的探索性外推。"""
+    payload = dict(scenario)
+    payload["x"] = list(sensor_xs)
+    return direct_inversion.validate_100m_observation(payload)
+
+
 def load_sensor_catalog(path=DEFAULT_SENSOR_CSV):
     with Path(path).open("r", encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
@@ -74,6 +81,7 @@ def sensitivity_matrix(closure_model, scenario, sensor_xs, relative_step=1e-4):
     step = _finite(relative_step, "relative_step")
     if step <= 0 or not sensor_xs:
         raise ValueError("差分步长必须为正且测点不能为空")
+    validate_100m_scenario(scenario, sensor_xs)
     Q = _finite(scenario["Q_MW"], "Q_MW")
     x_f = _finite(scenario["x_f"], "x_f")
     U = _finite(scenario["U"], "U")
@@ -382,8 +390,10 @@ def greedy_layout_sequence(closure_model, scenarios, catalog, sizes=(4, 8, 12, 1
 def correlated_objective(closure_model, scenario, sensor_xs, observed, Q_MW, x_f,
                          sigma_C=2.0, correlation_length_m=7.5,
                          nugget_fraction=0.05):
+    validate_100m_scenario(scenario, sensor_xs)
+    candidate_x = _finite(x_f, "x_f")
     predicted = direct_inversion.physics_forward(
-        closure_model, Q_MW, x_f, scenario["U"], scenario["Df"], sensor_xs,
+        closure_model, Q_MW, candidate_x, scenario["U"], scenario["Df"], sensor_xs,
         scenario.get("H", cfg.H), scenario.get("T0_K", cfg.T_AMBIENT_K),
         scenario.get("chi_r", cfg.CHI_R_PRESET),
     )
@@ -511,11 +521,16 @@ def run_synthetic_software_check(output_dir):
     catalog = load_sensor_catalog()
     uniform = load_uniform_layouts(catalog=catalog)
     model = _synthetic_model()
+    domain = {
+        "L": 100.0, "W": cfg.W, "H": cfg.H, "dx": cfg.WORKING_GRID_DX,
+        "protocol_version": direct_inversion.PROTOCOL_VERSION,
+        "domain_censor_state": "none",
+    }
     scenarios = [
-        {"scenario_id": "syn_low_left_weak", "Q_MW": 12.0, "x_f": 38.0, "U": 0.5, "Df": 3.0},
-        {"scenario_id": "syn_mid_center", "Q_MW": 35.0, "x_f": 50.0, "U": 2.0, "Df": 5.0},
-        {"scenario_id": "syn_high_right_strong", "Q_MW": 85.0, "x_f": 62.0, "U": 4.5, "Df": 7.0},
-        {"scenario_id": "syn_high_left_strong", "Q_MW": 70.0, "x_f": 40.0, "U": 3.8, "Df": 5.5},
+        {**domain, "scenario_id": "syn_low_left_weak", "Q_MW": 12.0, "x_f": 38.0, "U": 0.5, "Df": 3.0},
+        {**domain, "scenario_id": "syn_mid_center", "Q_MW": 35.0, "x_f": 50.0, "U": 2.0, "Df": 5.0},
+        {**domain, "scenario_id": "syn_high_right_strong", "Q_MW": 85.0, "x_f": 62.0, "U": 4.5, "Df": 7.0},
+        {**domain, "scenario_id": "syn_high_left_strong", "Q_MW": 70.0, "x_f": 40.0, "U": 3.8, "Df": 5.5},
     ]
     optimized_average = greedy_layout_sequence(
         model, scenarios, catalog, objective="average_logdet"

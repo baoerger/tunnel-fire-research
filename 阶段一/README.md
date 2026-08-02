@@ -22,6 +22,19 @@
 `STOP: FDS completed successfully`。缺 `.end` 已由上述三项完成证据替代。
 质量表位于 `outputs/analysis/quality/`；质量通过不等于外部精度或阶段二结构门通过。
 
+2026-08-02 又在历史目录 `outputs/extrainput/<chid>/` 找到两个 x=41 m 强风诊断
+和两个非零随机种子重复结果。四组均为 FDS 6.9.1、300 s 正常结束、质量
+`PASS`；原始目录保持不动。准稳态、2000 次时间平均 Bootstrap 和质量表位于
+`outputs/analysis/extra_four/` 与 `outputs/analysis/quality/extra_four_result_check.csv`。
+两组重复形成的代表性弱温升噪声包络为 0.1250 °C；两个诊断的正式结构门为
+1/2 通过，d80 到出口前仍未形成可辨识下游远场衰减。
+
+用户随后授权固定 100 m 条件域 V2。阶段三 68 个输入已由本阶段生成器写到
+`outputs/stage3_100m_v2_inputs/` 并通过静态合同；其中 12 个先导结果直接复用，
+其余 56 个等待外部计算。逐 CHID 路径与回传清单位于
+`阶段三/01_工况设计/external_run_manifest_100m_v2.csv`。本机没有运行这 56
+个正式工况。
+
 网格回传的 9/9 工况已找到准稳态窗口，但中→细多个核心量超过 5%，且
 `gsC_f` 缺少足够的峰值下游温度点拟合 κ_d。用户基于计算资源明确不再加密，
 后续统一采用 0.25 m **工作网格**；这是一项资源约束选择，不代表网格收敛。

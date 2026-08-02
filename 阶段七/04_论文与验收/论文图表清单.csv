@@ -1,9 +1,9 @@
 item_id,item_type,provisional_title,data_source,subset,model_or_data_version,analysis_script,metric,output_path,evidence_path,evidence_status
 F01,figure,研究数据流与决策门,PROJECT_FILES,all,2026-07-30,阶段七/04_论文与验收/论文方法与数据流模板.md,流程图,论文/figures/F01_data_flow.svg,,TEMPLATE_ONLY
-F02,figure,测点布局与研究区域,REAL_FDS_INPUT,stage1,WAITING_STAGE1_GATE,阶段一/src/generate_sensor_layout.py,坐标与高度,论文/figures/F02_sensor_layout.svg,,WAITING_FORMAL_INPUT
+F02,figure,测点布局与研究区域,REAL_FDS_INPUT,stage1,WAITING_STAGE1_GATE,阶段一/07_温度测点与输出规范/generate_sensor_layout.py,坐标与高度,论文/figures/F02_sensor_layout.svg,,WAITING_FORMAL_INPUT
 F03,figure,网格收敛核心指标,REAL_FDS,grid_validation,WAITING_RETURN,阶段一/src/analyze_grid_convergence.py,DeltaTp_xp_kappa,论文/figures/F03_grid_convergence.svg,,WAITING_FDS
 F04,figure,洞口边界温度曲线,REAL_FDS,boundary_validation,WAITING_RETURN,阶段一/src/analyze_boundary_effect.py,主体区逐点差,论文/figures/F04_boundary_effect.svg,,WAITING_FDS
-F05,figure,先导判伪与峰值区间,REAL_FDS,development_pilot,WAITING_STAGE2_GATE,阶段二/src/censoring_peak.py,判伪通过率与xp_CI,论文/figures/F05_pilot_falsification.svg,,WAITING_FDS
+F05,figure,先导判伪与峰值区间,REAL_FDS,development_pilot,V1_FAIL_V2_CONFIRMATION_PENDING,阶段二/src/conditional_domain_protocol.py,判伪通过率与xp_CI及删失分类,论文/figures/F05_pilot_falsification.svg,阶段二/04_100m条件域协议/protocol_v2_summary.csv,FAIL_V1_V2_DEVELOPMENT_ONLY
 F06,figure,闭合公式交叉验证,REAL_FDS,development,WAITING_DATABASE,阶段四/src/closure_models.py,CV_NRMSE,论文/figures/F06_closure_cv.svg,,WAITING_FDS
 F07,figure,五类正向模型对照,REAL_FDS,independent_test,FROZEN_BEFORE_UNSEAL,阶段四/src/forward_validation.py,NRMSE与峰值误差,论文/figures/F07_forward_comparison.svg,,WAITING_INDEPENDENT_TEST
 F08,figure,Q与位置目标函数,REAL_FDS,independent_test,FROZEN_BEFORE_UNSEAL,阶段五/src/fisher_layout.py,profile_objective,论文/figures/F08_objective_surface.svg,,WAITING_INDEPENDENT_TEST
@@ -11,6 +11,6 @@ F09,figure,传感器布局Fisher指标,REAL_FDS,development,WAITING_NOISE_MODEL,
 F10,figure,四模型反演对照,REAL_FDS,independent_test,FROZEN_BEFORE_UNSEAL,阶段六/src/training_evaluation.py,Q_xf_reconstruction_time,论文/figures/F10_four_model_comparison.svg,,WAITING_INDEPENDENT_TEST
 F11,figure,噪声缺测鲁棒性矩阵,REAL_FDS,independent_test,FROZEN_BEFORE_UNSEAL,阶段七/src/robustness.py,robustness_matrix,论文/figures/F11_robustness.svg,,WAITING_INDEPENDENT_TEST
 F12,figure,空间重建残差,EXPERIMENT_OR_REAL_FDS,external_and_independent_test,FROZEN_FORMAL_MODEL,阶段七/src/uncertainty_anomaly.py,residual_profile,论文/figures/F12_residuals.svg,,WAITING_FORMAL_MODEL
-T01,table,正式工况与数据隔离,REAL_FDS,all_physical_cases,WAITING_STAGE2_GATE,阶段三/src/case_registry.py,case_registry,论文/tables/T01_cases.csv,,WAITING_FDS
-T02,table,外部试验验证指标,EXPERIMENT_AND_REAL_FDS,external_validation,WAITING_RETURN,阶段一/src/validation_metrics.py,MeanBias_NRMSE_peak,论文/tables/T02_external_validation.csv,,WAITING_FDS
+T01,table,正式工况与数据隔离,REAL_FDS,all_physical_cases,100M_V2_12_REUSED_56_WAITING,阶段三/src/case_registry.py,case_registry,论文/tables/T01_cases.csv,阶段三/01_工况设计/external_run_manifest_100m_v2.csv,PARTIAL_REAL_FDS
+T02,table,外部试验验证指标,EXPERIMENT_AND_REAL_FDS,external_validation,FDS_6.9.1_FORMAL_VALIDATION_FAIL,阶段一/src/validation_metrics.py,MeanBias_NRMSE_peak,论文/tables/T02_external_validation.csv,阶段一/outputs/analysis/validation/external_validation_metrics.csv,FAIL
 T03,table,验收复核,REAL_FDS_AND_EXPERIMENT,independent_and_external,FROZEN_FORMAL_MODELS,阶段七/04_论文与验收/验收复核表.csv,all_acceptance_metrics,论文/tables/T03_acceptance.csv,,WAITING_FORMAL_RESULTS

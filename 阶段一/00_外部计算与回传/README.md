@@ -180,20 +180,23 @@ bash 阶段一/src/run_batch.sh \
 实际 `.fds`、`.out`、`_devc.csv`、`_hrr.csv`；建议保留 `.end`、`.smv`、温度/
 速度/密度切片和 `.bf`，以支持近场、回流和结构残差复核。
 
-先导与外部验证可以同时计算，但 68 组数据库不能同时启动。只有三组外部验证
-通过质量/精度检查，且 12 个先导满足阶段二结构判伪门后，才能生成数据库输入。
+本节记录 2026-07-31 的协议 V1 提交纪律：先导与外部验证可以同时计算，但当时
+不得同时启动 68 组数据库；只有三组外部验证通过质量/精度检查且 12 个先导
+满足 V1 结构判伪门后，才可沿 V1 生成数据库输入。2026-08-02 用户固定 100 m
+后启用的条件域 V2 是独立替代路径，见本文件末节，不改写这段历史门状态。
 
-## 8. 2026-08-01 当前外部状态
+## 8. 2026-08-02 当前外部状态
 
 用户已决定以现有 FDS 6.9.1 作为正式证据基线。3 个外部验证和 12 个先导
 均重新检查为 `PASS`，无需版本桥接，也不得仅因缺 `.end` 重跑。外部验证
 已在该质量口径下正式提取指标；其数值偏差仍须如实处理，版本放行不等于
 验证精度通过。
 
-当前不提交原 15 组复算，也不生成 68 组数据库。真实先导复核仍为 4/12
-通过，且 `pilot_12_q100_r160_d80` 在峰值下游近场外只有 1 个有效测点；
-现有数据无法区分测量域截断与结构失配。下一批只需按 6.9.1 基线运行两个
-诊断 CHID：
+原 15 组不复算；协议 V1 不生成 68 组数据库。条件域 V2 已另行授权并生成
+68 组注册输入，其中 12 组复用、56 组待外部计算。2026-08-02 在历史回传位置
+`阶段一/outputs/extrainput/<chid>/` 找到下列两个诊断和两个随机种子重复结果；
+每组 715 个文件，均为 FDS 6.9.1、300 s 正常结束、质量 `PASS`。下表只保留
+CHID 与服务器路径追溯，不再是待运行清单：
 
 | 目的 | 逻辑 CHID | 服务器工作目录 |
 |---|---|---|
@@ -207,7 +210,7 @@ C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\pilot_diagnostic_inputs\pil
 C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\pilot_diagnostic_inputs\pilot_diag_q100_r160_d80_x41.fds
 ```
 
-服务器分别将输入上传到表中工作目录，并在该目录启动 FDS。结果回传到：
+规范的新结果回传位置原定为：
 
 ```text
 C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\pilot_diag_q100_r160_d70_x41\
@@ -218,21 +221,25 @@ C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\pilot_diag_q100_r160_d
 影响，还应回传 `.smv`、温度/速度切片和输入已请求的边界文件。`.end` 建议保留，
 但当前 6.9.1 完成证据规则允许以正常 `.out` 加两类 CSV 达到 `T_END` 替代。
 
-5 °C 工程传感器阈值已依据 IEC 60584-1 的 K 型 2 级允差并经用户批准，证据
-记录在 `阶段二/03_删失与峰值/sensor_threshold_evidence_template.csv`。正式
-删失阈值仍需要随机种子重复工况的噪声证据，并最终取
-`max(5 °C, DeltaT_noise)`。
+本次实际文件位于 `outputs/extrainput/<chid>/`，不移动、不删除；分析命令显式
+指定该历史位置。两个诊断正式结果为 1/2 通过，d80 在 x=99 m 前仍未形成
+清晰远场衰减。若坚持辨识该工况双侧衰减，需要用户重新决定是否恢复更长
+隧道外部计算；该诊断批次本身没有待提交 CHID。后续阶段三批次见下节。
 
-已按 FDS 6.9.1 官方用户指南/源码确认的 `MISC RND_SEED` 语法准备两组独立
-重复输入。该语法尚未在本项目的外部 6.9.1 结果中实跑确认，第一组运行必须
-先检查输入解析、日志版本、时间推进和非零 HRR：
+5 °C 工程传感器阈值已依据 IEC 60584-1 的 K 型 2 级允差并经用户批准，证据
+记录在 `阶段二/03_删失与峰值/sensor_threshold_evidence_template.csv`。两组
+随机种子重复已经完成；代表性噪声包络为 0.1250 °C，最终阈值为
+`max(5,0.1250)=5 °C`。
+
+下列两组独立重复已按 FDS 6.9.1 `MISC RND_SEED` 语法完成实跑并通过质量
+检查，表中路径保留作证据追溯：
 
 | 逻辑 CHID | 基准父工况 | RND_SEED | 本机输入 | 服务器工作目录 |
 |---|---|---:|---|---|
 | `pilot_06_q40_r100_d45_seed104729` | `pilot_06_q40_r100_d45` | 104729 | `outputs/pilot_seed_inputs/pilot_06_q40_r100_d45_seed104729.fds` | `/project/fds_tunnel/runs/pilot_06_q40_r100_d45_seed104729/` |
 | `pilot_11_q100_r160_d70_seed204729` | `pilot_11_q100_r160_d70` | 204729 | `outputs/pilot_seed_inputs/pilot_11_q100_r160_d70_seed204729.fds` | `/project/fds_tunnel/runs/pilot_11_q100_r160_d70_seed204729/` |
 
-回传目录分别为：
+规范回传目录原定为：
 
 ```text
 C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\pilot_06_q40_r100_d45_seed104729\
@@ -242,3 +249,27 @@ C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\runs\pilot_11_q100_r160_d70
 每组至少回传实际 `.fds`、`.out`、`_devc.csv`、`_hrr.csv`；建议保留 `.end`、
 `.smv` 和温度/速度切片。两份重复输入与各自父工况除 `HEAD` 和
 `MISC RND_SEED` 外逐行一致。
+
+本次实际结果同样位于 `outputs/extrainput/<chid>/`。父/重复各自准稳态窗口、
+逐测点差异和 0.1250/0.0774 °C 工况噪声限见
+`阶段二/03_删失与峰值/seed_repeat_case_summary.csv`。
+
+## 阶段三 100 m 条件域 V2：56 组新计算
+
+用户已授权固定 100 m 条件域继续。68 组注册表中 12 组先导正式结果直接复用，
+不得重跑；其余 56 组需要外部 FDS。输入已由现有生成器写入：
+
+```text
+C:\Users\xiao.cheng\Desktop\科研\阶段一\outputs\stage3_100m_v2_inputs\
+```
+
+逐 CHID 的完整输入路径、建议服务器工作目录、回传目录、必需文件和封存策略：
+
+```text
+C:\Users\xiao.cheng\Desktop\科研\阶段三\01_工况设计\external_run_manifest_100m_v2.csv
+C:\Users\xiao.cheng\Desktop\科研\阶段三\01_工况设计\外部运行与回传说明.md
+```
+
+新结果统一回传到 `阶段一\outputs\runs\<chid>\`。至少回传实际 `.fds`、`.out`、
+`_devc.csv`、`_hrr.csv`，并建议保留 `.end`；代表全场工况另回传 `.smv`、切片与边界
+文件。12 个独立测试可以计算，但在模型冻结前不得读取其科学指标。

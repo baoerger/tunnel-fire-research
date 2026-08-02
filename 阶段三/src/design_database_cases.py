@@ -1,4 +1,4 @@
-"""生成并审计阶段三 68 组候选工况；决策门通过前不生成 FDS。"""
+"""生成并审计 100 m 条件域协议 V2 的阶段三 68 组外部 FDS 工况。"""
 from __future__ import annotations
 
 import argparse
@@ -25,9 +25,13 @@ import tunnel_config as cfg  # noqa: E402
 DESIGN_DIR = STAGE3_ROOT / "01_工况设计"
 DEFAULT_PILOTS = PROJECT_ROOT / "阶段二" / "01_先导工况设计" / "pilot_cases_candidate.csv"
 DEFAULT_OUT = DESIGN_DIR / "database_cases_candidate.csv"
+DEFAULT_RUN_MANIFEST = DESIGN_DIR / "external_run_manifest_100m_v2.csv"
 DESIGN_SEED = 20260729
-DESIGN_STATUS = "WAITING_STAGE2_GATE"
-DATA_VERSION = "candidate_v1_not_fds_data"
+DESIGN_STATUS = "AUTHORIZED_100M_V2_WAITING_EXTERNAL_FDS"
+REUSE_STATUS = "REUSE_EXISTING_REAL_FDS_100M_V2"
+DATA_VERSION = "100m_conditional_domain_v2_input_v1_not_fds_data"
+PROTOCOL_VERSION = "100M_CONDITIONAL_DOMAIN_V2"
+SCIENTIFIC_CONFIRMATION_STATUS = "DEVELOPMENT_GATE_PASS_CONFIRMATION_PENDING"
 
 CASE_FIELDS = (
     "chid", "subset", "role", "test_role", "case_group", "Q", "U", "Df",
@@ -35,8 +39,20 @@ CASE_FIELDS = (
     "n_mesh_z", "Uc_m_s", "U_over_Uc", "flow_layer", "chi_r_assumed",
     "critical_velocity_method", "continuous_qdash_kW_m2", "HRRPUA_kW_m2",
     "dataset_group_id", "cv_fold", "access_policy", "design_status",
-    "data_version", "reuse_chid", "source_design_id", "parent_chid",
+    "data_version", "protocol_version", "domain_scope",
+    "measurement_x_min_m", "measurement_x_max_m", "censoring_allowed",
+    "profile_target_policy", "peak_target_policy", "k_u_target_policy",
+    "k_d_target_policy", "parameter_mask_required",
+    "scientific_confirmation_status", "external_run_required",
+    "existing_result_path", "result_source", "reuse_chid", "source_design_id", "parent_chid",
     "les_random_seed", "random_seed_repeat_planned", "design_reason", "note",
+)
+RUN_MANIFEST_FIELDS = (
+    "chid", "subset", "protocol_version", "local_input_path",
+    "server_input_path", "server_workdir", "local_return_dir",
+    "required_return_files", "completion_evidence_policy",
+    "field_return_files_if_needed", "access_policy",
+    "scientific_confirmation_status", "external_run_required", "existing_result_path",
 )
 
 FLOW_TARGETS = {
@@ -87,6 +103,38 @@ def _write_rows(path, rows):
         writer = csv.DictWriter(stream, fieldnames=CASE_FIELDS)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def write_external_run_manifest(rows, path=DEFAULT_RUN_MANIFEST):
+    input_root = PROJECT_ROOT / "阶段一" / "outputs" / "stage3_100m_v2_inputs"
+    return_root = PROJECT_ROOT / "阶段一" / "outputs" / "runs"
+    manifest = []
+    for row in rows:
+        chid = row["chid"]
+        server_workdir = f"/project/fds_tunnel/stage3_100m_v2/{chid}"
+        needs_run = row["external_run_required"] == "yes"
+        return_dir = (return_root / chid).resolve() if needs_run else Path(row["existing_result_path"])
+        manifest.append({
+            "chid": chid, "subset": row["subset"],
+            "protocol_version": row["protocol_version"],
+            "local_input_path": str((input_root / f"{chid}.fds").resolve()),
+            "server_input_path": f"{server_workdir}/{chid}.fds" if needs_run else "",
+            "server_workdir": server_workdir if needs_run else "",
+            "local_return_dir": str(return_dir),
+            "required_return_files": f"{chid}.fds;{chid}.out;{chid}_devc.csv;{chid}_hrr.csv",
+            "completion_evidence_policy": "END_OR_SUCCESSFUL_OUT_AND_BOTH_CSV_AT_T_END",
+            "field_return_files_if_needed": f"{chid}.smv;{chid}_*.sf*;{chid}_*.bf",
+            "access_policy": row["access_policy"],
+            "scientific_confirmation_status": row["scientific_confirmation_status"],
+            "external_run_required": row["external_run_required"],
+            "existing_result_path": row["existing_result_path"],
+        })
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8-sig") as stream:
+        writer = csv.DictWriter(stream, fieldnames=RUN_MANIFEST_FIELDS)
+        writer.writeheader(); writer.writerows(manifest)
+    return manifest
 
 
 def _latin_values(count, lower, upper, rng):
@@ -178,6 +226,16 @@ def _make_row(case, subset, role, reason, row_number, test_role="",
     repeat_planned = "yes" if case["chid"] in {
         "pilot_06_q40_r100_d45", "gsC_m", "dev_34_near_critical"
     } else "no"
+    existing_result_path = ""
+    external_run_required = "yes"
+    result_source = "WAITING_EXTERNAL_FDS"
+    if role == "pilot":
+        existing_result_path = str(
+            (PROJECT_ROOT / "阶段一" / "outputs" / "pilot_input" / case["chid"]).resolve()
+        )
+        external_run_required = "no"
+        result_source = "REUSE_EXISTING_FORMAL_PILOT_FDS_6.9.1"
+    row_design_status = REUSE_STATUS if role == "pilot" else DESIGN_STATUS
     return {
         "chid": case["chid"], "subset": subset, "role": role,
         "test_role": test_role, "case_group": "database_candidate",
@@ -195,12 +253,27 @@ def _make_row(case, subset, role, reason, row_number, test_role="",
         "continuous_qdash_kW_m2": f"{qdash:.3f}",
         "HRRPUA_kW_m2": f"{hrrpua:.3f}",
         "dataset_group_id": case["chid"], "cv_fold": "",
-        "access_policy": access, "design_status": DESIGN_STATUS,
-        "data_version": DATA_VERSION, "reuse_chid": reuse_chid,
+        "access_policy": access, "design_status": row_design_status,
+        "data_version": DATA_VERSION, "protocol_version": PROTOCOL_VERSION,
+        "domain_scope": "L100_W10_H5_dx0.25_measurement_x15_85",
+        "measurement_x_min_m": "15.000000", "measurement_x_max_m": "85.000000",
+        "censoring_allowed": "yes",
+        "profile_target_policy": "REQUIRED_IF_QUALITY_AND_STEADY_PASS",
+        "peak_target_policy": "REQUIRED_WITH_BOOTSTRAP_INTERVAL",
+        "k_u_target_policy": "ONLY_IF_UPSTREAM_IDENTIFIABLE_AND_STABLE",
+        "k_d_target_policy": "ONLY_IF_DOWNSTREAM_IDENTIFIABLE_AND_STABLE",
+        "parameter_mask_required": "yes",
+        "scientific_confirmation_status": SCIENTIFIC_CONFIRMATION_STATUS,
+        "external_run_required": external_run_required,
+        "existing_result_path": existing_result_path, "result_source": result_source,
+        "reuse_chid": reuse_chid,
         "source_design_id": source_design_id, "parent_chid": "",
         "les_random_seed": "", "random_seed_repeat_planned": repeat_planned,
         "design_reason": reason,
-        "note": "候选元数据；阶段二判伪通过并冻结生产设置前不得生成或提交 FDS",
+        "note": (
+            "100 m 条件域协议 V2 外部计算输入；协议 V1 的 4/12 FAIL 保持不变；"
+            "闭合与反演结论等待开发结果和冻结后的封存测试"
+        ),
     }
 
 
@@ -325,8 +398,31 @@ def validate_design(rows):
     if any(min(float(row["x_fire"]), float(row["L"]) - float(row["x_fire"])) < 5 * float(row["H"])
            for row in offsets):
         raise ValueError("偏移火源距最近洞口不足 5H")
-    if any(row["design_status"] != DESIGN_STATUS for row in rows):
-        raise ValueError("候选状态不得提前越过阶段二门")
+    allowed_statuses = {DESIGN_STATUS, REUSE_STATUS}
+    if any(row["design_status"] not in allowed_statuses for row in rows):
+        raise ValueError("工况状态不是 V2 复用或等待外部 FDS")
+    if any(row["protocol_version"] != PROTOCOL_VERSION for row in rows):
+        raise ValueError("存在非 100 m 条件域协议 V2 工况")
+    if any(row["scientific_confirmation_status"] != SCIENTIFIC_CONFIRMATION_STATUS
+           for row in rows):
+        raise ValueError("不得提前宣称 100 m 条件域协议已获独立确认")
+    if any(float(row["L"]) != 100.0 or float(row["dx"]) != 0.25 for row in rows):
+        raise ValueError("协议 V2 只允许 L=100 m、dx=0.25 m")
+    if any(float(row["measurement_x_min_m"]) != 15.0 or
+           float(row["measurement_x_max_m"]) != 85.0 for row in rows):
+        raise ValueError("协议 V2 测量区必须为 x=15--85 m")
+    if any(row["parameter_mask_required"] != "yes" for row in rows):
+        raise ValueError("协议 V2 必须启用衰减参数可用性掩码")
+    pilots = [row for row in rows if row["role"] == "pilot"]
+    if len(pilots) != 12 or any(row["external_run_required"] != "no" or
+                                not row["existing_result_path"] or
+                                row["design_status"] != REUSE_STATUS for row in pilots):
+        raise ValueError("12 组既有先导必须登记为真实结果复用，不能要求重跑")
+    new_runs = [row for row in rows if row["role"] != "pilot"]
+    if len(new_runs) != 56 or any(row["external_run_required"] != "yes" or
+                                  row["existing_result_path"] or
+                                  row["design_status"] != DESIGN_STATUS for row in new_runs):
+        raise ValueError("阶段三必须恰有 56 组新外部计算")
     tests = [row for row in rows if row["subset"] == "independent_test"]
     if any(row["access_policy"] != "SEALED_UNTIL_FINAL_EVALUATION" for row in tests):
         raise ValueError("独立测试集未封存")
@@ -386,9 +482,11 @@ def main():
     parser.add_argument("--pilots", default=str(DEFAULT_PILOTS))
     parser.add_argument("--out", default=str(DEFAULT_OUT))
     parser.add_argument("--seed", type=int, default=DESIGN_SEED)
+    parser.add_argument("--run-manifest", default=str(DEFAULT_RUN_MANIFEST))
     args = parser.parse_args()
     try:
         rows, summary = build(args.pilots, args.out, args.seed)
+        manifest = write_external_run_manifest(rows, args.run_manifest)
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
     print(f"[OK] {len(rows)} 组阶段三候选 -> {args.out}")
@@ -398,7 +496,9 @@ def main():
         f"匹配工况={summary['matched_case_count']}，离散 HRRPUA="
         f"{summary['hrrpua_min']:.1f}..{summary['hrrpua_max']:.1f} kW/m2"
     )
-    print(f"状态: {DESIGN_STATUS}（未生成正式 FDS，独立测试仍封存）")
+    print(f"状态: 12×{REUSE_STATUS}；56×{DESIGN_STATUS}")
+    print(f"科学确认: {SCIENTIFIC_CONFIRMATION_STATUS}")
+    print(f"外部运行映射: {len(manifest)} 行 -> {args.run_manifest}")
 
 
 if __name__ == "__main__":

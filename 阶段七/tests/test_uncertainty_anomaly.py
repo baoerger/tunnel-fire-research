@@ -47,6 +47,30 @@ class UncertaintyAnomalyTests(unittest.TestCase):
         self.assertEqual(flag["diagnosis"], ua.NO_DIAGNOSIS)
         self.assertNotIn("sensor_failure", str(flag).lower())
 
+    def test_100m_scope_and_ood_flags_are_explicit(self):
+        inside = ua.assess_100m_applicability({
+            "L": 100, "W": 10, "H": 5, "dx": .25,
+            "protocol_version": ua.PROTOCOL_VERSION,
+            "sensor_xs": [15, 50, 85],
+            "domain_censor_state": "downstream_domain_censored",
+        })
+        self.assertEqual("IN_DOMAIN_100M_CONDITIONAL", inside["applicability_status"])
+        self.assertEqual("NO_K_D", inside["parameter_scope"])
+        outside = ua.flag_model_mismatch(
+            "x", {"rmse_C": 1.0}, {"metric": "rmse_C", "threshold": 2.0},
+            {"L": 150, "W": 10, "H": 5, "dx": .25,
+             "protocol_version": ua.PROTOCOL_VERSION, "sensor_xs": [20, 50],
+             "domain_censor_state": "none"},
+        )
+        self.assertEqual("OOD_EXPLORATORY", outside["applicability_status"])
+        self.assertIn("EXPLORATORY_OOD", outside["message"])
+        self.assertEqual(ua.NO_DIAGNOSIS, outside["diagnosis"])
+
+        missing = ua.assess_100m_applicability({"sensor_xs": [20, 50]})
+        self.assertEqual("APPLICABILITY_UNDETERMINED", missing["applicability_status"])
+        self.assertIn("L_MISSING", missing["ood_reasons"])
+        self.assertIn("PROTOCOL_VERSION_MISSING", missing["ood_reasons"])
+
     def test_synthetic_exports_are_marked(self):
         with tempfile.TemporaryDirectory() as temporary:
             _, _, flag = ua.run_synthetic_software_check(temporary)

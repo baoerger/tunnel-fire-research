@@ -54,6 +54,7 @@ class FixedVectorNetwork:
         )
 
     def forward_values(self, sample):
+        applicability = set_encoder.validate_100m_sample(sample)
         rows = {str(row.get("id")): row for row in sample["sensors"]}
         if len(rows) != len(sample["sensors"]):
             raise ValueError("全连接输入测点 ID 缺失或重复")
@@ -77,7 +78,7 @@ class FixedVectorNetwork:
         x_min, x_max = self.x_bounds
         x_hat = x_min + (x_max - x_min) * z_x.sigmoid()
         return {"Q_hat_MW": q_hat, "x_f_hat_m": x_hat, "z_Q": z_q, "z_x": z_x,
-                "n_valid": int(sum(masks))}
+                "n_valid": int(sum(masks)), **applicability}
 
     def predict(self, sample):
         output = self.forward_values(sample)
@@ -100,6 +101,11 @@ class FixedVectorNetwork:
             "sensor_ids": list(self.sensor_ids), "hidden_dim": self.hidden_dim,
             "q_ref_MW": self.q_ref_MW, "x_bounds": list(self.x_bounds),
             "seed": self.seed, "training_status": training_status,
+            "applicability_contract": {
+                "protocol_version": set_encoder.direct_inversion.PROTOCOL_VERSION,
+                "L_m": 100.0, "W_m": 10.0, "H_m": 5.0, "dx_m": 0.25,
+                "measurement_bounds_m": [15.0, 85.0],
+            },
             "state_dict": {name: value.data for name, value in self.named_parameters()},
         }
         Path(path).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -149,6 +155,8 @@ def validate_training_access(samples):
         raise PermissionError(f"训练禁止访问这些子集: {forbidden}")
     if any(not str(row.get("case_id") or "").strip() for row in samples):
         raise ValueError("训练样本必须绑定完整物理工况 case_id")
+    for row in samples:
+        set_encoder.validate_100m_sample(row)
 
 
 def grouped_kfold(samples, n_folds=5):
@@ -172,6 +180,8 @@ def release_evaluation_samples(samples, final_evaluation=False):
         raise PermissionError(f"评价子集无效: {unknown}")
     if any(_subset(row) == SEALED_SUBSET for row in samples) and not final_evaluation:
         raise PermissionError("独立测试仍封存；只有设置冻结后的最终评价可访问")
+    for row in samples:
+        set_encoder.validate_100m_sample(row)
     return list(samples)
 
 
@@ -225,7 +235,13 @@ def make_direct_predictor(closure_model, inversion_options=None):
 
     def predict(sample):
         valid = [row for row in sample["sensors"] if float(row["m"]) == 1.0]
-        scenario = {key: sample[key] for key in ("U", "Df", "H", "T0_K")}
+        scenario = {
+            key: sample[key]
+            for key in ("U", "Df", "H", "T0_K")
+        }
+        for key in ("L", "W", "dx", "protocol_version", "domain_censor_state"):
+            if key in sample:
+                scenario[key] = sample[key]
         result = confidence_intervals.correlated_direct_invert(
             closure_model, scenario, [row["x"] for row in valid],
             [row["dT"] for row in valid], **inversion_options,
@@ -251,7 +267,14 @@ def build_model_registry(direct_predictor, fully_connected, pure_set_encoder,
 def evaluate_model(model_name, predictor, samples, decoder=None, final_evaluation=False):
     samples = release_evaluation_samples(samples, final_evaluation)
     q_errors, x_errors, xh_errors, temperature_errors, times = [], [], [], [], []
+    applicability_counts = {
+        "IN_DOMAIN_100M_CONDITIONAL": 0,
+        "OOD_EXPLORATORY": 0,
+        "APPLICABILITY_UNDETERMINED": 0,
+    }
     for sample in samples:
+        assessed = set_encoder.validate_100m_sample(sample)
+        applicability_counts[assessed["applicability_status"]] += 1
         start = time.perf_counter()
         prediction = predictor(sample)
         times.append(time.perf_counter() - start)
@@ -278,6 +301,9 @@ def evaluate_model(model_name, predictor, samples, decoder=None, final_evaluatio
         "x_error_over_H_median": statistics.median(xh_errors),
         "temperature_rmse_C_median": statistics.median(temperature_errors) if temperature_errors else "",
         "inference_time_ms_median": 1000.0 * statistics.median(times),
+        "core_domain_case_count": applicability_counts["IN_DOMAIN_100M_CONDITIONAL"],
+        "ood_exploratory_case_count": applicability_counts["OOD_EXPLORATORY"],
+        "applicability_undetermined_case_count": applicability_counts["APPLICABILITY_UNDETERMINED"],
         "evidence_label": SYNTHETIC_LABEL, "decision_status": NO_COMPARISON_CLAIM,
     }
 
@@ -341,6 +367,9 @@ def run_synthetic_pipeline(output_dir):
         "data_version": "synthetic_software", "training_cases": len(training_samples),
         "evaluation_cases": len(evaluation_samples), "independent_test_accessed": False,
         "decoder_status": decoder.model_status, "evidence_label": SYNTHETIC_LABEL,
+        "protocol_version": set_encoder.direct_inversion.PROTOCOL_VERSION,
+        "domain_geometry_m": {"L": 100.0, "W": 10.0, "H": 5.0, "dx": 0.25},
+        "measurement_bounds_m": [15.0, 85.0],
         "decision_status": NO_COMPARISON_CLAIM,
     }
     (output_dir / "synthetic_protocol.json").write_text(

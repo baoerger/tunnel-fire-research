@@ -31,6 +31,8 @@ class ConfidenceIntervalTests(unittest.TestCase):
         self.scenario = {
             "scenario_id": "synthetic_ci", "Q_MW": 35.0,
             "x_f": 50.0, "U": 2.0, "Df": 5.0,
+            "L": 100.0, "W": 10.0, "H": 5.0, "dx": 0.25,
+            "protocol_version": inverse.PROTOCOL_VERSION, "domain_censor_state": "none",
         }
         catalog = fisher.load_sensor_catalog()
         self.layout = fisher.load_uniform_layouts(catalog=catalog)[8]
@@ -60,6 +62,16 @@ class ConfidenceIntervalTests(unittest.TestCase):
         self.assertLess(result["x_low_m"], 50.0)
         self.assertGreater(result["x_high_m"], 50.0)
         self.assertTrue(all(math.isfinite(value) for row in result["hessian"] for value in row))
+
+    def test_intervals_label_scenarios_without_explicit_domain_contract(self):
+        missing = {
+            "scenario_id": "missing_domain", "Q_MW": 35.0,
+            "x_f": 50.0, "U": 2.0, "Df": 5.0,
+        }
+        result = ci.local_hessian_interval(
+            self.model, missing, self.xs, self.observed, 35.0, 50.0
+        )
+        self.assertEqual("APPLICABILITY_UNDETERMINED", result["applicability_status"])
 
     def test_profile_interval_contains_grid_truth_without_truncation(self):
         surface = fisher.objective_surface(
@@ -103,9 +115,9 @@ class ConfidenceIntervalTests(unittest.TestCase):
     def test_fewer_sensors_or_more_noise_widens_local_intervals(self):
         catalog = fisher.load_sensor_catalog()
         design_scenarios = [
-            {"scenario_id": "left", "Q_MW": 15.0, "x_f": 38.0, "U": 0.8, "Df": 3.0},
+            {**self.scenario, "scenario_id": "left", "Q_MW": 15.0, "x_f": 38.0, "U": 0.8, "Df": 3.0},
             self.scenario,
-            {"scenario_id": "right", "Q_MW": 80.0, "x_f": 62.0, "U": 4.0, "Df": 7.0},
+            {**self.scenario, "scenario_id": "right", "Q_MW": 80.0, "x_f": 62.0, "U": 4.0, "Df": 7.0},
         ]
         layouts = fisher.greedy_layout_sequence(
             self.model, design_scenarios, catalog, sizes=(4, 12), objective="balanced_logdet"

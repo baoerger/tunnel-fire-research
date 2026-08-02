@@ -30,10 +30,19 @@ class DatabaseDesignTests(unittest.TestCase):
         self.assertEqual(design.FLOW_TARGETS, dict(Counter(row["flow_layer"] for row in development)))
         self.assertEqual(12, sum(row["role"] == "pilot" for row in development))
         self.assertEqual(3, sum(bool(row["reuse_chid"]) for row in development))
+        self.assertEqual(12, sum(row["external_run_required"] == "no" for row in self.rows))
+        self.assertEqual(56, sum(row["external_run_required"] == "yes" for row in self.rows))
 
-    def test_physical_bounds_pairing_offsets_and_candidate_status(self):
+    def test_physical_bounds_pairing_offsets_and_100m_v2_status(self):
         self.assertGreaterEqual(self.summary["matched_case_count"], 8)
-        self.assertTrue(all(row["design_status"] == "WAITING_STAGE2_GATE" for row in self.rows))
+        self.assertEqual(12, sum(row["design_status"] == design.REUSE_STATUS
+                                 for row in self.rows))
+        self.assertEqual(56, sum(row["design_status"] == design.DESIGN_STATUS
+                                 for row in self.rows))
+        self.assertTrue(all(row["protocol_version"] == design.PROTOCOL_VERSION for row in self.rows))
+        self.assertTrue(all(float(row["L"]) == 100.0 and float(row["dx"]) == 0.25
+                            for row in self.rows))
+        self.assertTrue(all(row["parameter_mask_required"] == "yes" for row in self.rows))
         offsets = [row for row in self.rows if row["subset"] == "offset_validation"]
         self.assertEqual({32.5, 67.5}, {float(row["x_fire"]) for row in offsets})
         self.assertTrue(all(float(row["HRRPUA_kW_m2"]) <= 3000 for row in self.rows))
@@ -90,6 +99,24 @@ class DatabaseDesignTests(unittest.TestCase):
             self.assertEqual(design.DEFAULT_OUT.read_bytes(), path.read_bytes())
             with path.open(newline="", encoding="utf-8-sig") as stream:
                 self.assertEqual(68, len(list(csv.DictReader(stream))))
+
+    def test_external_manifest_maps_every_chid_and_required_return(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "manifest.csv"
+            manifest = design.write_external_run_manifest(self.rows, path)
+            self.assertEqual(68, len(manifest))
+            self.assertEqual({row["chid"] for row in self.rows},
+                             {row["chid"] for row in manifest})
+            for row in manifest:
+                self.assertIn(row["chid"] + "_devc.csv", row["required_return_files"])
+                self.assertIn(row["chid"] + "_hrr.csv", row["required_return_files"])
+                self.assertEqual("END_OR_SUCCESSFUL_OUT_AND_BOTH_CSV_AT_T_END",
+                                 row["completion_evidence_policy"])
+                if row["external_run_required"] == "yes":
+                    self.assertTrue(row["server_workdir"].endswith("/" + row["chid"]))
+                else:
+                    self.assertEqual("", row["server_workdir"])
+                    self.assertTrue(row["existing_result_path"])
 
     def test_invalid_registry_or_linkage_fails_loudly(self):
         broken = [dict(row) for row in self.rows]
@@ -152,9 +179,20 @@ class DatabaseDesignTests(unittest.TestCase):
             root = Path(tmp)
             run_root = root / "runs"
             chid = self._write_synthetic_pass_case(run_root)
+            isolated_registry = [dict(row) for row in self.rows]
+            for row in isolated_registry:
+                if row["role"] == "pilot":
+                    row["existing_result_path"] = str(root / "isolated_pilots" / row["chid"])
+            first = next(row for row in isolated_registry if row["chid"] == chid)
+            first["existing_result_path"] = str(run_root / chid)
+            registry_path = root / "registry.csv"
+            with registry_path.open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.DictWriter(stream, fieldnames=design.CASE_FIELDS)
+                writer.writeheader(); writer.writerows(isolated_registry)
             result = batch_postprocess.run_pipeline(
-                run_root=run_root, outdir=root / "analysis", n_boot=20,
-                avg_duration=20.0,
+                registry_path=registry_path, run_root=run_root,
+                outdir=root / "analysis", n_boot=20,
+                window_s=20.0, avg_duration=20.0,
             )
             completion = {row["chid"]: row for row in result["completion"]}
             self.assertEqual("READY_FOR_EXPLICIT_ADOPTION", completion[chid]["overall_status"])
@@ -182,6 +220,11 @@ class DatabaseDesignTests(unittest.TestCase):
         ready = batch_postprocess.summarize_noise_components(two)
         self.assertEqual("READY_FOR_THRESHOLD_REVIEW", ready[0]["status"])
         self.assertAlmostEqual(2.828427, float(ready[0]["repeat_seed_mean_sd_C"]), places=5)
+
+    def test_batch_defaults_match_frozen_stage1_steady_protocol(self):
+        self.assertEqual(0.15, batch_postprocess.quasi_steady_detect.DEFAULT_THR_HRR)
+        self.assertEqual(0.15, batch_postprocess.quasi_steady_detect.DEFAULT_THR_TMAX_SLOPE)
+        self.assertEqual(0.15, batch_postprocess.quasi_steady_detect.DEFAULT_THR_REP_SLOPE)
 
 
 if __name__ == "__main__":

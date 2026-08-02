@@ -6,12 +6,35 @@ import csv
 import json
 import math
 import random
+import sys
 from pathlib import Path
 
 
 STAGE6_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = STAGE6_ROOT.parent
+sys.path.insert(0, str(PROJECT_ROOT / "阶段五" / "src"))
+
+import direct_inversion  # noqa: E402
+
+
 SYNTHETIC_LABEL = "SYNTHETIC_SOFTWARE_TEST_NOT_SCIENTIFIC_EVIDENCE"
 NO_PERFORMANCE_CLAIM = "UNTRAINED_INTERFACE_ONLY_NO_NETWORK_PERFORMANCE_CLAIM"
+
+
+def validate_100m_sample(sample):
+    """校验网络样本适用域；缺测传感器不参与空间范围判定。"""
+    sensors = list(sample.get("sensors") or ())
+    valid_xs = []
+    for row in sensors:
+        try:
+            mask = float(row.get("m"))
+        except (TypeError, ValueError):
+            raise ValueError("传感器 m 必须可解析为 0/1") from None
+        if mask == 1.0:
+            valid_xs.append(row.get("x"))
+    payload = dict(sample)
+    payload["x"] = valid_xs
+    return direct_inversion.validate_100m_observation(payload)
 
 
 class Value:
@@ -227,7 +250,9 @@ class SetEncoder:
 
     @staticmethod
     def _validated_sample(sample, n_max):
-        required = ("sensors", "U", "Df", "H", "W", "T0_K")
+        required = (
+            "sensors", "U", "Df", "H", "W", "T0_K",
+        )
         if any(key not in sample for key in required):
             raise ValueError("集合编码器样本缺少已知条件")
         sensors = list(sample["sensors"])
@@ -243,6 +268,8 @@ class SetEncoder:
             raise ValueError("U>=0 且 Df/H/W/T0>0")
         normalized = []
         for row in sensors:
+            if any(key in row for key in ("domain_censored", "domain_mask", "physical_domain_mask")):
+                raise ValueError("物理域删失必须是工况级字段，不能复用传感器缺测 mask")
             if any(key not in row for key in ("dT", "x", "m")):
                 raise ValueError("单传感器输入必须含 dT/x/m")
             dT, x, mask = float(row["dT"]), float(row["x"]), float(row["m"])
@@ -251,10 +278,11 @@ class SetEncoder:
             normalized.append({"dT": dT, "x": x, "m": mask})
         if sum(row["m"] for row in normalized) < 1:
             raise ValueError("至少需要一个有效传感器")
-        return normalized, U, Df, H, W, T0
+        applicability = validate_100m_sample({**sample, "sensors": normalized})
+        return normalized, U, Df, H, W, T0, applicability
 
     def forward_values(self, sample):
-        sensors, U, Df, H, W, T0 = self._validated_sample(sample, self.n_max)
+        sensors, U, Df, H, W, T0, applicability = self._validated_sample(sample, self.n_max)
         encoded = []
         for row in sensors:
             features = [
@@ -274,7 +302,7 @@ class SetEncoder:
         x_min, x_max = self.x_bounds
         x_hat = x_min + (x_max - x_min) * z_x.sigmoid()
         return {"Q_hat_MW": q_hat, "x_f_hat_m": x_hat, "z_Q": z_q, "z_x": z_x,
-                "n_valid": count}
+                "n_valid": count, **applicability}
 
     def predict(self, sample):
         output = self.forward_values(sample)
@@ -303,6 +331,12 @@ class SetEncoder:
                 "x_bounds": list(self.x_bounds), "seed": self.seed,
             },
             "training_status": str(training_status),
+            "applicability_contract": {
+                "protocol_version": direct_inversion.PROTOCOL_VERSION,
+                "L_m": direct_inversion.DOMAIN_LENGTH_M,
+                "W_m": 10.0, "H_m": 5.0, "dx_m": 0.25,
+                "measurement_bounds_m": list(direct_inversion.MEASUREMENT_BOUNDS_M),
+            },
             "state_dict": self.state_dict(),
         }
         path = Path(path)
@@ -333,6 +367,9 @@ def _synthetic_sample():
             for x in xs
         ],
         "U": 2.0, "Df": 5.0, "H": 5.0, "W": 10.0, "T0_K": 293.15,
+        "L": 100.0, "dx": 0.25,
+        "protocol_version": direct_inversion.PROTOCOL_VERSION,
+        "domain_censor_state": "none",
     }
 
 

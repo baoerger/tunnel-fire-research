@@ -1,0 +1,2 @@
+﻿n_cases,minimum_fraction,full_data_selected_p_upstream,full_data_selected_p_downstream,full_data_joint_pass,full_data_joint_pass_fraction,loocv_joint_pass,loocv_joint_pass_fraction,decision,evidence_boundary
+12,0.750000,1.250000,0.500000,6,0.500000000,6,0.500000000,REJECT_AS_STAGE2_RESCUE_CANDIDATE,screen uses only far-shape and interval-stability gates; it cannot pass the full stage-2 decision when this necessary screen fails

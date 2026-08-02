@@ -12,6 +12,74 @@ STAGE7_ROOT = Path(__file__).resolve().parent.parent
 SYNTHETIC_LABEL = "SYNTHETIC_SOFTWARE_TEST_NOT_SCIENTIFIC_EVIDENCE"
 NO_DIAGNOSIS = "MODEL_MISMATCH_REVIEW_ONLY_NO_SPECIFIC_ANOMALY_DIAGNOSIS"
 LAYERS = ("forward_formula", "direct_inversion", "network")
+PROTOCOL_VERSION = "100M_CONDITIONAL_DOMAIN_V2"
+
+
+def assess_100m_applicability(metadata):
+    """给出核心域/域外探索/信息不完整标志。"""
+    checks = {
+        "L": (100.0, 1e-9), "W": (10.0, 1e-9), "H": (5.0, 1e-9),
+        "dx": (0.25, 1e-9),
+    }
+    missing_reasons, ood_reasons = [], []
+    for name, (target, tolerance) in checks.items():
+        if name not in metadata or str(metadata.get(name, "")).strip() == "":
+            missing_reasons.append(f"{name}_MISSING")
+            continue
+        try:
+            value = float(metadata[name])
+        except (TypeError, ValueError):
+            missing_reasons.append(f"{name}_INVALID")
+            continue
+        if not math.isfinite(value) or not math.isclose(value, target, abs_tol=tolerance):
+            ood_reasons.append(f"{name}_OUT_OF_CORE_DOMAIN")
+    protocol = str(metadata.get("protocol_version") or "").strip()
+    if not protocol:
+        missing_reasons.append("PROTOCOL_VERSION_MISSING")
+    elif protocol != PROTOCOL_VERSION:
+        ood_reasons.append("PROTOCOL_VERSION_DIFFERENT")
+    xs = metadata.get("sensor_xs")
+    if xs is None:
+        missing_reasons.append("SENSOR_X_MISSING")
+    else:
+        try:
+            values = [float(value) for value in xs]
+        except (TypeError, ValueError):
+            missing_reasons.append("SENSOR_X_INVALID")
+        else:
+            if not values or any(not math.isfinite(value) or value < 15.0 or value > 85.0
+                                 for value in values):
+                ood_reasons.append("SENSOR_X_OUTSIDE_CORE_15_85")
+    state = str(metadata.get("domain_censor_state") or "").strip()
+    allowed = {
+        "none", "bilateral_identifiable", "upstream_censored",
+        "downstream_domain_censored", "no_obvious_backflow",
+    }
+    if not state:
+        missing_reasons.append("DOMAIN_CENSOR_STATE_MISSING")
+    elif state not in allowed:
+        missing_reasons.append("DOMAIN_CENSOR_STATE_UNRECOGNIZED")
+    if missing_reasons:
+        status = "APPLICABILITY_UNDETERMINED"
+        scope = "EXPLORATORY_METADATA_INCOMPLETE"
+    elif ood_reasons:
+        status = "OOD_EXPLORATORY"
+        scope = "EXTERNAL_OR_OOD_GENERALIZATION_NO_CORE_DOMAIN_VALIDATION_CLAIM"
+    else:
+        status = "IN_DOMAIN_100M_CONDITIONAL"
+        scope = "CORE_DOMAIN_RESULT_PENDING_REMAINING_SCIENTIFIC_GATES"
+    reasons = missing_reasons + ood_reasons
+    return {
+        "protocol_version": protocol,
+        "applicability_status": status,
+        "ood_reasons": ";".join(reasons),
+        "evidence_scope": scope,
+        "domain_censor_state": state,
+        "parameter_scope": (
+            "NO_K_D" if state == "downstream_domain_censored" else
+            "NO_K_U" if state in {"upstream_censored", "no_obvious_backflow"} else "BILATERAL_REVIEW"
+        ),
+    }
 
 
 def uncertainty_summary(components):
@@ -96,15 +164,26 @@ def fit_anomaly_threshold(development_scores, quantile=0.95, min_cases=10):
     }
 
 
-def flag_model_mismatch(case_id, score, threshold):
+def flag_model_mismatch(case_id, score, threshold, applicability=None):
     value = float(score[threshold["metric"]])
     flagged = value > float(threshold["threshold"])
-    return {
+    result = {
         "case_id": case_id, "metric": threshold["metric"], "score": value,
         "threshold": threshold["threshold"], "flagged": flagged,
         "message": "MODEL_MISMATCH_REVIEW" if flagged else "WITHIN_DEVELOPMENT_RESIDUAL_RANGE",
         "diagnosis": NO_DIAGNOSIS,
     }
+    if applicability is not None:
+        assessed = assess_100m_applicability(applicability)
+        result.update(assessed)
+        if assessed["applicability_status"] == "OOD_EXPLORATORY":
+            result["message"] = (
+                "EXPLORATORY_OOD_MODEL_MISMATCH_REVIEW" if flagged
+                else "EXPLORATORY_OOD_WITHIN_REFERENCE_RESIDUAL_RANGE"
+            )
+        elif assessed["applicability_status"] == "APPLICABILITY_UNDETERMINED":
+            result["message"] = "EXPLORATORY_APPLICABILITY_UNDETERMINED"
+    return result
 
 
 def write_residual_svg(profile, path):
@@ -145,7 +224,13 @@ def run_synthetic_software_check(output_dir):
         {"id": f"S{i}", "x": float(i), "dT": 10 + i, "m": 1.0} for i in range(8)
     ]}
     profile = residual_profile(sample, [10 + i + (6 if i in (3, 4) else 0) for i in range(8)])
-    score = residual_score(profile); flag = flag_model_mismatch(sample["case_id"], score, threshold)
+    score = residual_score(profile); flag = flag_model_mismatch(
+        sample["case_id"], score, threshold,
+        {"L": 100, "W": 10, "H": 5, "dx": 0.25,
+         "protocol_version": PROTOCOL_VERSION,
+         "sensor_xs": [15 + 10 * i for i in range(8)],
+         "domain_censor_state": "none"},
+    )
     flag.update({"evidence_label": SYNTHETIC_LABEL, "decision_status": NO_DIAGNOSIS})
     with (output_dir / "synthetic_anomaly_check.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(flag)); writer.writeheader(); writer.writerow(flag)

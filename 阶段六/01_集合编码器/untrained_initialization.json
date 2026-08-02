@@ -11,6 +11,17 @@
     "seed": 20260729
   },
   "training_status": "UNTRAINED_INITIALIZATION",
+  "applicability_contract": {
+    "protocol_version": "100M_CONDITIONAL_DOMAIN_V2",
+    "L_m": 100.0,
+    "W_m": 10.0,
+    "H_m": 5.0,
+    "dx_m": 0.25,
+    "measurement_bounds_m": [
+      15.0,
+      85.0
+    ]
+  },
   "state_dict": {
     "encoder.layer.0.weight.0.0": 0.3071354925719196,
     "encoder.layer.0.weight.0.1": 0.15396713498767117,

@@ -48,16 +48,59 @@ class DimensionlessModelTests(unittest.TestCase):
         self.assertAlmostEqual(truth["Da_e"], fit["Da_e"], delta=0.01)
         self.assertAlmostEqual(truth["Pi_S"], fit["Pi_S"], delta=0.01)
 
-    def test_censored_case_does_not_emit_full_parameters(self):
-        result = model.extract_case_parameters({
+    def test_censored_cases_emit_only_identifiable_side(self):
+        xs = [20.0 + index for index in range(61)]
+        values = model.temperature_rise_profile(xs, 50, 5, 293.15, 1, 0.6, 0.9)
+        upstream_censored = {
             "case_id": "strong", "classification": "upstream_censored",
-        })
-        self.assertEqual("CENSORED_NO_FULL_PARAMETERS", result["status"])
+            "x": xs, "dT": values,
+        }
+        result = model.extract_case_parameters(upstream_censored)
+        self.assertEqual("PASS_PARTIAL_PARAMETERS", result["status"])
+        self.assertNotIn("kappa_u", result)
+        self.assertIn("kappa_d", result)
         self.assertNotIn("Pe_e", result)
-        uncertainty = model.parameter_uncertainty({
-            "case_id": "strong", "classification": "upstream_censored",
-        })
-        self.assertEqual("CENSORED_NO_FULL_PARAMETERS", uncertainty["status"])
+        uncertainty = model.parameter_uncertainty(
+            upstream_censored, n_boot=30, seed=3, drop_probability=0.02,
+            position_sigma_m=0.0, temperature_sigma_C=0.01,
+        )
+        self.assertEqual("PASS_PARTIAL_PARAMETERS", uncertainty["status"])
+        self.assertNotIn("kappa_u_median", uncertainty)
+        self.assertIn("kappa_d_median", uncertainty)
+
+        downstream_censored = dict(
+            upstream_censored, case_id="short_domain",
+            classification="downstream_domain_censored",
+        )
+        result = model.extract_case_parameters(downstream_censored)
+        self.assertIn("kappa_u", result)
+        self.assertNotIn("kappa_d", result)
+
+    def test_one_sided_interval_stability_controls_parameter_mask(self):
+        xs = [20.0 + index for index in range(61)]
+        clean = model.temperature_rise_profile(xs, 50, 5, 293.15, 1, 0.6, 0.9)
+        stable = model.extract_case_parameters({
+            "case_id": "stable_downstream", "classification": "upstream_censored",
+            "x": xs, "dT": clean,
+        }, interval_windows=((0.4, 3.0), (0.4, 6.0)))
+        self.assertTrue(stable["kappa_d_available"])
+        self.assertIn("kappa_d", stable)
+        self.assertLessEqual(stable["max_kappa_d_rel_change"], 0.20)
+
+        bent = [
+            value * (math.exp(-0.25 * (x - 68.0)) if x > 68.0 else 1.0)
+            for x, value in zip(xs, clean)
+        ]
+        unstable = model.extract_case_parameters({
+            "case_id": "unstable_downstream", "classification": "upstream_censored",
+            "x": xs, "dT": bent,
+        }, interval_windows=((0.4, 3.0), (0.4, 6.0)))
+        self.assertEqual("PASS_WITH_UNSTABLE_PARAMETERS", unstable["status"])
+        self.assertFalse(unstable["kappa_d_available"])
+        self.assertIn("kappa_d", unstable)
+        self.assertFalse(unstable["Pe_e_Da_e_available"])
+        self.assertGreater(unstable["max_kappa_d_rel_change"], 0.20)
+        self.assertIn("EXPLORATORY", unstable["parameter_use_policy"])
 
     def test_uncertainty_is_deterministic_and_uses_replicates(self):
         xs = [25.0 + index for index in range(51)]
@@ -88,7 +131,7 @@ class DimensionlessModelTests(unittest.TestCase):
             {"case_id": "bad", "x": [1, 2], "dT": [1, 2]},
         ]
         rows = model.extract_batch(cases)
-        self.assertEqual(["PASS", "CENSORED_NO_FULL_PARAMETERS", "FAIL"],
+        self.assertEqual(["PASS", "CENSORED_NO_PROFILE_PARAMETERS", "FAIL"],
                          [row["status"] for row in rows])
         with self.assertRaisesRegex(ValueError, "重复"):
             model.extract_batch([cases[0], dict(cases[0])])

@@ -28,7 +28,8 @@ DEFAULT_OUTDIR = STAGE3_ROOT / "outputs" / "analysis" / "batch"
 COMPLETION_FIELDS = (
     "chid", "subset", "result_version", "quality_status", "steady_status",
     "time_average_status", "overall_status", "adoption_status", "sealed",
-    "recompute_required", "failure_reason",
+    "recompute_required", "result_source", "result_path", "protocol_version",
+    "failure_reason",
 )
 STEADY_FIELDS = (
     "chid", "status", "reason", "t_steady_start", "t_steady_end", "avg_t0",
@@ -72,6 +73,20 @@ def _steady_row(chid, run_root, window_s, min_steady, avg_duration,
         "thr_rep_C_per_s": thr_rep, "thr_backflow_m_per_s": thr_backflow,
         "thr_enthalpy_rel_per_s": thr_enthalpy,
     }
+
+
+def resolve_case_result_location(registry_row, default_run_root):
+    required = str(registry_row.get("external_run_required") or "yes").strip().lower()
+    if required not in {"yes", "no"}:
+        raise ValueError(f"{registry_row['chid']}: external_run_required 必须为 yes/no")
+    existing = str(registry_row.get("existing_result_path") or "").strip()
+    if required == "no":
+        if not existing:
+            raise ValueError(f"{registry_row['chid']}: 复用结果缺少 existing_result_path")
+        case_dir = Path(existing)
+        return case_dir.parent, case_dir
+    case_dir = Path(default_run_root) / registry_row["chid"]
+    return Path(default_run_root), case_dir
 
 
 def temporal_noise_components(run_root, registry_row, t0, t1, result_version):
@@ -144,9 +159,12 @@ def summarize_noise_components(component_rows, min_seed_runs=2):
 def run_pipeline(registry_path=case_registry.DEFAULT_OUT, run_root=DEFAULT_RUN_ROOT,
                  outdir=DEFAULT_OUTDIR, purpose="model_development",
                  confirm_final_evaluation=False, result_version="run_v1",
-                 n_boot=2000, seed=20260729, window_s=20.0, min_steady=30.0,
-                 avg_duration=30.0, thr_hrr=0.05, thr_tmax=0.10,
-                 thr_rep=0.10, thr_backflow=0.05, thr_enthalpy=0.05):
+                 n_boot=2000, seed=20260729, window_s=90.0, min_steady=30.0,
+                 avg_duration=30.0,
+                 thr_hrr=quasi_steady_detect.DEFAULT_THR_HRR,
+                 thr_tmax=quasi_steady_detect.DEFAULT_THR_TMAX_SLOPE,
+                 thr_rep=quasi_steady_detect.DEFAULT_THR_REP_SLOPE,
+                 thr_backflow=0.05, thr_enthalpy=0.05):
     if n_boot < 20:
         raise ValueError("n_boot 至少为 20")
     if min(window_s, min_steady, avg_duration) <= 0:
@@ -168,7 +186,7 @@ def run_pipeline(registry_path=case_registry.DEFAULT_OUT, run_root=DEFAULT_RUN_R
     completion_rows = []
     for case_index, registry_row in enumerate(selected):
         chid = registry_row["chid"]
-        case_dir = run_root / chid
+        case_run_root, case_dir = resolve_case_result_location(registry_row, run_root)
         quality = check_fds_results.check_case(case_dir)
         quality_rows.append(quality)
         completion = {
@@ -178,6 +196,9 @@ def run_pipeline(registry_path=case_registry.DEFAULT_OUT, run_root=DEFAULT_RUN_R
             "overall_status": "", "adoption_status": "NOT_ADOPTED",
             "sealed": "yes" if registry_row["subset"] == "independent_test" else "no",
             "recompute_required": "no", "failure_reason": "",
+            "result_source": registry_row.get("result_source", ""),
+            "result_path": str(case_dir.resolve()),
+            "protocol_version": registry_row.get("protocol_version", ""),
         }
         if not case_dir.is_dir():
             completion.update({
@@ -199,7 +220,7 @@ def run_pipeline(registry_path=case_registry.DEFAULT_OUT, run_root=DEFAULT_RUN_R
             completion_rows.append(completion)
             continue
         steady = _steady_row(
-            chid, run_root, window_s, min_steady, avg_duration, thr_hrr,
+            chid, case_run_root, window_s, min_steady, avg_duration, thr_hrr,
             thr_tmax, thr_rep, thr_backflow, thr_enthalpy,
         )
         steady_rows.append(steady)
@@ -213,7 +234,7 @@ def run_pipeline(registry_path=case_registry.DEFAULT_OUT, run_root=DEFAULT_RUN_R
             continue
         try:
             rows = time_average_bootstrap.average_case(
-                str(run_root), chid, float(steady["avg_t0"]), float(steady["avg_t1"]),
+                str(case_run_root), chid, float(steady["avg_t0"]), float(steady["avg_t1"]),
                 n_boot=n_boot, seed=seed + case_index * 10000,
             )
             average_rows.extend(rows)
@@ -221,7 +242,7 @@ def run_pipeline(registry_path=case_registry.DEFAULT_OUT, run_root=DEFAULT_RUN_R
                 outdir / "time_average" / f"{chid}_Tbar_bootstrap.csv", rows
             )
             noise_components.extend(temporal_noise_components(
-                run_root, registry_row, float(steady["avg_t0"]),
+                case_run_root, registry_row, float(steady["avg_t0"]),
                 float(steady["avg_t1"]), result_version,
             ))
         except (OSError, ValueError) as exc:
@@ -269,7 +290,7 @@ def main():
     parser.add_argument("--result-version", default="run_v1")
     parser.add_argument("--n-boot", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=20260729)
-    parser.add_argument("--window-s", type=float, default=20.0)
+    parser.add_argument("--window-s", type=float, default=90.0)
     parser.add_argument("--min-steady", type=float, default=30.0)
     parser.add_argument("--avg-duration", type=float, default=30.0)
     args = parser.parse_args()

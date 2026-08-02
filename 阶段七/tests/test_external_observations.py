@@ -22,8 +22,12 @@ class ExternalObservationTests(unittest.TestCase):
         for row in rows:
             self.assertGreater(row["Q_MW"], 0)
             self.assertGreater(row["Df"], 0)
+            self.assertGreater(row["L"], 0)
             self.assertGreater(row["H"], 0)
             self.assertGreater(row["T0_K"], 0)
+            self.assertEqual("OOD_EXPLORATORY", row["applicability_status"])
+            self.assertTrue(row["ood_reasons"])
+            self.assertEqual(external.OOD_SCIENTIFIC_USE, row["scientific_use_policy"])
 
     def test_thermocouples_are_not_relabelled_as_gas_temperature(self):
         for row in external.build_external_inputs():
@@ -45,6 +49,9 @@ class ExternalObservationTests(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         self.assertTrue(all(row["Q_hat_MW"] == "" and row["x_f_hat_m"] == "" for row in rows))
         self.assertTrue(all(row["status"] == external.WAITING_STATUS for row in rows))
+        self.assertTrue(all(row["applicability_status"] == "OOD_EXPLORATORY" for row in rows))
+        self.assertTrue(all(row["scientific_use_policy"] == external.OOD_SCIENTIFIC_USE
+                            for row in rows))
 
     def test_written_outputs_preserve_types_and_status(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -54,6 +61,8 @@ class ExternalObservationTests(unittest.TestCase):
             ).splitlines()
             self.assertEqual(len(lines), 3)
             self.assertTrue(all(json.loads(line)["observation_temperature_type"] == "thermocouple"
+                                for line in lines))
+            self.assertTrue(all(json.loads(line)["applicability_status"] == "OOD_EXPLORATORY"
                                 for line in lines))
             with (Path(temporary) / "external_end_to_end_evaluation.csv").open(
                 encoding="utf-8", newline=""
