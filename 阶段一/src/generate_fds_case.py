@@ -29,7 +29,7 @@ generate_fds_case.py — 隧道火灾 FDS 输入文件生成器（阶段一核�
   python generate_fds_case.py --csv cases/grid_sensitivity.csv --outdir cases/
 
 CSV 必填列：chid,Q,U,Df,dx,L,x_fire,T_end
-可选列：U0(纵向风 m/s，缺省=U)、case_group、note、
+可选列：U0(纵向风 m/s，缺省=U)、case_group、note、sensor_profile、
         n_mesh_x、n_mesh_y、n_mesh_z（各方向 MESH 数，缺省=1）、
         rnd_seed 或 les_random_seed（映射到 FDS 6.9.1 MISC RND_SEED）
 
@@ -188,6 +188,19 @@ def normalize_case(spec, row_number=None):
         "ramp_inlet": _to_bool(raw.get("ramp_inlet", "1")),
         "burner_bounds": bounds,
     })
+    sensor_profile = str(raw.get("sensor_profile") or "standard").strip().lower()
+    if sensor_profile not in ("standard", "no_wind_dense"):
+        raise ValueError(
+            f"{prefix}: sensor_profile={sensor_profile!r} 仅支持 standard/no_wind_dense"
+        )
+    if sensor_profile == "no_wind_dense":
+        if abs(values["U"]) > 1e-6:
+            raise ValueError(f"{prefix}: no_wind_dense 只允许 U=0")
+        if not math.isclose(
+                values["x_fire"], values["L"] / 2.0,
+                rel_tol=0.0, abs_tol=1e-8):
+            raise ValueError(f"{prefix}: no_wind_dense 要求火源位于 x=L/2")
+    values["sensor_profile"] = sensor_profile
     return values
 
 
@@ -409,7 +422,7 @@ def _fmt_devices(x_fire, sensor_xs, L=None, W=None, H=None, hrr_region=None):
 # ----------------------------------------------------------------------------
 # 5. 切片场（§1.7 输出 / §4.7 全场物理解释）
 # ----------------------------------------------------------------------------
-def _fmt_slices(L, W, H, x_fire):
+def _fmt_slices(L, W, H, x_fire, sensor_profile="standard"):
     lines = []
     y_mid = W / 2.0
     lo, hi = cfg.measurement_region(L, H)
@@ -418,6 +431,14 @@ def _fmt_slices(L, W, H, x_fire):
     lines.append(f"&SLCF PBY={y_mid:.2f}, QUANTITY='{cfg.QUANTITY_TEMPERATURE}' /")
     lines.append(f"&SLCF PBY={y_mid:.2f}, QUANTITY='{cfg.QUANTITY_VELOCITY}', VECTOR=.TRUE. /")
     lines.append(f"&SLCF PBY={y_mid:.2f}, QUANTITY='{cfg.QUANTITY_DENSITY}' /")
+
+    # 无风公式重发现需要检查顶棚射流何时横向触及侧墙；在温度测点高度
+    # 增加水平温度切片。默认 standard 不增加输出，保持历史工况逐字稳定。
+    if sensor_profile == "no_wind_dense":
+        z_temp, _ = cfg.sensor_heights(H)
+        lines.append(
+            f"&SLCF PBZ={z_temp:.3f}, QUANTITY='{cfg.QUANTITY_TEMPERATURE}' /"
+        )
 
     # 横截面 PBX：火源上下游若干 x 处，用于 §4.7 横截面超温焓 C_T、纵向焓流 J_T
     # 位置随测量区与火源自适应，避免越过洞口缓冲
@@ -441,7 +462,7 @@ def _fmt_slices(L, W, H, x_fire):
 # ----------------------------------------------------------------------------
 def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=None,
                title=None, group=None, ramp_inlet=True, n_mesh_x=1, n_mesh_y=1,
-               n_mesh_z=1, rnd_seed=0, _normalized=None):
+               n_mesh_z=1, rnd_seed=0, sensor_profile="standard", _normalized=None):
     """
     渲染一份完整 FDS 输入字符串。
 
@@ -461,12 +482,13 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     group     : 工况分组标签（仅写入 &HEAD 的 TITLE，便于检索）
     ramp_inlet: 风速是否渐升（默认 True）
     rnd_seed : FDS 6.9.1 ``MISC RND_SEED``；0 表示沿用默认固定序列
+    sensor_profile: ``standard`` 或无风公式研究用 ``no_wind_dense``
     """
     normalized = _normalized or normalize_case(dict(
         chid=chid, Q=Q, U=U, Df=Df, dx=dx, L=L, W=W, H=H,
         x_fire=x_fire, T_end=T_end, case_group=group, note=title,
         ramp_inlet=ramp_inlet, n_mesh_x=n_mesh_x, n_mesh_y=n_mesh_y,
-        n_mesh_z=n_mesh_z, rnd_seed=rnd_seed,
+        n_mesh_z=n_mesh_z, rnd_seed=rnd_seed, sensor_profile=sensor_profile,
     ))
     Q = normalized["Q"]
     U = normalized["U"]
@@ -482,6 +504,7 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     n_mesh_y = normalized["n_mesh_y"]
     n_mesh_z = normalized["n_mesh_z"]
     rnd_seed = normalized["rnd_seed"]
+    sensor_profile = normalized["sensor_profile"]
     group = normalized["case_group"]
     title = normalized["note"] or f"Q={Q}MW U={U}m/s Df={Df}m dx={dx}m L={L} W={W} H={H}"
     if group:
@@ -491,7 +514,12 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     # 传感器属于隧道布置而不是火源工况：同一几何下始终以隧道中点为
     # 布置参考，偏移火源不得带着传感器一起平移。这样 6 个偏移工况才
     # 能真实检验定位和平移性质。外部试验的实测位置另由测点映射表给出。
-    sensor_xs = cfg.sensor_layout(height=H, fire_x=L / 2.0, region=region)
+    if sensor_profile == "no_wind_dense":
+        sensor_xs = cfg.no_wind_dense_sensor_layout(
+            height=H, fire_x=x_fire, region=region,
+        )
+    else:
+        sensor_xs = cfg.sensor_layout(height=H, fire_x=L / 2.0, region=region)
 
     burner_block = _fmt_surf_burner(Q, bounds)
     inlet_blocks = _fmt_inlet(L, W, H, U, ramp_inlet=ramp_inlet)
@@ -518,7 +546,7 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     parts.extend(_fmt_geometry(L, W, H, bounds))
     parts.extend(_fmt_devices(x_fire, sensor_xs, L=L, W=W, H=H))
     parts.append(f"&BNDF QUANTITY='{cfg.QUANTITY_BNDF}' /")   # 边界场：壁面温度（§4.7 壁面温度参考）
-    parts.extend(_fmt_slices(L, W, H, x_fire))
+    parts.extend(_fmt_slices(L, W, H, x_fire, sensor_profile=sensor_profile))
     parts.append("&TAIL /")
 
     return "\n".join(parts) + "\n"
@@ -545,6 +573,7 @@ def write_fds(spec, outdir, row_number=None):
         n_mesh_x=case["n_mesh_x"],
         n_mesh_y=case["n_mesh_y"],
         n_mesh_z=case["n_mesh_z"],
+        sensor_profile=case["sensor_profile"],
         _normalized=case,
     )
     os.makedirs(outdir, exist_ok=True)
@@ -703,6 +732,7 @@ def _run_csv(csv_path, outdir, required_only=False):
             T_end=case["T_end"], group=case["case_group"], title=case["note"],
             ramp_inlet=case["ramp_inlet"], n_mesh_x=case["n_mesh_x"],
             n_mesh_y=case["n_mesh_y"], n_mesh_z=case["n_mesh_z"],
+            sensor_profile=case["sensor_profile"],
             _normalized=case,
         )
         os.makedirs(outdir, exist_ok=True)
@@ -735,6 +765,10 @@ def main():
     ap.add_argument("--n_mesh_z", type=int, default=1, help="z 方向 MESH 数")
     ap.add_argument("--rnd_seed", type=int, default=0,
                     help="FDS 6.9.1 MISC RND_SEED；0 使用默认固定序列")
+    ap.add_argument(
+        "--sensor-profile", choices=("standard", "no_wind_dense"),
+        default="standard", help="测点配置；无风公式研究使用 no_wind_dense",
+    )
     ap.add_argument("--group", help="工况分组标签")
     ap.add_argument("--note", help="标题备注")
     args = ap.parse_args()
@@ -753,6 +787,7 @@ def main():
                 L=args.L, W=args.W, H=args.H, x_fire=args.x_fire, T_end=args.T_end,
                 n_mesh_x=args.n_mesh_x, n_mesh_y=args.n_mesh_y,
                 n_mesh_z=args.n_mesh_z, rnd_seed=args.rnd_seed,
+                sensor_profile=args.sensor_profile,
                 case_group=args.group, note=args.note)
     path = write_fds(spec, args.outdir)
     print(f"[OK] {args.chid} -> {path}")

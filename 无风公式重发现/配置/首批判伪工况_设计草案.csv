@@ -1,0 +1,17 @@
+chid,subset,purpose,Q,U,Df,Af,dx,L,W,H,x_fire,z_fire,T_end,n_mesh_x,n_mesh_y,n_mesh_z,ramp_inlet,sensor_profile,case_group,status,note
+nw_p01_q10_h4_ar20,pilot_development,max_temperature_scaling,10,0,5.046265,20,0.25,80,8,4,40,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p02_q20_h4_ar20,pilot_development,max_temperature_scaling,20,0,5.046265,20,0.25,80,8,4,40,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p03_q40_h4_ar20,pilot_development,max_temperature_scaling,40,0,5.046265,20,0.25,80,8,4,40,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p04_q60_h4_ar20,pilot_development,max_temperature_scaling,60,0,5.046265,20,0.25,80,8,4,40,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p05_q10_h5_ar20,pilot_development,max_temperature_scaling,10,0,5.046265,20,0.25,100,10,5,50,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p06_q20_h5_ar20,pilot_development,max_temperature_scaling,20,0,5.046265,20,0.25,100,10,5,50,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p07_q40_h5_ar20,pilot_development,max_temperature_scaling,40,0,5.046265,20,0.25,100,10,5,50,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p08_q60_h5_ar20,pilot_development,max_temperature_scaling,60,0,5.046265,20,0.25,100,10,5,50,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p09_q10_h6_ar20,pilot_development,max_temperature_scaling,10,0,5.046265,20,0.25,120,12,6,60,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p10_q20_h6_ar20,pilot_development,max_temperature_scaling,20,0,5.046265,20,0.25,120,12,6,60,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p11_q40_h6_ar20,pilot_development,max_temperature_scaling,40,0,5.046265,20,0.25,120,12,6,60,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p12_q60_h6_ar20,pilot_development,max_temperature_scaling,60,0,5.046265,20,0.25,120,12,6,60,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_Af_and_AR
+nw_p13_q20_h5_ar16,pilot_development,half_width_effect,20,0,5.046265,20,0.25,100,8,5,50,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,low_aspect_ratio_with_fire_wall_clearance
+nw_p14_q60_h5_ar16,pilot_development,half_width_effect,60,0,5.046265,20,0.25,100,8,5,50,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,low_aspect_ratio_with_fire_wall_clearance
+nw_p15_q20_h5_ar28,pilot_development,half_width_effect,20,0,5.046265,20,0.25,100,14,5,50,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,extreme_high_aspect_ratio
+nw_p16_q60_h5_ar28,pilot_development,half_width_effect,60,0,5.046265,20,0.25,100,14,5,50,0,300,11,1,2,0,no_wind_dense,no_wind_rediscovery,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,extreme_high_aspect_ratio

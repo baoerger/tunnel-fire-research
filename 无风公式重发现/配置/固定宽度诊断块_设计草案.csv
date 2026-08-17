@@ -1,0 +1,5 @@
+chid,subset,purpose,Q,U,Df,Af,dx,L,W,H,x_fire,z_fire,T_end,n_mesh_x,n_mesh_y,n_mesh_z,ramp_inlet,sensor_profile,case_group,status,note
+nw_fw01_q20_h4_w10,pilot_diagnostic,fixed_width_height_aliasing,20,0,5.046265,20,0.25,100,10,4,50,0,300,11,1,2,0,no_wind_dense,fixed_width_diagnostic,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_W_L_xfire_compare_word_doe
+nw_fw02_q20_h6_w10,pilot_diagnostic,fixed_width_height_aliasing,20,0,5.046265,20,0.25,100,10,6,50,0,300,11,1,2,0,no_wind_dense,fixed_width_diagnostic,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_W_L_xfire_compare_word_doe
+nw_fw03_q60_h4_w10,pilot_diagnostic,fixed_width_height_aliasing,60,0,5.046265,20,0.25,100,10,4,50,0,300,11,1,2,0,no_wind_dense,fixed_width_diagnostic,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_W_L_xfire_compare_word_doe
+nw_fw04_q60_h6_w10,pilot_diagnostic,fixed_width_height_aliasing,60,0,5.046265,20,0.25,100,10,6,50,0,300,11,1,2,0,no_wind_dense,fixed_width_diagnostic,DESIGN_ONLY_NOT_AUTHORIZED_FOR_FORMAL_RUN,fixed_W_L_xfire_compare_word_doe

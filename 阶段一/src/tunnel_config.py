@@ -22,6 +22,8 @@ tunnel_config.py — 隧道顶棚温度反演研究 · 共享配置与几何/物
 可在不改变研究结构的前提下调整。
 """
 
+import math
+
 # ============================================================================
 # 1. 隧道几何（§1.2 / 全局符号表）
 # ============================================================================
@@ -173,6 +175,51 @@ def sensor_layout(height=None, near_step=None, far_step=None,
     pts.add(round(hi, 4))
 
     return sorted(pts)
+
+
+def no_wind_dense_sensor_layout(height=None, fire_x=None, region=None):
+    """生成无机械风公式重发现使用的左右对称密集中心线测点。
+
+    距火源不超过 2H 时采用 0.25H 间距，2H~6H 采用 0.5H，
+    更远处采用 1H。基础无风研究要求火源和测量区关于隧道中点对称；
+    本函数只生成布局，生成器负责校验该使用前提。
+    """
+    height = H if height is None else height
+    if height <= 0:
+        raise ValueError("height 必须大于 0")
+    if fire_x is None:
+        fire_x = X_FIRE_DEFAULT
+    if region is None:
+        region = MEAS_REGION
+    lo, hi = region
+    if not lo <= fire_x <= hi:
+        raise ValueError("fire_x 必须位于测量区内")
+
+    left_extent = fire_x - lo
+    right_extent = hi - fire_x
+    if not math.isclose(left_extent, right_extent, rel_tol=0.0, abs_tol=1e-8):
+        raise ValueError("no_wind_dense 测量区必须关于火源对称")
+    extent = min(left_extent, right_extent)
+    offsets = {0.0, round(extent, 8)}
+
+    def add_zone(start, stop, step):
+        stop = min(stop, extent)
+        if stop < start - 1e-10:
+            return
+        count = int(math.floor((stop - start) / step + 1e-10))
+        for index in range(count + 1):
+            offsets.add(round(start + index * step, 8))
+        offsets.add(round(stop, 8))
+
+    add_zone(0.0, 2.0 * height, 0.25 * height)
+    add_zone(2.0 * height, 6.0 * height, 0.50 * height)
+    add_zone(6.0 * height, extent, 1.00 * height)
+
+    points = {round(fire_x, 8), round(lo, 8), round(hi, 8)}
+    for offset in offsets:
+        points.add(round(fire_x - offset, 8))
+        points.add(round(fire_x + offset, 8))
+    return sorted(point for point in points if lo - 1e-8 <= point <= hi + 1e-8)
 
 
 # ============================================================================
