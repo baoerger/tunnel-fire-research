@@ -1,3 +1,0 @@
-chid,case_group,Q,U,Df,dx,L,W,H,x_fire,T_end,n_mesh_x,n_mesh_y,n_mesh_z,subset,design_status,preliminary_evidence_path,diagnostic_reason,note
-pilot_diag_q100_r160_d70_x41,pilot_measurement_domain_diagnostic,100,4.818457,7,0.25,100,10,5,41,300,11,1,2,diagnostic_only,FORMAL_FDS_6_9_1_PASS,阶段二/outputs/pilot_diagnostics/pilot_case_metrics.csv,将100 MW配对火源由50 m移至41 m以增加峰值下游有效测点并检验出口/测量域影响,正式诊断通过全部结构门；不属于原12组且不授权扩展68组数据库
-pilot_diag_q100_r160_d80_x41,pilot_measurement_domain_diagnostic,100,4.818457,8,0.25,100,10,5,41,300,11,1,2,diagnostic_only,FORMAL_FDS_6_9_1_PASS,阶段二/outputs/longitudinal_domain_diagnostics/longitudinal_domain_summary.csv,将100 MW配对火源由50 m移至41 m以增加峰值下游有效测点并检验出口/测量域影响,正式诊断仍下游不可辨识；100m出口前保持高温平台

@@ -1,0 +1,120 @@
+{
+  "schema_version": "1.0",
+  "protocol_id": "no_wind_ceiling_temperature_v1.0",
+  "created_at": "2026-08-18T19:47:14+08:00",
+  "status": "G0_LOCAL_FROZEN",
+  "formal_run_authorized": false,
+  "g1_short_run_authorized": true,
+  "authority": {
+    "science_protocol": "docs/无风隧道顶棚纵向温度_正向主导双向闭环实施方案_主次定稿版.md",
+    "execution_protocol": "docs/实施方案.md",
+    "fds_rules": "CLAUDE.md",
+    "progress_anchor": "docs/当前实施进度.md"
+  },
+  "study": {
+    "mechanical_longitudinal_wind_m_s": 0.0,
+    "geometry_m": {"L": 100.0, "W": 10.0, "H": 5.0},
+    "portals": {"x0": "OPEN", "x100": "OPEN"},
+    "ambient_temperature_C": 20.0,
+    "fuel": "N-HEPTANE",
+    "wall_material": "concrete",
+    "tau_q_s": 10.0,
+    "alternate_flame_regime_domains": []
+  },
+  "fds": {
+    "evidence_baseline": "6.9.1",
+    "fds_version_selected": "6.9.1",
+    "exact_revision": "VERIFY_FROM_FIRST_RETURNED_OUT",
+    "executable_absolute_path": "USER_MANAGED_EXTERNAL_SERVER",
+    "execution_location": "user_managed_external_server",
+    "selection_status": "SELECTED_6_9_1_VERIFY_ON_RETURN",
+    "version_switch_requires_new_protocol": true
+  },
+  "design": {
+    "case_kinds": ["background", "fire"],
+    "Q_MW": [18.0, 27.0, 36.0],
+    "development_burner_side_m": [3.5, 4.5, 5.0],
+    "pilot_burner_side_m": 4.0,
+    "development_xf_m": [40.0, 50.0, 60.0],
+    "lockbox_xf_m": [42.5, 50.0, 57.5],
+    "fallback_xf_m": [45.0, 50.0, 55.0],
+    "random_seeds": [104729, 204729, 304729],
+    "pilot_long_runs": 16,
+    "development_physical_cases": 19,
+    "development_long_runs": 27,
+    "lockbox_physical_cases": 10,
+    "lockbox_long_runs": 14
+  },
+  "mesh": {
+    "profile": "no_wind_symmetric_v1",
+    "candidate_dx_m": [0.5, 0.25, 0.2],
+    "conditional_working_dx_m": 0.25,
+    "mesh_count": 21,
+    "x_boundaries_m": [0, 9, 18, 27, 36, 64, 73, 82, 91, 100],
+    "y_internal_boundaries_m": [],
+    "central_z_boundaries_m": [0, 1, 2, 3, 4, 5],
+    "outer_z_boundaries_default_m": [0, 2.5, 5],
+    "dx_0_25_failure_action": "STOP_V1_0_AND_REQUIRE_NEW_PROTOCOL"
+  },
+  "sensors": {
+    "profile": "no_wind_global_v1",
+    "temperature_height_priority_z_over_H": [0.9, 0.85, 0.95],
+    "velocity_height_z_over_H": 0.95,
+    "formula_x_m": [15, 17.5, 20, 22.5, 25, 27.5, 30, 31.25, 32.5, 33.75, 35, 36.25, 37.5, 38.75, 40, 41.25, 42.5, 43.75, 45, 46.25, 47.5, 48.75, 50, 51.25, 52.5, 53.75, 55, 56.25, 57.5, 58.75, 60, 61.25, 62.5, 63.75, 65, 66.25, 67.5, 68.75, 70, 72.5, 75, 77.5, 80, 82.5, 85],
+    "qc_only_x_m": [5, 10, 90, 95]
+  },
+  "outputs": {
+    "profiles": ["light", "heavy"],
+    "dt_devc_s": 1.0,
+    "dt_hrr_s": 1.0,
+    "heavy_scope": "pilot_and_preregistered_representative_cases_only"
+  },
+  "identity": {
+    "chain": ["parent_case_id", "physical_case_id", "run_chid", "job_attempt_id"],
+    "run_core_sha256_required": true,
+    "attempt_input_sha256_required": true,
+    "restart_allowed_t_end_s": [300, 450, 600],
+    "attempt_outputs_must_not_overwrite": true
+  },
+  "thresholds": {
+    "fds": {"errors_max": 0, "rejected_max": 0, "steady_hrr_relative_error_max": 0.1},
+    "quasi_steady": {"earliest_s": 30, "trend_window_min_s": 90, "mean_window_s": 60, "hrr_cv_max": 0.15, "temperature_trend_abs_C_s_max": 0.15, "max_t_end_s": 600},
+    "grid": {"deltaT_peak_relative_max": 0.075, "curve_nrmse_max": 0.1, "peak_position_difference_m_max": 0.5, "A_global_difference_max": 0.03, "hrr_difference_max": 0.05},
+    "seed": {"deltaT_peak_cv_pass_max": 0.1, "curve_nrmse_pass_max": 0.1, "stop_above": 0.15},
+    "symmetry": {"peak_shift_m_max": 0.625, "A_global_point_max": 0.1, "A_global_ci95_upper_max": 0.15, "left_right_nrmse_max": 0.1},
+    "effective_domain_candidates_xi_h": [5, 4, 3],
+    "minimum_effective_domain_xi_h": 3,
+    "detection_limit": "max(0.5 K, background_abs_deltaT_p99, 3*background_deltaT_sd)",
+    "forward_inverse_lockbox": "docs/实施方案.md#16-数值与统计验收门"
+  },
+  "resources": {
+    "accepted_run_chid_max": 61,
+    "job_attempt_starts_max": 79,
+    "core_hour_cap_factor_over_g3_science_budget": 1.35,
+    "estimation_margin": 1.25,
+    "benchmark_case_duration_s": 60,
+    "benchmark_status": "OPTIONAL_USER_RETURNED_G1_EVIDENCE",
+    "per_node_concurrency_max": "USER_MANAGED"
+  },
+  "paths": {
+    "local_root": "C:/Users/xiao.cheng/Desktop/科研",
+    "local_inputs": "C:/Users/xiao.cheng/Desktop/科研/fds_inputs",
+    "local_runs": "C:/Users/xiao.cheng/Desktop/科研/runs",
+    "external_execution_managed_by_user": true,
+    "server_details_required_by_project": false
+  },
+  "lockbox": {
+    "status": "NOT_GENERATED",
+    "read_allowed": false,
+    "run_allowed": false
+  },
+  "fast_inversion": {
+    "status": "G7_SKIPPED_NOT_REQUESTED",
+    "blocks_mainline": false
+  },
+  "pending_g1_external_evidence": [
+    "exact FDS 6.9.1 revision parsed from returned .out",
+    "background, low-power and high-power short-run outputs",
+    "optional 60 s wall-clock, memory and output-size evidence if available"
+  ]
+}

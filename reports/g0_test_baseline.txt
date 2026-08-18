@@ -1,0 +1,81 @@
+G0 SOFTWARE TEST BASELINE
+=========================
+Timestamp: 2026-08-18T19:47:14+08:00
+Project root: C:\Users\xiao.cheng\Desktop\科研
+Git HEAD before current refactor commit: 50cad6d09b202eed9bf0cf2e486a89fd1396dc47
+Working tree: dirty by the user-authorized repository refactor; 414 porcelain entries
+Python: 3.12.13 (MSC v.1944 64 bit, AMD64)
+uv: 0.11.25
+Platform: Windows-10-10.0.19045-SP0
+Local fds/fds_mpi/mpiexec: not found; formal FDS execution is external-server-only
+
+COMMAND 1
+uv run --python 3.12 --with numpy python -m unittest discover -s tests/core -t . -v
+
+RESULT 1
+test_backflow_detects_far_positive_near_fire_negative ... ok
+test_bootstrap_validates_window_and_is_deterministic ... ok
+test_boundary_pair_uses_relative_fire_coordinates ... ok
+test_convection_ratio_requires_valid_window_and_energy_sign ... ok
+test_convection_summary_needs_two_pass_cases ... ok
+test_decay_fit_reports_insufficient_point_count ... ok
+test_empty_requested_time_window_fails_instead_of_using_startup ... ok
+test_field_integral_profiles_are_averaged_and_compared ... ok
+test_grid_cli_marks_identical_valid_curves_converged ... ok
+test_isolated_far_negative_is_not_connected_backflow ... ok
+test_quasi_steady_accepts_adaptive_fds_times_and_relative_field_drift ... ok
+test_quasi_steady_checks_all_available_criteria ... ok
+test_quasi_steady_rejects_irregular_time_and_missing_velocity ... ok
+test_zero_relative_change_is_a_real_zero ... ok
+test_any_version_disables_comparison ... ok
+test_catf_concatenated_run_chid_is_resolved ... ok
+test_check_all_writes_summary ... ok
+test_external_contract_uses_mapped_thermocouples_and_full_field ... ok
+test_external_without_bndf_only_requires_declared_field_outputs ... ok
+test_missing_end_is_accepted_with_successful_out_and_complete_csv ... ok
+test_q_conv_cannot_replace_q_radi ... ok
+test_rejected_burner_fails ... ok
+test_runtime_maximum_velocity_error_is_not_fds_error ... ok
+test_valid_folder_passes ... ok
+test_version_mismatch_only_requires_review ... ok
+test_warning_requires_review ... ok
+test_all_rows_pass_generator_geometry_and_open_portal_contracts ... ok
+test_dense_layout_is_symmetric_and_resolves_peak ... ok
+test_dense_profile_rejects_wind_offset_and_unknown_profile ... ok
+test_design_only_csv_cannot_be_batch_generated ... ok
+test_first_batch_has_expected_design_blocks ... ok
+test_fixed_width_diagnostic_block_is_separate_and_renderable ... ok
+test_primary_documents_and_supporting_contracts ... ok
+test_standard_layout_remains_unchanged ... ok
+
+Ran 34 tests in 0.374s
+OK
+
+COMMAND 2
+uv run --python 3.12 --with numpy python -m unittest discover -s tests/analysis -t . -v
+
+RESULT 2
+test_continuous_peak_candidates_and_platform ... ok
+test_falsification_summary_never_treats_missing_as_pass ... ok
+test_invalid_inputs_fail ... ok
+test_sensor_perturbation_bootstrap_is_deterministic ... ok
+test_synthetic_check_is_explicit_and_passes ... ok
+test_three_candidate_categories_and_downstream_failure ... ok
+test_time_block_accepts_bounded_fds_adaptive_output_gaps ... ok
+test_time_block_bootstrap_is_deterministic ... ok
+test_tobit_loss_prefers_prediction_below_detection_limit ... ok
+test_fixed_global_exponents_recover_synthetic_far_profile ... ok
+test_nonpositive_exponents_are_rejected ... ok
+
+Ran 11 tests in 0.125s
+OK
+
+TOTAL REQUIRED G0 SOFTWARE TESTS: 45/45 PASS
+
+FULL RETAINED REGRESSION
+uv run --python 3.12 --with numpy python -m unittest discover -s tests -t . -q
+Ran 140 tests in 16.747s
+OK
+
+Interpretation: this is software evidence only. It does not pass the G0 external
+environment/resource audit, the G1 FDS short-run gate, or any physical gate.

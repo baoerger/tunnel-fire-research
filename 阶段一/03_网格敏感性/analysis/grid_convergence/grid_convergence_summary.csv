@@ -1,4 +1,0 @@
-﻿group,status,reason,assessment_scope,coarse_complete,missing_core_metrics,dx_coarse,dx_med,dx_fine,dTp_rel(粗→中)%,dTp_rel(中→细)%,xp_shift(中→细)/H[%],kappa_u_rel(中→细)%,kappa_d_rel(中→细)%,L_back_rel(中→细)%,qw_rel(中→细)%,C_T_profile_rel(中→细)%,J_T_profile_rel(中→细)%
-grid_low_weak,FAIL,至少一个核心量中→细变化超阈值,THREE_GRID,True,,0.5,0.25,0.125,9.76,4.10,0.00,9.88,3.46,0.00,3.12,7.34,8.99
-grid_mid_crit,FAIL,至少一个核心量中→细变化超阈值,THREE_GRID,True,,0.5,0.25,0.125,2.23,6.37,0.00,21.24,43.41,39.03,6.26,11.15,14.97
-grid_high_strong,INCOMPLETE,中/细网格缺少核心量: κ_d,THREE_GRID,True,κ_d,0.5,0.25,0.125,12.86,36.95,100.00,11.00,NA,0.00,10.13,8.10,9.84

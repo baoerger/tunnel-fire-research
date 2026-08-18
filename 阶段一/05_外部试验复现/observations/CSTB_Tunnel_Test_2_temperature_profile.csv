@@ -1,7 +1,0 @@
-﻿chid,sensor_id,x_source_m,x_rel_fire_m,y_m,z_m,temperature_type,window_t0_s,window_t1_s,baseline_t0_s,baseline_t1_s,T_mean_C,dT_mean_C,temperature_sd_C,uncertainty_basis,n_raw_files,n_window_samples,raw_files
-CSTB_Tunnel_Test_2,Tm0915,-9,-9,0,1.5,thermocouple,440,500,0,0,18.323036,0.581939,0.523030,window_time_sd,1,4,raw/CSTB_Tunnel_Test_2/CSTB_Tunnel_Test_2_EXP.csv
-CSTB_Tunnel_Test_2,Tm0313,-3,-3,0,1.7,thermocouple,440,500,0,0,240.076313,221.766331,23.319697,window_time_sd,1,4,raw/CSTB_Tunnel_Test_2/CSTB_Tunnel_Test_2_EXP.csv
-CSTB_Tunnel_Test_2,Tp0410,4,4,0,1.8,thermocouple,440,500,0,0,490.578888,472.134743,14.289813,window_time_sd,1,4,raw/CSTB_Tunnel_Test_2/CSTB_Tunnel_Test_2_EXP.csv
-CSTB_Tunnel_Test_2,Tp0810,8,8,0,1.8,thermocouple,440,500,0,0,312.503281,294.028984,9.079959,window_time_sd,1,4,raw/CSTB_Tunnel_Test_2/CSTB_Tunnel_Test_2_EXP.csv
-CSTB_Tunnel_Test_2,Tp1210,12,12,0,1.8,thermocouple,440,500,0,0,272.754768,253.992447,7.059879,window_time_sd,1,4,raw/CSTB_Tunnel_Test_2/CSTB_Tunnel_Test_2_EXP.csv
-CSTB_Tunnel_Test_2,Tp2410,24,24,0,1.8,thermocouple,440,500,0,0,215.035233,197.730516,2.430554,window_time_sd,1,4,raw/CSTB_Tunnel_Test_2/CSTB_Tunnel_Test_2_EXP.csv

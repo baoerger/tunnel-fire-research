@@ -1,0 +1,11 @@
+item,unit,protocol_limit,measured_value,status,evidence
+accepted_scientific_trajectories,run_chid,61,,FROZEN_LIMIT,docs/实施方案.md
+fds_process_starts,job_attempt_id,79,,FROZEN_LIMIT,docs/实施方案.md
+core_hour_cap,factor_over_g3_science_budget,1.35,,FROZEN_LIMIT_PENDING_OPTIONAL_BENCHMARK,config/protocol_v1.json
+estimation_margin,factor,1.25,,FROZEN_FORMULA,docs/实施方案.md
+benchmark_duration,s,60,,OPTIONAL_G1_RETURN,config/protocol_v1.json
+benchmark_wall_clock,s,,,OPTIONAL_USER_RETURN,
+benchmark_allocated_cores,count,,,USER_MANAGED,
+benchmark_peak_memory,GiB,,,OPTIONAL_USER_RETURN,
+benchmark_output_size,GiB,,,OPTIONAL_USER_RETURN,
+per_node_concurrency,count,,,USER_MANAGED,

@@ -25,6 +25,7 @@ env/
 *.sf
 *.bnd
 *.bndf
+*.bf
 *.prt5
 *.part
 *.prof
@@ -46,42 +47,17 @@ env/
 *_dev.log
 
 # ---------- 结果目录(按需) ----------
-# 仿真生成的大量结果文件默认不进仓库;若想把结果也共享,按需调整下面规则
+# 仿真生成的大量结果文件默认不进仓库
 results/
 output/
 outputs/
-
-# ---------- 可版本化的外部计算输入包 ----------
-# outputs 默认仍全部忽略；只重新纳入小型、可复现的 FDS 输入。
-!阶段一/outputs/
-阶段一/outputs/**
-!阶段一/outputs/pilot_inputs/
-!阶段一/outputs/pilot_inputs/*.fds
-!阶段一/outputs/pilot_diagnostic_inputs/
-!阶段一/outputs/pilot_diagnostic_inputs/*.fds
-!阶段一/outputs/pilot_seed_inputs/
-!阶段一/outputs/pilot_seed_inputs/*.fds
-!阶段一/outputs/stage3_100m_v2_inputs/
-!阶段一/outputs/stage3_100m_v2_inputs/*.fds
-!阶段一/outputs/external_inputs/
-!阶段一/outputs/external_inputs/**/
-!阶段一/outputs/external_inputs/**/*.fds
-!阶段一/outputs/external_inputs/IFAB-07/mesh.txt
-!阶段一/outputs/external_inputs/IFAB-07/output.txt
-
-# ---------- 网格敏感性回传：默认只版本化复现和分析所需的最小数据 ----------
-阶段一/03_网格敏感性/runs/**
-!阶段一/03_网格敏感性/runs/
-!阶段一/03_网格敏感性/runs/*/
-!阶段一/03_网格敏感性/runs/*/*.fds
-!阶段一/03_网格敏感性/runs/*/*_devc.csv
-!阶段一/03_网格敏感性/runs/*/*_hrr.csv
-
-# ---------- 网格敏感性派生场积分：仅版本化最终长表和溯源清单 ----------
-阶段一/03_网格敏感性/derived/**
-!阶段一/03_网格敏感性/derived/
-!阶段一/03_网格敏感性/derived/cross_section_integrals.csv
-!阶段一/03_网格敏感性/derived/cross_section_integrals_manifest.csv
+/fds_inputs/*
+!/fds_inputs/.gitkeep
+/runs/*
+!/runs/.gitkeep
+/derived/*
+!/derived/.gitkeep
+/reports/logs/
 
 # ---------- 大文件 / 压缩包 ----------
 # 单个超过 50MB 的文件建议用 Git LFS 或网盘,不要直接提交
@@ -96,6 +72,7 @@ outputs/
 *.swp
 *.swo
 *~
+~$*
 
 # ---------- 操作系统 ----------
 .DS_Store

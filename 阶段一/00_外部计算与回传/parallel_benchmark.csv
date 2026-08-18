@@ -1,4 +1,0 @@
-chid,case_class,dx_m,cell_count,simulated_seconds,config_id,mpi_tasks,omp_threads,allocated_cores,mesh_count,wall_seconds,cpu_hours,peak_memory_GB,minimal_output_GB,fullfield_output_GB,fds_version,status,notes
-smoke_22mesh,smoke,0.25,320000,60,mpi22_omp2,22,2,44,22,,,,,,,PENDING,44 核及以上候选；仅启动与性能基准
-smoke_22mesh,smoke,0.25,320000,60,mpi22_omp1,22,1,22,22,,,,,,,PENDING,40 核节点候选；仅启动与性能基准
-smoke_22mesh,smoke,0.25,320000,60,mpi11_omp3,11,3,33,22,,,,,,,PENDING,40 核节点候选；仅启动与性能基准
