@@ -1,0 +1,5 @@
+chid,run_chid,job_attempt_id,case_kind,status,fds_version,version_match,t_end_s,devc_t_final_s,hrr_t_final_s,error_count,warning_count,rejected_count,burner_issue,required_devc_ok,required_hrr_ok,time_series_ok,hrr_nonzero,target_hrr_kW,tail_hrr_kW,hrr_closure_rel_error,end_marker_present,out_completed_successfully,full_field_present,issues
+g1_bg_q000_s40_x50_t005,g1_bg_q000_s40_x50_t005,g1_bg_q000_s40_x50_t005_a01,background,PASS,6.10.1,True,5.0,5.0,5.0,0,0,0,False,True,True,True,False,,,,False,True,True,
+g1_lo_q018_s40_x50_t005,g1_lo_q018_s40_x50_t005,g1_lo_q018_s40_x50_t005_a01,fire,REVIEW,6.10.1,True,5.0,5.0,5.0,0,0,0,False,True,True,True,True,18000.0,,,False,True,True,T_END 不长于 3×TAU_Q，只能作为短试算
+g1_hi_q036_s40_x50_t005,g1_hi_q036_s40_x50_t005,g1_hi_q036_s40_x50_t005_a01,fire,REVIEW,6.10.1,True,5.0,5.0,5.0,0,0,0,False,True,True,True,True,36000.0,,,False,True,True,T_END 不长于 3×TAU_Q，只能作为短试算
+g1_cl_q027_s40_x50_t040,g1_cl_q027_s40_x50_t040,g1_cl_q027_s40_x50_t040_a01,fire,PASS,6.10.1,True,40.0,40.0,40.0,0,0,0,False,True,True,True,True,27000.0,26847.11127272727,0.005662545454545546,False,True,True,

@@ -3,6 +3,8 @@
 > 状态：`G0_LOCAL_FROZEN`  
 > 日期：2026-08-18
 
+> G1 后更新：用户已选择 FDS 6.10.1，Revision `FDS-6.10.1-0-g12efa16-release`，并完成四个 G1 实跑。下表中的 6.9.1 与旧工作树信息是 G0 初始快照；当前事实源以 `config/protocol_v1.json` 和 `reports/g1_short_analysis.md` 为准。
+
 ## 已确认
 
 | 项目 | 结果 |
@@ -14,7 +16,7 @@
 | uv | 0.11.25 |
 | G0 软件测试 | core 34/34、analysis 11/11，通过 |
 | 本机 FDS/MPI | 未发现；遵循外部服务器专用执行约定 |
-| 拟选正式版本 | FDS 6.9.1；实际 revision 在 G1 返回 `.out` 中核验 |
+| G0 初始拟选版本 | FDS 6.9.1；G1 前由用户改选 6.10.1，现已实跑核验 |
 | G7 | `G7_SKIPPED_NOT_REQUESTED` |
 
 完整软件测试记录见 `reports/g0_test_baseline.txt`。这些结果不构成 FDS 物理证据。
@@ -32,6 +34,6 @@
 
 ## 后续外部证据
 
-代理不再索取服务器配置。G1 完成本地实现后直接生成 `.fds` 和唯一回传目录；用户自行外算。实际 revision 从返回 `.out` 核验。若用户同时带回 wall-clock、峰值内存或输出量，则补充资源估算；缺少服务器运维信息不阻止生成 G1 短试算输入。
+代理不再索取服务器配置。G1 四个工况已在本机完成，实际版本、wall-clock 和输出量已汇总至 `reports/g1_short_runtime_metrics.csv`。后续外算仍只交付 `.fds`、哈希和唯一回传目录；缺少服务器运维信息不阻止输入准备。
 
-当前 `formal_run_authorized=false` 仅表示 G2 以后正式科学长算尚未放行；`g1_short_run_authorized=true`，允许生成并交付 G1 解析/合同短试算输入。
+当前 `formal_run_authorized=false` 表示 G2 正式科学长算尚未放行；`g2_pilot_preparation_authorized=true`，允许远端继续先导设计、输入生成、静态审计和交接准备。

@@ -1,10 +1,12 @@
 {
-  "schema_version": "1.0",
-  "protocol_id": "no_wind_ceiling_temperature_v1.0",
+  "schema_version": "1.1",
+  "protocol_id": "no_wind_ceiling_temperature_v1.1",
   "created_at": "2026-08-18T19:47:14+08:00",
-  "status": "G1_EXTERNAL_FDS_RUN_REQUIRED",
+  "updated_at": "2026-08-18T21:43:09+08:00",
+  "status": "G1_PASS_G2_READY",
   "formal_run_authorized": false,
   "g1_short_run_authorized": true,
+  "g2_pilot_preparation_authorized": true,
   "authority": {
     "science_protocol": "docs/无风隧道顶棚纵向温度_正向主导双向闭环实施方案_主次定稿版.md",
     "execution_protocol": "docs/实施方案.md",
@@ -22,12 +24,13 @@
     "alternate_flame_regime_domains": []
   },
   "fds": {
-    "evidence_baseline": "6.9.1",
-    "fds_version_selected": "6.9.1",
-    "exact_revision": "VERIFY_FROM_FIRST_RETURNED_OUT",
-    "executable_absolute_path": "USER_MANAGED_EXTERNAL_SERVER",
-    "execution_location": "user_managed_external_server",
-    "selection_status": "SELECTED_6_9_1_VERIFY_ON_RETURN",
+    "evidence_baseline": "6.10.1",
+    "fds_version_selected": "6.10.1",
+    "exact_revision": "FDS-6.10.1-0-g12efa16-release",
+    "executable_absolute_path": "USER_MANAGED_FDS_6_10_1",
+    "execution_location": "local_or_user_managed_external_host",
+    "selection_status": "SELECTED_6_10_1_G1_VERIFIED",
+    "selection_evidence": "reports/g1_short_analysis.md",
     "version_switch_requires_new_protocol": true
   },
   "design": {
@@ -93,13 +96,13 @@
     "core_hour_cap_factor_over_g3_science_budget": 1.35,
     "estimation_margin": 1.25,
     "benchmark_case_duration_s": 60,
-    "benchmark_status": "OPTIONAL_USER_RETURNED_G1_EVIDENCE",
+    "benchmark_status": "G1_40S_LOCAL_EVIDENCE_AVAILABLE",
     "per_node_concurrency_max": "USER_MANAGED"
   },
   "paths": {
-    "local_root": "C:/Users/xiao.cheng/Desktop/科研",
-    "local_inputs": "C:/Users/xiao.cheng/Desktop/科研/fds_inputs",
-    "local_runs": "C:/Users/xiao.cheng/Desktop/科研/runs",
+    "local_root": ".",
+    "local_inputs": "fds_inputs",
+    "local_runs": "runs",
     "external_execution_managed_by_user": true,
     "server_details_required_by_project": false
   },
@@ -112,9 +115,13 @@
     "status": "G7_SKIPPED_NOT_REQUESTED",
     "blocks_mainline": false
   },
-  "pending_g1_external_evidence": [
-    "exact FDS 6.9.1 revision parsed from returned .out",
-    "background, low-power and high-power short-run outputs",
-    "optional 60 s wall-clock, memory and output-size evidence if available"
-  ]
+  "g1_evidence": {
+    "decision": "PASS",
+    "result_check": "reports/g1_short_result_check.csv",
+    "runtime_metrics": "reports/g1_short_runtime_metrics.csv",
+    "analysis": "reports/g1_short_analysis.md",
+    "raw_results_gitignored": true,
+    "protocol_change_scope": "FDS version selection and G1 evidence only; scientific domains, thresholds and lockbox rules unchanged"
+  },
+  "pending_g1_external_evidence": []
 }

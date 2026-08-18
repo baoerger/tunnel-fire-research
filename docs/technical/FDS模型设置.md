@@ -1,4 +1,4 @@
-# §1.2 FDS 基准模型设置（FDS 6.9.1 正式证据基线）
+# §1.2 FDS 基准模型设置（FDS 6.10.1 正式证据基线）
 
 > 几何和物理常量以 `src/fds/tunnel_config.py` 为单一事实源，输入由 `src/fds/generate_fds_case.py` 生成。任何 `.fds` 都是生成产物，不独立手改。
 
@@ -19,7 +19,7 @@
 
 | 项 | 设置 |
 |---|---|
-| 正式证据版本 | FDS 6.9.1；6.10.1 Revision `FDS-6.10.1-0-g12efa16-release` 仅保留兼容性短试算记录 |
+| 正式证据版本 | FDS 6.10.1，Revision `FDS-6.10.1-0-g12efa16-release`；已由四个 G1 短试算核验 |
 | 环境 | `TMPA=20.0` °C |
 | 湍流 | `SIMULATION_MODE='LES'` |
 | 燃料 | `REAC FUEL='N-HEPTANE'`，不额外定义 SPEC，不写 SIMPLE_CHEMISTRY |
@@ -56,11 +56,11 @@ v1.0 的主体燃烧器边长直接采用与 0.25 m 网格对齐的 `3.5/4.5/5.0
 - 顶棚净热通量：`NET HEAT FLUX`, `IOR=-3`。
 - 边界场：显式 `BNDF QUANTITY='WALL TEMPERATURE'`。
 - 火源辐射与对流份额读取 `_hrr.csv`：`χ_r=-Q_RADI/HRR`，`Q_c,source=HRR+Q_RADI`。`Q_CONV` 是计算域能量收支项，不替代火源对流 HRR。
-- `DEVC` 不强写 UNITS；`fds_io` 读取单位行并统一到 °C、kW、kW/m²、m/s。现有 6.9.1 正式回传与 6.10.1 兼容性短试算均可由该接口读取。
+- `DEVC` 不强写 UNITS；`fds_io` 读取单位行并统一到 °C、kW、kW/m²、m/s。G1 的 6.10.1 结果已由该接口读取并通过质量门。
 
 ## 5. 首次运行与生产门
 
-1. 日志版本必须为本批声明版本；当前正式证据基线为 FDS 6.9.1。先修第一条 `ERROR(...)`，并检查全部 WARNING。
+1. 日志版本必须为本批声明版本；当前正式证据基线为 FDS 6.10.1，Revision `FDS-6.10.1-0-g12efa16-release`。先修第一条 `ERROR(...)`，并检查全部 WARNING。
 2. 不得有 VENT overlap/rejected，尤其不能拒绝 BURNER。
 3. 火灾短试算中 `HRR_tot>0`；背景短试算无热源。无风工况检查双侧速度与对称性，不使用旧有风回流长度结论。
 4. `_devc.csv` 含温度、`U_*`、`HRR_tot` 和 `Qw_*`；`_hrr.csv` 含 `HRR/Q_RADI`，且均可由 `fds_io` 解析。
