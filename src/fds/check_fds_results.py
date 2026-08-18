@@ -19,7 +19,8 @@ DEFAULT_EXPECTED_VERSION = "6.9.1"
 
 
 SUMMARY_FIELDS = (
-    "chid", "run_chid", "status", "fds_version", "version_match", "t_end_s",
+    "chid", "run_chid", "job_attempt_id", "case_kind", "status",
+    "fds_version", "version_match", "t_end_s",
     "devc_t_final_s", "hrr_t_final_s", "error_count", "warning_count",
     "rejected_count", "burner_issue", "required_devc_ok",
     "required_hrr_ok", "time_series_ok", "hrr_nonzero",
@@ -27,6 +28,14 @@ SUMMARY_FIELDS = (
     "end_marker_present", "out_completed_successfully",
     "full_field_present", "issues",
 )
+
+
+def _case_identity(case_dir):
+    """兼容旧 ``runs/<chid>`` 与新 ``runs/.../<chid>/attempts/<attempt>``。"""
+    case_dir = Path(case_dir)
+    if case_dir.parent.name == "attempts" and case_dir.parent.parent.name:
+        return case_dir.parent.parent.name, case_dir.name
+    return case_dir.name, ""
 
 
 def _run_artifacts(case_dir, logical_chid):
@@ -184,7 +193,7 @@ def _check_times(times, series, t_end, label, hard_issues):
 def check_case(case_dir, expected_version=DEFAULT_EXPECTED_VERSION, closure_tolerance=0.20,
                required_temperature_channels=None, require_full_field=False):
     case_dir = Path(case_dir)
-    chid = case_dir.name
+    chid, job_attempt_id = _case_identity(case_dir)
     hard_issues = []
     review_issues = []
     run_chid, required, meta = _run_artifacts(case_dir, chid)
@@ -400,6 +409,7 @@ def check_case(case_dir, expected_version=DEFAULT_EXPECTED_VERSION, closure_tole
     return {
         "chid": chid,
         "run_chid": run_chid,
+        "job_attempt_id": job_attempt_id,
         "case_kind": case_kind,
         "status": status,
         "fds_version": version,
@@ -442,21 +452,29 @@ def _load_external_channels(path=DEFAULT_EXTERNAL_MAPPING):
 def check_all(run_root, out_path, chids=None, expected_version=DEFAULT_EXPECTED_VERSION,
               closure_tolerance=0.20, external_mapping=DEFAULT_EXTERNAL_MAPPING):
     run_root = Path(run_root)
-    if chids:
-        case_dirs = [run_root / chid for chid in chids]
-    else:
-        case_dirs = sorted(
-            (path for path in run_root.iterdir() if path.is_dir()),
-            key=lambda path: path.name,
-        ) if run_root.is_dir() else []
+    logical_dirs = ([run_root / chid for chid in chids] if chids else sorted(
+        (path for path in run_root.iterdir() if path.is_dir()),
+        key=lambda path: path.name,
+    ) if run_root.is_dir() else [])
+    case_dirs = []
+    for path in logical_dirs:
+        attempts_dir = path / "attempts"
+        if attempts_dir.is_dir():
+            case_dirs.extend(sorted(
+                (candidate for candidate in attempts_dir.iterdir()
+                 if candidate.is_dir()),
+                key=lambda candidate: candidate.name,
+            ))
+        else:
+            case_dirs.append(path)
     if not case_dirs:
         raise FileNotFoundError(f"没有找到工况文件夹: {run_root}")
     external_channels = _load_external_channels(external_mapping)
     results = [
         check_case(
             path, expected_version, closure_tolerance,
-            required_temperature_channels=external_channels.get(path.name),
-            require_full_field=path.name in external_channels,
+            required_temperature_channels=external_channels.get(_case_identity(path)[0]),
+            require_full_field=_case_identity(path)[0] in external_channels,
         )
         for path in case_dirs
     ]

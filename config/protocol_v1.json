@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "protocol_id": "no_wind_ceiling_temperature_v1.0",
   "created_at": "2026-08-18T19:47:14+08:00",
-  "status": "G0_LOCAL_FROZEN",
+  "status": "G1_EXTERNAL_FDS_RUN_REQUIRED",
   "formal_run_authorized": false,
   "g1_short_run_authorized": true,
   "authority": {

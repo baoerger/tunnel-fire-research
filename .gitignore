@@ -51,7 +51,10 @@ env/
 results/
 output/
 outputs/
-/fds_inputs/*
+# FDS 输入文件允许纳入版本控制；同目录中的其他临时文件仍忽略
+/fds_inputs/**
+!/fds_inputs/**/
+!/fds_inputs/**/*.fds
 !/fds_inputs/.gitkeep
 /runs/*
 !/runs/.gitkeep

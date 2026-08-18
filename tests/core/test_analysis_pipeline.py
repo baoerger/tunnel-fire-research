@@ -47,25 +47,32 @@ class StageOneAnalysisTests(unittest.TestCase):
         with (case_dir / f"{chid}_devc.csv").open("w", newline="", encoding="utf-8") as stream:
             csv.writer(stream).writerows([units, headers, earlier, values])
 
-    def _write_timeseries_devc(self, chid, times, include_velocity=True):
+    def _write_timeseries_devc(self, chid, times, include_velocity=True,
+                               no_wind_layout=False):
         case_dir = self.root / chid
         case_dir.mkdir(parents=True, exist_ok=True)
         xs = [15, 25, 35, 45, 50, 55, 65, 75, 85]
         headers = ["Time", "HRR_tot"]
         units = ["s", "kW"]
         for x in xs:
-            headers.append(f"T_{x * 100:04d}")
+            prefix = "T90" if no_wind_layout else "T"
+            headers.append(f"{prefix}_{x * 100:04d}")
             units.append("C")
         if include_velocity:
             for x in xs:
-                headers.append(f"U_{x * 100:04d}")
+                prefix = "U95" if no_wind_layout else "U"
+                headers.append(f"{prefix}_{x * 100:04d}")
                 units.append("m/s")
         data = [units, headers]
         for time in times:
             row = [time, 40000.0]
             row.extend(20.0 + 100.0 * math.exp(-0.1 * abs(x - 50)) for x in xs)
             if include_velocity:
-                row.extend(-1.0 if 40 <= x < 50 else 1.0 for x in xs)
+                if no_wind_layout:
+                    row.extend(-1.0 if x < 50 else (1.0 if x > 50 else 0.0)
+                               for x in xs)
+                else:
+                    row.extend(-1.0 if 40 <= x < 50 else 1.0 for x in xs)
             data.append(row)
         with (case_dir / f"{chid}_devc.csv").open("w", newline="", encoding="utf-8") as stream:
             csv.writer(stream).writerows(data)
@@ -189,6 +196,24 @@ class StageOneAnalysisTests(unittest.TestCase):
         self.assertEqual("UNCHECKED_NO_FIELD_DATA", info["enthalpy_criterion"])
         self.assertIn("representative_temperature", info["criteria"][-1])
         self.assertIn("backflow", info["criteria"][-1])
+
+    def test_no_wind_quasi_steady_uses_layered_ids_and_both_propagation_sides(self):
+        self._write_timeseries_devc(
+            "no_wind", list(range(0, 61)), no_wind_layout=True)
+
+        start, _, info = steady.detect(
+            "no_wind", str(self.root), window_s=10.0, min_steady=20.0)
+
+        self.assertEqual("PASS", info["status"], info["reason"])
+        self.assertIsNotNone(start)
+        self.assertEqual("BIDIRECTIONAL_PROPAGATION", info["flow_criterion"])
+        self.assertIn("left_propagation", info["criteria"][-1])
+        self.assertIn("right_propagation", info["criteria"][-1])
+        self.assertNotIn("backflow", info["criteria"][-1])
+        self.assertTrue(any(value > 0 for value in info["L_left"]
+                            if math.isfinite(value)))
+        self.assertTrue(any(value > 0 for value in info["L_right"]
+                            if math.isfinite(value)))
 
     def test_quasi_steady_rejects_irregular_time_and_missing_velocity(self):
         irregular = list(range(0, 20)) + list(range(21, 62))

@@ -129,6 +129,66 @@ class LightweightResultCheckTests(unittest.TestCase):
         self.assertEqual(1, len(results))
         self.assertTrue(out.is_file())
 
+    def test_attempt_directory_uses_parent_run_chid_identity(self):
+        attempt_id = f"{self.chid}_a01"
+        attempt_dir = self.case_dir / "attempts" / attempt_id
+        attempt_dir.mkdir(parents=True)
+        for path in list(self.case_dir.iterdir()):
+            if path.is_file():
+                path.rename(attempt_dir / path.name)
+
+        result = checker.check_case(attempt_dir)
+
+        self.assertEqual("PASS", result["status"], result["issues"])
+        self.assertEqual(self.chid, result["chid"])
+        self.assertEqual(self.chid, result["run_chid"])
+        self.assertEqual(attempt_id, result["job_attempt_id"])
+
+        out = Path(self.tmp.name) / "attempt_result_check.csv"
+        results = checker.check_all(self.run_root, out)
+        self.assertEqual([attempt_id], [row["job_attempt_id"] for row in results])
+
+    def test_background_passes_without_hrr_file_or_fire_devices(self):
+        (self.case_dir / f"{self.chid}.fds").write_text(
+            "\n".join([
+                f"&HEAD CHID='{self.chid}', TITLE='background' /",
+                "&MESH IJK=4 4 4, XB=0 1 0 1 0 1 /",
+                "&TIME T_END=60.0 /",
+                "&TAIL /",
+            ]) + "\n",
+            encoding="utf-8",
+        )
+        self._write_csv(self.case_dir / f"{self.chid}_devc.csv", [
+            ["s", "C", "C", "C", "m/s"],
+            ["Time", "T85_0000", "T90_0000", "T95_0000", "U95_0000"],
+            [0, 20, 20, 20, 0],
+            [30, 20, 20, 20, 0],
+            [60, 20, 20, 20, 0],
+        ])
+        (self.case_dir / f"{self.chid}_hrr.csv").unlink()
+
+        result = checker.check_case(self.case_dir)
+
+        self.assertEqual("PASS", result["status"], result["issues"])
+        self.assertEqual("background", result["case_kind"])
+        self.assertTrue(result["required_hrr_ok"])
+        self.assertFalse(result["hrr_nonzero"])
+        self.assertIsNone(result["hrr_t_final_s"])
+
+    def test_background_nonzero_hrr_fails(self):
+        fds = self.case_dir / f"{self.chid}.fds"
+        fds.write_text(
+            fds.read_text(encoding="utf-8")
+            .replace("&SURF ID='BURNER', HRRPUA=1000.0, TAU_Q=10.0 /\n", "")
+            .replace("&VENT XB=0 8 0 5 0 0, SURF_ID='BURNER' /\n", ""),
+            encoding="utf-8",
+        )
+
+        result = checker.check_case(self.case_dir)
+
+        self.assertEqual("FAIL", result["status"])
+        self.assertIn("背景工况检出非零 HRR", result["issues"])
+
     def test_external_contract_uses_mapped_thermocouples_and_full_field(self):
         fds = self.case_dir / f"{self.chid}.fds"
         fds.write_text(

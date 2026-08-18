@@ -1,13 +1,15 @@
 """准稳态识别（实施 §1.9）。
 
 正式判据同时检查 HRR 波动、最大顶棚温度趋势、代表测点温度趋势和
-上游回流长度趋势。纵向超温焓流若没有专门导出则在结果中明确标为
-UNCHECKED，不会伪装成已通过。
+纵向流动结构趋势。有风旧工况保留上游回流长度诊断；无风全局测点工况
+改用左右外向传播长度，不把旧有风回流长度套用到无风模型。纵向超温
+焓流若没有专门导出则在结果中明确标为 UNCHECKED，不会伪装成已通过。
 """
 import argparse
 import csv
 import math
 import os
+import re
 from pathlib import Path
 from statistics import median
 
@@ -96,7 +98,8 @@ def _smooth_observables(times, series, smooth_s):
         return series
     return {
         key: (_rolling_mean(values, times, smooth_s)
-              if key.startswith(("T_", "U_")) else values)
+              if re.fullmatch(r"(?:T(?:85|90|95)?|U(?:95)?)_\d+", key)
+              else values)
         for key, values in series.items()
     }
 
@@ -210,8 +213,15 @@ def _find_hrr(series):
 
 
 def _temperature_series(times, series):
-    ids = sorted(key for key in series
-                 if key.startswith("T_") and key[2:].isdigit())
+    groups = {}
+    for key in series:
+        match = re.fullmatch(r"(T(?:85|90|95)?)_(\d+)", key)
+        if match:
+            groups.setdefault(match.group(1), []).append(key)
+    # 无风主体优先采用 z/H=0.90；旧 T_* 工况仅在没有分层测点时回退。
+    prefix = next((candidate for candidate in ("T90", "T85", "T95", "T")
+                   if groups.get(candidate)), None)
+    ids = sorted(groups.get(prefix, []), key=_device_x)
     tmax = []
     for i in range(len(times)):
         values = [series[key][i] for key in ids
@@ -228,12 +238,21 @@ def _temperature_series(times, series):
     return ids, tmax, representative
 
 
+def _device_x(key):
+    match = re.fullmatch(r"(?:T(?:85|90|95)?|U(?:95)?)_(\d+)", key)
+    if not match:
+        raise ValueError(f"无法从设备 ID 解析纵向坐标: {key}")
+    return int(match.group(1)) / 100.0
+
+
 def _backflow_series(times, series, temperature_ids):
-    velocity_ids = [key for key in series
-                    if key.startswith("U_") and key[2:].isdigit()]
+    velocity_ids = sorted(
+        (key for key in series if re.fullmatch(r"U_\d+", key)),
+        key=_device_x,
+    )
     if not velocity_ids or not temperature_ids:
         return None
-    xs = [int(key[2:]) / 100.0 for key in temperature_ids]
+    xs = [_device_x(key) for key in temperature_ids]
     result = []
     for i in range(len(times)):
         temperatures = [series[key][i] if i < len(series[key]) else float("nan")
@@ -246,6 +265,52 @@ def _backflow_series(times, series, temperature_ids):
                     if i < len(series[key])}
         result.append(_backflow_length([times[i]], snapshot, x_peak))
     return result
+
+
+def _outward_extent(snapshot, x_peak, direction):
+    """从峰值附近向单侧扫描连续外向流，返回传播长度 [m]。"""
+    if direction == "left":
+        points = sorted(
+            ((x, value) for x, value in snapshot if x < x_peak),
+            key=lambda item: item[0], reverse=True,
+        )
+        outward = lambda value: value < 0.0
+    else:
+        points = sorted((x, value) for x, value in snapshot if x > x_peak)
+        outward = lambda value: value > 0.0
+    extent = 0.0
+    for x, value in points:
+        if not math.isfinite(value) or not outward(value):
+            break
+        extent = max(extent, abs(x - x_peak))
+    return extent
+
+
+def _bidirectional_propagation_series(times, series, temperature_ids):
+    """无风工况左右外向顶棚流的连续传播长度时序。"""
+    velocity_ids = sorted(
+        (key for key in series if re.fullmatch(r"U95_\d+", key)),
+        key=_device_x,
+    )
+    if not velocity_ids or not temperature_ids:
+        return None, None
+    temp_xs = [_device_x(key) for key in temperature_ids]
+    left, right = [], []
+    for i in range(len(times)):
+        temperatures = [series[key][i] if i < len(series[key]) else float("nan")
+                        for key in temperature_ids]
+        x_peak, _ = fds_io.parabolic_peak(temp_xs, temperatures)
+        if x_peak is None:
+            left.append(float("nan"))
+            right.append(float("nan"))
+            continue
+        snapshot = [
+            (_device_x(key), series[key][i] if i < len(series[key]) else float("nan"))
+            for key in velocity_ids
+        ]
+        left.append(_outward_extent(snapshot, x_peak, "left"))
+        right.append(_outward_extent(snapshot, x_peak, "right"))
+    return left, right
 
 
 def _continuous_start(times, flags, duration):
@@ -278,13 +343,24 @@ def detect(chid, rundir, window_s=90.0, thr_hrr=DEFAULT_THR_HRR,
     hrr_key = _find_hrr(series)
     smoothed = _smooth_observables(times, series, smooth_s)
     temperature_ids, tmax, representative = _temperature_series(times, smoothed)
-    backflow = _backflow_series(times, smoothed, temperature_ids)
+    no_wind_layout = any(
+        re.fullmatch(r"(?:T(?:85|90|95)|U95)_\d+", key) for key in smoothed
+    )
+    if no_wind_layout:
+        propagation_left, propagation_right = _bidirectional_propagation_series(
+            times, smoothed, temperature_ids)
+        backflow = [float("nan")] * len(times)
+    else:
+        backflow = _backflow_series(times, smoothed, temperature_ids)
+        propagation_left = propagation_right = [float("nan")] * len(times)
     missing = []
     if hrr_key is None:
         missing.append("HRR_tot")
     if not temperature_ids:
         missing.append("T_*")
-    if backflow is None:
+    if no_wind_layout and (propagation_left is None or propagation_right is None):
+        missing.append("U95_*")
+    elif not no_wind_layout and backflow is None:
         missing.append("U_*")
     if missing:
         return None, None, {"status": "FAIL", "reason": "缺少必需设备列: " + ",".join(missing),
@@ -293,7 +369,15 @@ def detect(chid, rundir, window_s=90.0, thr_hrr=DEFAULT_THR_HRR,
     hrr_osc = _oscillation(series[hrr_key], times, trend_window)
     tmax_slope = _linear_slope(tmax, times, trend_window)
     rep_slope = _linear_slope(representative, times, trend_window)
-    backflow_slope = _linear_slope(backflow, times, trend_window)
+    if no_wind_layout:
+        propagation_left_slope = _linear_slope(
+            propagation_left, times, trend_window)
+        propagation_right_slope = _linear_slope(
+            propagation_right, times, trend_window)
+        backflow_slope = [float("nan")] * len(times)
+    else:
+        backflow_slope = _linear_slope(backflow, times, trend_window)
+        propagation_left_slope = propagation_right_slope = [float("nan")] * len(times)
 
     # 优先使用真实横截面 J_T(x) 剖面；没有派生文件时兼容单列 J_T/JT。
     if field_integrals_path is None:
@@ -323,9 +407,17 @@ def detect(chid, rundir, window_s=90.0, thr_hrr=DEFAULT_THR_HRR,
             "tmax": math.isfinite(tmax_slope[i]) and tmax_slope[i] <= thr_tmax_slope,
             "representative_temperature": (math.isfinite(rep_slope[i])
                                            and rep_slope[i] <= thr_rep_slope),
-            "backflow": (math.isfinite(backflow_slope[i])
-                         and backflow_slope[i] <= thr_backflow_slope),
         }
+        if no_wind_layout:
+            checks["left_propagation"] = (
+                math.isfinite(propagation_left_slope[i])
+                and propagation_left_slope[i] <= thr_backflow_slope)
+            checks["right_propagation"] = (
+                math.isfinite(propagation_right_slope[i])
+                and propagation_right_slope[i] <= thr_backflow_slope)
+        else:
+            checks["backflow"] = (math.isfinite(backflow_slope[i])
+                                  and backflow_slope[i] <= thr_backflow_slope)
         if enthalpy_profiles or enthalpy_key:
             checks["enthalpy_flux"] = (math.isfinite(enthalpy_drift[i])
                                        and enthalpy_drift[i] <= thr_enthalpy_slope)
@@ -349,9 +441,18 @@ def detect(chid, rundir, window_s=90.0, thr_hrr=DEFAULT_THR_HRR,
          lambda value: f"{value:.3f} °C/s"),
         ("代表温度趋势", rep_slope, thr_rep_slope,
          lambda value: f"{value:.3f} °C/s"),
-        ("回流长度趋势", backflow_slope, thr_backflow_slope,
-         lambda value: f"{value:.3f} m/s"),
     ]
+    if no_wind_layout:
+        metric_specs.extend([
+            ("左侧传播长度趋势", propagation_left_slope, thr_backflow_slope,
+             lambda value: f"{value:.3f} m/s"),
+            ("右侧传播长度趋势", propagation_right_slope, thr_backflow_slope,
+             lambda value: f"{value:.3f} m/s"),
+        ])
+    else:
+        metric_specs.append(
+            ("回流长度趋势", backflow_slope, thr_backflow_slope,
+             lambda value: f"{value:.3f} m/s"))
     if enthalpy_profiles or enthalpy_key:
         metric_specs.append(("焓流相对漂移", enthalpy_drift,
                              thr_enthalpy_slope, lambda value: f"{value:.1%}"))
@@ -360,8 +461,13 @@ def detect(chid, rundir, window_s=90.0, thr_hrr=DEFAULT_THR_HRR,
     info = {
         "status": status, "reason": reason, "times": times, "Tmax": tmax,
         "T_representative": representative, "L_back": backflow,
+        "L_left": propagation_left, "L_right": propagation_right,
         "hrr_osc": hrr_osc, "tmax_slope": tmax_slope,
         "rep_slope": rep_slope, "backflow_slope": backflow_slope,
+        "left_propagation_slope": propagation_left_slope,
+        "right_propagation_slope": propagation_right_slope,
+        "flow_criterion": ("BIDIRECTIONAL_PROPAGATION"
+                           if no_wind_layout else "LEGACY_BACKFLOW"),
         "enthalpy_rel_drift": enthalpy_drift,
         # 兼容旧调用方；数值现为无量纲相对漂移，不再是 W/s。
         "enthalpy_slope": enthalpy_drift,
@@ -371,7 +477,7 @@ def detect(chid, rundir, window_s=90.0, thr_hrr=DEFAULT_THR_HRR,
                    "thr_hrr": thr_hrr,
                    "thr_tmax_slope": thr_tmax_slope,
                    "thr_rep_slope": thr_rep_slope,
-                   "thr_backflow_slope": thr_backflow_slope,
+                   "thr_flow_length_slope": thr_backflow_slope,
                    "thr_enthalpy_rel_drift": thr_enthalpy_slope,
                    "min_steady": min_steady},
     }
@@ -445,15 +551,23 @@ def main():
         with open(detail_path, "w", newline="", encoding="utf-8-sig") as stream:
             writer = csv.writer(stream)
             writer.writerow(["time", "Tmax_C", "T_representative_C", "L_back_m",
+                             "L_left_m", "L_right_m",
                              "hrr_osc_rel", "Tmax_slope_C_per_s",
                              "Trep_slope_C_per_s", "Lback_slope_m_per_s",
+                             "Lleft_slope_m_per_s", "Lright_slope_m_per_s",
+                             "flow_criterion",
                              "enthalpy_rel_drift", "enthalpy_flux_criterion", "steady_flag"])
             for i, time in enumerate(info["times"]):
                 writer.writerow([time, _fmt(info["Tmax"][i]),
                                  _fmt(info["T_representative"][i]),
-                                 _fmt(info["L_back"][i]), _fmt(info["hrr_osc"][i]),
+                                 _fmt(info["L_back"][i]),
+                                 _fmt(info["L_left"][i]), _fmt(info["L_right"][i]),
+                                 _fmt(info["hrr_osc"][i]),
                                  _fmt(info["tmax_slope"][i]), _fmt(info["rep_slope"][i]),
                                  _fmt(info["backflow_slope"][i]),
+                                 _fmt(info["left_propagation_slope"][i]),
+                                 _fmt(info["right_propagation_slope"][i]),
+                                 info["flow_criterion"],
                                  _fmt(info["enthalpy_rel_drift"][i]),
                                  info["enthalpy_criterion"], int(info["flags"][i])])
         print(f"[{info['status']}] {chid}: {info['reason']}"
