@@ -15,13 +15,20 @@ from .project_paths import PROJECT_ROOT
 
 CASE_FIELDS = (
     "subset", "purpose", "case_kind", "parent_case_id", "physical_case_id",
-    "run_chid", "run_core_sha256", "source_input_path",
+    "run_chid", "replicate_id", "Q_requested_MW", "Af_requested_m2",
+    "Af_discrete_m2", "Df_requested_m", "Df_discrete_m",
+    "burner_side_requested_m", "burner_bounds", "xf_requested_m",
+    "xf_actual_m", "yf_actual_m", "dx_m", "mesh_profile",
+    "sensor_profile", "output_profile", "rnd_seed", "T_end_s",
+    "fds_version_planned", "run_core_sha256", "source_input_path", "status",
 )
 ATTEMPT_FIELDS = (
     "job_attempt_id", "run_chid", "attempt_kind",
     "restart_parent_job_attempt_id", "attempt_input_sha256",
     "run_core_sha256", "attempt_input_path", "return_dir",
-    "checkpoint_manifest_sha256", "prepared_at_utc", "status",
+    "checkpoint_manifest_sha256", "T_end_s", "fds_version_planned",
+    "fds_version_actual", "exit_status", "allocated_cores", "wall_clock_s",
+    "prepared_at_utc", "status",
 )
 _HEAD_RE = re.compile(r"&HEAD\b[^/]*\bCHID\s*=\s*'([^']+)'", re.I | re.S)
 _TIME_RE = re.compile(r"(&TIME\b[^/]*\bT_END\s*=\s*)([0-9.eE+-]+)", re.I | re.S)
@@ -123,7 +130,8 @@ def prepare_attempt(*, source_input, return_dir, subset, purpose, case_kind,
                     parent_case_id, physical_case_id, job_attempt_id,
                     attempt_kind="initial", restart_parent_job_attempt_id="",
                     checkpoint_manifest=None, protocol_path=None,
-                    case_registry_path=None, attempts_path=None):
+                    case_registry_path=None, attempts_path=None,
+                    case_metadata=None, attempt_metadata=None):
     """复制输入到唯一回传目录并登记；完全相同的重复准备为幂等操作。"""
     guard_subset(subset, "prepare", protocol_path)
     source_input = Path(source_input).resolve()
@@ -157,13 +165,22 @@ def prepare_attempt(*, source_input, return_dir, subset, purpose, case_kind,
     if same_run and any(row.get("run_core_sha256") != core_hash for row in same_run):
         raise ValueError(f"run_chid={run_chid} 已绑定不同 run_core_sha256")
     if not same_run:
-        cases.append({
+        case_row = {
             "subset": subset, "purpose": purpose, "case_kind": case_kind,
             "parent_case_id": parent_case_id,
             "physical_case_id": physical_case_id, "run_chid": run_chid,
             "run_core_sha256": core_hash,
             "source_input_path": str(source_input),
-        })
+        }
+        case_metadata = dict(case_metadata or {})
+        unknown = set(case_metadata) - set(CASE_FIELDS)
+        reserved = set(case_metadata) & set(case_row)
+        if unknown:
+            raise ValueError("未知 case_registry 字段: " + ",".join(sorted(unknown)))
+        if reserved:
+            raise ValueError("case_metadata 不得覆盖身份字段: " + ",".join(sorted(reserved)))
+        case_row.update(case_metadata)
+        cases.append(case_row)
 
     if attempt_kind not in {"initial", "retry", "restart"}:
         raise ValueError(f"未知 attempt_kind={attempt_kind!r}")
@@ -200,6 +217,14 @@ def prepare_attempt(*, source_input, return_dir, subset, purpose, case_kind,
         "prepared_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": "AWAITING_EXTERNAL_RUN",
     }
+    attempt_metadata = dict(attempt_metadata or {})
+    unknown = set(attempt_metadata) - set(ATTEMPT_FIELDS)
+    reserved = set(attempt_metadata) & set(row)
+    if unknown:
+        raise ValueError("未知 job_attempts 字段: " + ",".join(sorted(unknown)))
+    if reserved:
+        raise ValueError("attempt_metadata 不得覆盖身份字段: " + ",".join(sorted(reserved)))
+    row.update(attempt_metadata)
     attempts.append(row)
     _write_rows(case_registry_path, CASE_FIELDS, cases)
     _write_rows(attempts_path, ATTEMPT_FIELDS, attempts)

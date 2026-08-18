@@ -8,8 +8,9 @@
 - 执行方案：[`docs/实施方案.md`](docs/实施方案.md)
 - 当前进度：[`docs/当前实施进度.md`](docs/当前实施进度.md)
 - 自动执行 Loop：[`docs/项目自动执行Loop提示词.md`](docs/项目自动执行Loop提示词.md)
-- 协议：[`config/protocol_v1.json`](config/protocol_v1.json)（当前为 `G1_PASS_G2_READY`，已授权继续 G2 先导准备，正式长算仍未授权）
+- 协议：[`config/protocol_v1.json`](config/protocol_v1.json)（当前为 `G2_PILOT_STAGE1_EXTERNAL_FDS_RUN_REQUIRED`）
 - G1 实跑结论：[`reports/g1_short_analysis.md`](reports/g1_short_analysis.md)
+- G2 先导交接：[`reports/g2_pilot_preparation.md`](reports/g2_pilot_preparation.md)
 - FDS 技术规范：[`CLAUDE.md`](CLAUDE.md)
 
 目录职责：
@@ -27,4 +28,4 @@
 uv run --with pytest --with numpy python -m pytest -q
 ```
 
-G1 四个 FDS 6.10.1 短试算已完成并通过运行合同门，当前可继续 G2 先导设计、生成和静态审计。G1 只验证解析、启动、输出与 HRR 闭合，不代表公式已经拟合；现有设计草案仍不得直接用于正式批算。
+G1 已通过，G2 的 16 条先导输入也已生成并冻结。当前只放行阶段 1 的三个背景长算；背景审计通过前不得启动其余 13 条。尚未形成网格、测高、有效域或公式结论。

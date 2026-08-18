@@ -91,3 +91,30 @@ class RunRegistryContracts(unittest.TestCase):
         skipped = self._input(t_end=600, restart=True)
         with self.assertRaisesRegex(ValueError, "续接一段"):
             registry.validate_restart_transition(parent, skipped)
+
+    def test_case_and_attempt_metadata_are_written_without_overriding_identity(self):
+        source = self._named_input()
+        row = registry.prepare_attempt(
+            source_input=source, return_dir=self.root / "runs" / "metadata",
+            subset="pilot", purpose="grid", case_kind="fire",
+            parent_case_id="p_q018_s40", physical_case_id="p_q018_s40_x50",
+            job_attempt_id="case_a_meta_a01", protocol_path=self.protocol,
+            case_registry_path=self.cases, attempts_path=self.attempts,
+            case_metadata={"replicate_id": "r104729", "Q_requested_MW": "18",
+                           "T_end_s": "300", "status": "AUTHORIZED_G2_PILOT"},
+            attempt_metadata={"T_end_s": "300", "fds_version_planned": "6.10.1"},
+        )
+        self.assertEqual("300", row["T_end_s"])
+        case_text = self.cases.read_text(encoding="utf-8-sig")
+        self.assertIn("AUTHORIZED_G2_PILOT", case_text)
+
+        with self.assertRaisesRegex(ValueError, "不得覆盖身份字段"):
+            registry.prepare_attempt(
+                source_input=self._named_input(chid="case_b"),
+                return_dir=self.root / "runs" / "bad_metadata",
+                subset="pilot", purpose="grid", case_kind="fire",
+                parent_case_id="p", physical_case_id="pc",
+                job_attempt_id="case_b_a01", protocol_path=self.protocol,
+                case_registry_path=self.cases, attempts_path=self.attempts,
+                case_metadata={"run_chid": "wrong"},
+            )

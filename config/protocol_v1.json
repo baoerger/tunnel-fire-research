@@ -2,11 +2,13 @@
   "schema_version": "1.1",
   "protocol_id": "no_wind_ceiling_temperature_v1.1",
   "created_at": "2026-08-18T19:47:14+08:00",
-  "updated_at": "2026-08-18T21:43:09+08:00",
-  "status": "G1_PASS_G2_READY",
+  "updated_at": "2026-08-18T22:02:28+08:00",
+  "status": "G2_PILOT_STAGE1_EXTERNAL_FDS_RUN_REQUIRED",
   "formal_run_authorized": false,
   "g1_short_run_authorized": true,
   "g2_pilot_preparation_authorized": true,
+  "g2_pilot_stage1_run_authorized": true,
+  "g2_pilot_later_stages_run_authorized": false,
   "authority": {
     "science_protocol": "docs/无风隧道顶棚纵向温度_正向主导双向闭环实施方案_主次定稿版.md",
     "execution_protocol": "docs/实施方案.md",
@@ -122,6 +124,17 @@
     "analysis": "reports/g1_short_analysis.md",
     "raw_results_gitignored": true,
     "protocol_change_scope": "FDS version selection and G1 evidence only; scientific domains, thresholds and lockbox rules unchanged"
+  },
+  "g2_pilot": {
+    "preparation_status": "COMPLETE",
+    "design_csv": "config/pilot_cases.csv",
+    "handoff_manifest": "reports/g2_pilot_run_handoff.csv",
+    "input_count": 16,
+    "stage_counts": {"1_background": 3, "2_medium_grid": 2, "3_grid_and_seed": 8, "4_opening_translation": 3},
+    "current_stage": 1,
+    "current_stage_run_chids": ["p_bg_g25_r104729", "p_bg_g25_r204729", "p_bg_g25_r304729"],
+    "later_stages_require_previous_stage_pass": true,
+    "local_test_status": "157 passed; 42 subtests"
   },
   "pending_g1_external_evidence": []
 }
