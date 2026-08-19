@@ -2,13 +2,15 @@
   "schema_version": "1.1",
   "protocol_id": "no_wind_ceiling_temperature_v1.1",
   "created_at": "2026-08-18T19:47:14+08:00",
-  "updated_at": "2026-08-19T10:56:49+08:00",
-  "status": "G2_PILOT_STAGE2_EXTERNAL_FDS_RUN_REQUIRED",
+  "updated_at": "2026-08-19T16:58:35+08:00",
+  "status": "G2_PILOT_STAGE3_EXTERNAL_FDS_RUN_REQUIRED",
   "formal_run_authorized": false,
   "g1_short_run_authorized": true,
   "g2_pilot_preparation_authorized": true,
   "g2_pilot_stage1_run_authorized": true,
   "g2_pilot_stage2_run_authorized": true,
+  "g2_pilot_stage3_run_authorized": true,
+  "g2_pilot_stage4_run_authorized": false,
   "g2_pilot_later_stages_run_authorized": false,
   "authority": {
     "science_protocol": "docs/无风隧道顶棚纵向温度_正向主导双向闭环实施方案_主次定稿版.md",
@@ -132,8 +134,17 @@
     "handoff_manifest": "reports/g2_pilot_run_handoff.csv",
     "input_count": 16,
     "stage_counts": {"1_background": 3, "2_medium_grid": 2, "3_grid_and_seed": 8, "4_opening_translation": 3},
-    "current_stage": 2,
-    "current_stage_run_chids": ["p_q018_s40_x50_g25_r104729", "p_q036_s40_x50_g25_r104729"],
+    "current_stage": 3,
+    "current_stage_run_chids": [
+      "p_q018_s40_x50_g20_r104729",
+      "p_q018_s40_x50_g25_r204729",
+      "p_q018_s40_x50_g25_r304729",
+      "p_q018_s40_x50_g50_r104729",
+      "p_q036_s40_x50_g20_r104729",
+      "p_q036_s40_x50_g25_r204729",
+      "p_q036_s40_x50_g25_r304729",
+      "p_q036_s40_x50_g50_r104729"
+    ],
     "later_stages_require_previous_stage_pass": true,
     "local_test_status": "157 passed; 42 subtests",
     "stage1_background_evidence": {
@@ -142,6 +153,14 @@
       "metrics": "reports/g2_stage1_background_metrics.csv",
       "analysis": "reports/g2_stage1_background_analysis.md",
       "detection_limit_C": 0.5,
+      "raw_results_gitignored": true
+    },
+    "stage2_medium_grid_evidence": {
+      "decision": "PASS",
+      "result_check": "reports/g2_stage2_result_check.csv",
+      "steady_windows": "reports/g2_stage2_steady_windows.csv",
+      "metrics": "reports/g2_stage2_metrics.csv",
+      "analysis": "reports/g2_stage2_analysis.md",
       "raw_results_gitignored": true
     }
   },

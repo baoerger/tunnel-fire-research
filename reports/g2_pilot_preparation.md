@@ -1,6 +1,6 @@
 # G2 先导输入准备记录
 
-> 状态：`G2_PILOT_STAGE2_EXTERNAL_FDS_RUN_REQUIRED`
+> 状态：`G2_PILOT_STAGE3_EXTERNAL_FDS_RUN_REQUIRED`
 > FDS：6.10.1，Revision `FDS-6.10.1-0-g12efa16-release`
 
 ## 本地冻结结果
@@ -17,25 +17,29 @@
 | 阶段 | 数量 | 内容 | 放行状态 |
 |---|---:|---|---|
 | 1 | 3 | 三个背景种子 | 已完成并通过 |
-| 2 | 2 | 18/36 MW 中网格 heavy | 当前放行 |
-| 3 | 8 | 粗/细网格和种子重复 | 等阶段 2 通过 |
+| 2 | 2 | 18/36 MW 中网格 heavy | 已完成并通过 |
+| 3 | 8 | 粗/细网格和种子重复 | 当前放行 |
 | 4 | 3 | 27 MW、x=40/50/60 m 平移/洞口 | 等阶段 3 通过 |
 
-## 当前需外算的三个输入
+## 当前需外算的 8 个阶段 3 输入
 
-| CHID | SHA-256 | 本机输入 | 本机回传目录 |
-|---|---|---|---|
-| `p_bg_g25_r104729` | `73e46d1c8e6dd5345d4b5f572c8b1959507d2f7e03d59172514e820dcf527532` | `fds_inputs/pilot/g2/p_bg_g25_r104729.fds` | `runs/pilot/p_bg_g25_r104729/attempts/p_bg_g25_r104729_a01` |
-| `p_bg_g25_r204729` | `9c7ee73e763719f5b7311ac3ee4c6b6d71418861af2ee7d2f859cc80bac6a281` | `fds_inputs/pilot/g2/p_bg_g25_r204729.fds` | `runs/pilot/p_bg_g25_r204729/attempts/p_bg_g25_r204729_a01` |
-| `p_bg_g25_r304729` | `71a778ce07cf48db6311f9b0ee63f8d4a2103cab058f3a194ad2a60540aafcf3` | `fds_inputs/pilot/g2/p_bg_g25_r304729.fds` | `runs/pilot/p_bg_g25_r304729/attempts/p_bg_g25_r304729_a01` |
+| CHID | SHA-256 | 用途 |
+|---|---|---|
+| `p_q018_s40_x50_g20_r104729` | `e979458086d946eb6b3b3f2899451de8c760d8d0eaca2332918bf3dc3beab947` | 18 MW，细网格 |
+| `p_q018_s40_x50_g25_r204729` | `13b38494e32fbcb345de9428b8ba17fc1259132cbca8f16b9d02993354e9f272` | 18 MW，种子 2 |
+| `p_q018_s40_x50_g25_r304729` | `591ee982681a11eca168c3b8641aa3e31a74f0daf2aedf0554122859e7c63c2e` | 18 MW，种子 3 |
+| `p_q018_s40_x50_g50_r104729` | `9c7a26c19606a45fbe15342471174be218f7efa3a966b677b9dc52c91f710a9f` | 18 MW，粗网格 |
+| `p_q036_s40_x50_g20_r104729` | `f5f8699c19df915c6b1d93d159e49acb7baae161514f5dc6442395c91cb6208b` | 36 MW，细网格 |
+| `p_q036_s40_x50_g25_r204729` | `032d519e960960fa6dc063b5e89875515cc9e2e31cc82540aaf4289e911a65d8` | 36 MW，种子 2 |
+| `p_q036_s40_x50_g25_r304729` | `30e771987ccd0644356ed7cbd30da9de63fc87da2cd9c9cef84ae5bcbac702f4` | 36 MW，种子 3 |
+| `p_q036_s40_x50_g50_r104729` | `9cdc375760f8bc31b4188133921ebb5305fcf6278c77c079486d83c01ce0b3cc` | 36 MW，粗网格 |
 
-背景回传至少包含同 CHID 的 `.fds`、`.out`、`_devc.csv`、`.smv` 和可用的 `.end`；若 FDS 生成 `_hrr.csv` 也一并保留。阶段 1 只建立背景偏流、数值温度地板和输出完整性证据，不形成稳态火灾或公式结论。
+阶段 3 回传至少包含同 CHID 的 `.fds`、`.out`、`_devc.csv`、`_hrr.csv`、`.smv` 和可用的 `.end`。完整输入路径、attempt 目录和运行合同见 `reports/g2_pilot_run_handoff.csv`。
 
 ## 阶段 1 完成记录
 
 三个背景工况均已运行至 300 s 并通过质量门，背景 HRR 为零，检测限为 0.5 K。轻量证据见 `reports/g2_stage1_background_analysis.md`、`reports/g2_stage1_background_result_check.csv` 和 `reports/g2_stage1_background_metrics.csv`；原始结果继续保留在 Git 忽略的 `runs/`。
 
-阶段 2 当前只放行：
+## 阶段 2 完成记录
 
-- `p_q018_s40_x50_g25_r104729`
-- `p_q036_s40_x50_g25_r104729`
+18/36 MW 中网格 heavy 工况均已运行至 300 s，联合质量门和准稳态判定通过，HRR 闭合误差分别为 0.018% 和 0.105%。轻量证据见 `reports/g2_stage2_analysis.md`、`reports/g2_stage2_result_check.csv`、`reports/g2_stage2_steady_windows.csv` 和 `reports/g2_stage2_metrics.csv`；约 1.60 GiB 原始结果继续保留在 Git 忽略的 `runs/`。
