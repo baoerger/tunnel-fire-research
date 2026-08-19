@@ -57,10 +57,14 @@
     "profile": "no_wind_symmetric_v1",
     "candidate_dx_m": [0.5, 0.25, 0.2],
     "conditional_working_dx_m": 0.25,
-    "mesh_count": 21,
+    "mesh_count_by_dx_m": {"0.5": 18, "0.25": 21, "0.2": 21},
     "x_boundaries_m": [0, 9, 18, 27, 36, 64, 73, 82, 91, 100],
     "y_internal_boundaries_m": [],
-    "central_z_boundaries_m": [0, 1, 2, 3, 4, 5],
+    "central_z_boundaries_by_dx_m": {
+      "0.5": [0, 2.5, 5],
+      "0.25": [0, 1, 2, 3, 4, 5],
+      "0.2": [0, 1, 2, 3, 4, 5]
+    },
     "outer_z_boundaries_default_m": [0, 2.5, 5],
     "dx_0_25_failure_action": "STOP_V1_0_AND_REQUIRE_NEW_PROTOCOL"
   },
@@ -139,11 +143,11 @@
       "p_q018_s40_x50_g20_r104729",
       "p_q018_s40_x50_g25_r204729",
       "p_q018_s40_x50_g25_r304729",
-      "p_q018_s40_x50_g50_r104729",
+      "p_q018_s40_x50_g50m18_r104729",
       "p_q036_s40_x50_g20_r104729",
       "p_q036_s40_x50_g25_r204729",
       "p_q036_s40_x50_g25_r304729",
-      "p_q036_s40_x50_g50_r104729"
+      "p_q036_s40_x50_g50m18_r104729"
     ],
     "remaining_execution_batch_stages": [3, 4],
     "remaining_execution_batch_count": 11,
@@ -153,11 +157,11 @@
       "p_q018_s40_x50_g20_r104729",
       "p_q018_s40_x50_g25_r204729",
       "p_q018_s40_x50_g25_r304729",
-      "p_q018_s40_x50_g50_r104729",
+      "p_q018_s40_x50_g50m18_r104729",
       "p_q036_s40_x50_g20_r104729",
       "p_q036_s40_x50_g25_r204729",
       "p_q036_s40_x50_g25_r304729",
-      "p_q036_s40_x50_g50_r104729",
+      "p_q036_s40_x50_g50m18_r104729",
       "p_q027_s45_x40_g25_r104729",
       "p_q027_s45_x50_g25_r104729",
       "p_q027_s45_x60_g25_r104729"
@@ -165,7 +169,7 @@
     "later_stages_require_previous_stage_pass_for_analysis": true,
     "later_stage_science_outputs_quarantined_until_prior_gate_pass": true,
     "batching_scope": "EXTERNAL_EXECUTION_ONLY_NO_SCIENTIFIC_GATE_BYPASS",
-    "local_test_status": "157 passed; 42 subtests",
+    "local_test_status": "158 passed",
     "stage1_background_evidence": {
       "decision": "PASS",
       "result_check": "reports/g2_stage1_background_result_check.csv",
@@ -181,6 +185,15 @@
       "metrics": "reports/g2_stage2_metrics.csv",
       "analysis": "reports/g2_stage2_analysis.md",
       "raw_results_gitignored": true
+    },
+    "stage3_coarse_mesh_repair": {
+      "decision": "STARTUP_PASS",
+      "superseded_mesh_count": 21,
+      "replacement_mesh_count": 18,
+      "physical_cell_count_unchanged": 40000,
+      "fds_revision": "FDS-6.10.1-0-g12efa16-release",
+      "startup_probe_t_end_s": 0.5,
+      "evidence": "reports/g2_stage3_coarse_mesh_repair.md"
     }
   },
   "pending_g1_external_evidence": []

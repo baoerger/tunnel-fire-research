@@ -21,8 +21,9 @@ def static_audit(path, case):
     issues = []
     if not text.rstrip().endswith("&TAIL /"):
         issues.append("TAIL 不是最后记录")
-    if text.count("&MESH ID=") != 21:
-        issues.append("MESH 数不是 21")
+    expected_meshes = 18 if abs(float(case["dx"]) - 0.5) < 1e-10 else 21
+    if text.count("&MESH ID=") != expected_meshes:
+        issues.append(f"MESH 数不是 {expected_meshes}")
     if text.count("SURF_ID='OPEN'") != 2:
         issues.append("两端 OPEN 数量错误")
     for forbidden in ("SURF ID='INLET'", "RAMP_V", "U VELOCITY",

@@ -358,7 +358,11 @@ def _symmetric_mesh_parts(dx):
     """返回 v1 镜像 MESH 的 ``(XB, IJK)`` 列表。"""
     x_bounds = (0.0, 9.0, 18.0, 27.0, 36.0, 64.0, 73.0, 82.0, 91.0, 100.0)
     outer_z = (0.0, 2.4, 5.0) if math.isclose(dx, 0.2, abs_tol=1e-10) else (0.0, 2.5, 5.0)
-    central_z = (0.0, 1.0, 2.0, 3.0, 4.0, 5.0)
+    coarse_grid = math.isclose(dx, 0.5, abs_tol=1e-10)
+    # FDS 6.10.1 Poisson initialization rejects the former 1 m central
+    # partitions at dx=0.5 because they contain only two cells in z. Keep the
+    # physical 0.5 m grid unchanged and give every coarse z partition 5 cells.
+    central_z = outer_z if coarse_grid else (0.0, 1.0, 2.0, 3.0, 4.0, 5.0)
     parts = []
     for x0, x1 in zip(x_bounds, x_bounds[1:]):
         z_bounds = central_z if (math.isclose(x0, 36.0) and math.isclose(x1, 64.0)) else outer_z
@@ -373,8 +377,11 @@ def _symmetric_mesh_parts(dx):
                     )
                 cells.append(int(round(raw)))
             parts.append(((x0, x1, 0.0, cfg.W, z0, z1), tuple(cells)))
-    if len(parts) != 21:
-        raise AssertionError(f"镜像 MESH 数应为 21，实际 {len(parts)}")
+    expected_meshes = 18 if coarse_grid else 21
+    if len(parts) != expected_meshes:
+        raise AssertionError(
+            f"镜像 MESH 数应为 {expected_meshes}，实际 {len(parts)}"
+        )
     return parts
 
 
