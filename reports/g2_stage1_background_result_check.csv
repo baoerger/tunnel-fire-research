@@ -1,0 +1,4 @@
+chid,run_chid,job_attempt_id,case_kind,status,fds_version,version_match,t_end_s,devc_t_final_s,hrr_t_final_s,error_count,warning_count,rejected_count,burner_issue,required_devc_ok,required_hrr_ok,time_series_ok,hrr_nonzero,target_hrr_kW,tail_hrr_kW,hrr_closure_rel_error,end_marker_present,out_completed_successfully,full_field_present,issues
+p_bg_g25_r104729,p_bg_g25_r104729,p_bg_g25_r104729_a01,background,PASS,6.10.1,True,300.0,300.0,300.0,0,0,0,False,True,True,True,False,,,,False,True,True,
+p_bg_g25_r204729,p_bg_g25_r204729,p_bg_g25_r204729_a01,background,PASS,6.10.1,True,300.0,300.0,300.0,0,0,0,False,True,True,True,False,,,,False,True,True,
+p_bg_g25_r304729,p_bg_g25_r304729,p_bg_g25_r304729_a01,background,PASS,6.10.1,True,300.0,300.0,300.0,0,0,0,False,True,True,True,False,,,,False,True,True,

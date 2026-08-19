@@ -1,6 +1,6 @@
 # G2 先导输入准备记录
 
-> 状态：`G2_PILOT_STAGE1_EXTERNAL_FDS_RUN_REQUIRED`
+> 状态：`G2_PILOT_STAGE2_EXTERNAL_FDS_RUN_REQUIRED`
 > FDS：6.10.1，Revision `FDS-6.10.1-0-g12efa16-release`
 
 ## 本地冻结结果
@@ -16,8 +16,8 @@
 
 | 阶段 | 数量 | 内容 | 放行状态 |
 |---|---:|---|---|
-| 1 | 3 | 三个背景种子 | 当前放行 |
-| 2 | 2 | 18/36 MW 中网格 heavy | 等阶段 1 通过 |
+| 1 | 3 | 三个背景种子 | 已完成并通过 |
+| 2 | 2 | 18/36 MW 中网格 heavy | 当前放行 |
 | 3 | 8 | 粗/细网格和种子重复 | 等阶段 2 通过 |
 | 4 | 3 | 27 MW、x=40/50/60 m 平移/洞口 | 等阶段 3 通过 |
 
@@ -30,3 +30,12 @@
 | `p_bg_g25_r304729` | `71a778ce07cf48db6311f9b0ee63f8d4a2103cab058f3a194ad2a60540aafcf3` | `fds_inputs/pilot/g2/p_bg_g25_r304729.fds` | `runs/pilot/p_bg_g25_r304729/attempts/p_bg_g25_r304729_a01` |
 
 背景回传至少包含同 CHID 的 `.fds`、`.out`、`_devc.csv`、`.smv` 和可用的 `.end`；若 FDS 生成 `_hrr.csv` 也一并保留。阶段 1 只建立背景偏流、数值温度地板和输出完整性证据，不形成稳态火灾或公式结论。
+
+## 阶段 1 完成记录
+
+三个背景工况均已运行至 300 s 并通过质量门，背景 HRR 为零，检测限为 0.5 K。轻量证据见 `reports/g2_stage1_background_analysis.md`、`reports/g2_stage1_background_result_check.csv` 和 `reports/g2_stage1_background_metrics.csv`；原始结果继续保留在 Git 忽略的 `runs/`。
+
+阶段 2 当前只放行：
+
+- `p_q018_s40_x50_g25_r104729`
+- `p_q036_s40_x50_g25_r104729`

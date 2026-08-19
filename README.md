@@ -8,9 +8,10 @@
 - 执行方案：[`docs/实施方案.md`](docs/实施方案.md)
 - 当前进度：[`docs/当前实施进度.md`](docs/当前实施进度.md)
 - 自动执行 Loop：[`docs/项目自动执行Loop提示词.md`](docs/项目自动执行Loop提示词.md)
-- 协议：[`config/protocol_v1.json`](config/protocol_v1.json)（当前为 `G2_PILOT_STAGE1_EXTERNAL_FDS_RUN_REQUIRED`）
+- 协议：[`config/protocol_v1.json`](config/protocol_v1.json)（当前为 `G2_PILOT_STAGE2_EXTERNAL_FDS_RUN_REQUIRED`）
 - G1 实跑结论：[`reports/g1_short_analysis.md`](reports/g1_short_analysis.md)
 - G2 先导交接：[`reports/g2_pilot_preparation.md`](reports/g2_pilot_preparation.md)
+- G2 阶段 1 结果：[`reports/g2_stage1_background_analysis.md`](reports/g2_stage1_background_analysis.md)
 - FDS 技术规范：[`CLAUDE.md`](CLAUDE.md)
 
 目录职责：
@@ -28,4 +29,4 @@
 uv run --with pytest --with numpy python -m pytest -q
 ```
 
-G1 已通过，G2 的 16 条先导输入也已生成并冻结。当前只放行阶段 1 的三个背景长算；背景审计通过前不得启动其余 13 条。尚未形成网格、测高、有效域或公式结论。
+G1 与 G2 阶段 1 已通过，三个背景长算将检测限确定为 0.5 K。当前只放行阶段 2 的 18 MW 和 36 MW 中网格 heavy 长算；阶段 2 通过前不得启动其余 11 条。尚未形成网格、测高、有效域或公式结论。
