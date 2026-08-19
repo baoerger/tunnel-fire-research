@@ -8,7 +8,7 @@
 - 执行方案：[`docs/实施方案.md`](docs/实施方案.md)
 - 当前进度：[`docs/当前实施进度.md`](docs/当前实施进度.md)
 - 自动执行 Loop：[`docs/项目自动执行Loop提示词.md`](docs/项目自动执行Loop提示词.md)
-- 协议：[`config/protocol_v1.json`](config/protocol_v1.json)（当前为 `G2_PILOT_STAGE3_EXTERNAL_FDS_RUN_REQUIRED`）
+- 协议：[`config/protocol_v1.json`](config/protocol_v1.json)（当前为 `G2_PILOT_REMAINING_BATCH_EXTERNAL_FDS_RUN_REQUIRED`）
 - G1 实跑结论：[`reports/g1_short_analysis.md`](reports/g1_short_analysis.md)
 - G2 先导交接：[`reports/g2_pilot_preparation.md`](reports/g2_pilot_preparation.md)
 - G2 阶段 1 结果：[`reports/g2_stage1_background_analysis.md`](reports/g2_stage1_background_analysis.md)
@@ -30,4 +30,4 @@
 uv run --with pytest --with numpy python -m pytest -q
 ```
 
-G1 与 G2 阶段 1–2 已通过，三个背景长算将检测限确定为 0.5 K，18/36 MW 中网格 heavy 长算的 HRR、准稳态和完整场输出均通过。当前只放行阶段 3 的 8 个网格/种子工况；阶段 4 仍未放行。尚未形成网格、测高、有效域或公式结论。
+G1 与 G2 阶段 1–2 已通过，三个背景长算将检测限确定为 0.5 K，18/36 MW 中网格 heavy 长算的 HRR、准稳态和完整场输出均通过。当前允许把阶段 3–4 的剩余 11 条冻结输入一次性外算；本地仍按阶段 3→4 审计，阶段 4 科学结果在阶段 3 通过前保持隔离。尚未形成网格、测高、有效域或公式结论。

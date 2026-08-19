@@ -1,6 +1,6 @@
 # G2 先导输入准备记录
 
-> 状态：`G2_PILOT_STAGE3_EXTERNAL_FDS_RUN_REQUIRED`
+> 状态：`G2_PILOT_REMAINING_BATCH_EXTERNAL_FDS_RUN_REQUIRED`
 > FDS：6.10.1，Revision `FDS-6.10.1-0-g12efa16-release`
 
 ## 本地冻结结果
@@ -18,10 +18,10 @@
 |---|---:|---|---|
 | 1 | 3 | 三个背景种子 | 已完成并通过 |
 | 2 | 2 | 18/36 MW 中网格 heavy | 已完成并通过 |
-| 3 | 8 | 粗/细网格和种子重复 | 当前放行 |
-| 4 | 3 | 27 MW、x=40/50/60 m 平移/洞口 | 等阶段 3 通过 |
+| 3 | 8 | 粗/细网格和种子重复 | 外算合批放行；首先分析 |
+| 4 | 3 | 27 MW、x=40/50/60 m 平移/洞口 | 外算合批放行；阶段 3 通过后分析 |
 
-## 当前需外算的 8 个阶段 3 输入
+## 当前可合批外算的 11 个输入
 
 | CHID | SHA-256 | 用途 |
 |---|---|---|
@@ -33,8 +33,11 @@
 | `p_q036_s40_x50_g25_r204729` | `032d519e960960fa6dc063b5e89875515cc9e2e31cc82540aaf4289e911a65d8` | 36 MW，种子 2 |
 | `p_q036_s40_x50_g25_r304729` | `30e771987ccd0644356ed7cbd30da9de63fc87da2cd9c9cef84ae5bcbac702f4` | 36 MW，种子 3 |
 | `p_q036_s40_x50_g50_r104729` | `9cdc375760f8bc31b4188133921ebb5305fcf6278c77c079486d83c01ce0b3cc` | 36 MW，粗网格 |
+| `p_q027_s45_x40_g25_r104729` | `da615b84905887875b894b66697e53f173894d5a0533b51424c21f82f37e1343` | 27 MW，x=40 m，heavy |
+| `p_q027_s45_x50_g25_r104729` | `993997b2b177cbe972292ce1a73bdd903478d1ea5577c849eebd83599da2cd42` | 27 MW，x=50 m，heavy |
+| `p_q027_s45_x60_g25_r104729` | `c49c96ae3d23a40e48d87667eba856e10d5c9c9f47b0957fd6ba3de27ea69631` | 27 MW，x=60 m，heavy |
 
-阶段 3 回传至少包含同 CHID 的 `.fds`、`.out`、`_devc.csv`、`_hrr.csv`、`.smv` 和可用的 `.end`。完整输入路径、attempt 目录和运行合同见 `reports/g2_pilot_run_handoff.csv`。
+全部回传至少包含同 CHID 的 `.fds`、`.out`、`_devc.csv`、`_hrr.csv`、`.smv` 和可用的 `.end`；阶段 4 三个 heavy 工况还必须保留 `.smv` 引用的 `.sf*` 与 `.bf`。完整输入路径、attempt 目录和运行合同见 `reports/g2_pilot_run_handoff.csv`。
 
 ## 阶段 1 完成记录
 
@@ -43,3 +46,9 @@
 ## 阶段 2 完成记录
 
 18/36 MW 中网格 heavy 工况均已运行至 300 s，联合质量门和准稳态判定通过，HRR 闭合误差分别为 0.018% 和 0.105%。轻量证据见 `reports/g2_stage2_analysis.md`、`reports/g2_stage2_result_check.csv`、`reports/g2_stage2_steady_windows.csv` 和 `reports/g2_stage2_metrics.csv`；约 1.60 GiB 原始结果继续保留在 Git 忽略的 `runs/`。
+
+## 当前合批外算范围
+
+2026-08-19 起，阶段 3–4 的剩余 11 条冻结输入获一次性外算授权。完整绝对路径、SHA-256、输出档位和唯一回传目录见 `reports/g2_pilot_run_handoff.csv` 中 `pilot_stage>=3` 的记录。科学分析仍按阶段 3→4 进行，阶段 4 目标科学指标在阶段 3 通过前不得生成或查看。
+
+合批只改变外部提交时机，不改变输入、哈希、门限或停止规则。阶段 3 失败时，已计算的阶段 4 结果标记为 `QUARANTINED_BY_UPSTREAM_GATE`。

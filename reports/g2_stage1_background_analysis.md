@@ -2,7 +2,8 @@
 
 > 分析日期：2026-08-19  
 > 阶段结论：`G2_STAGE1_BACKGROUND_PASS`  
-> 下一状态：`G2_PILOT_STAGE2_EXTERNAL_FDS_RUN_REQUIRED`
+> 当时下一状态：`G2_PILOT_STAGE2_EXTERNAL_FDS_RUN_REQUIRED`
+> 2026-08-19 调度补充后当前状态：`G2_PILOT_REMAINING_BATCH_EXTERNAL_FDS_RUN_REQUIRED`
 
 ## 结论
 
@@ -10,7 +11,7 @@
 
 自动结果检查为 `PASS=3, REVIEW=0, FAIL=0`。每个工况的 `_devc.csv`、`_hrr.csv` 和 `.smv` 均存在且可解析；每个 `.smv` 引用 105 个场文件，缺失数为 0。本机 FDS 未生成 `.end`，以 `.out` 成功语句和 DEVC/HRR 到达 `T_END` 作为协议允许的替代完成证据。
 
-因此，G2 阶段 1 背景门通过，可以放行阶段 2 的 18 MW 与 36 MW 中网格 heavy 长算。此结论只建立背景偏流和数值温度地板，不形成火灾稳态、网格或公式结论。
+因此，G2 阶段 1 背景门通过。原记录先放行阶段 2 的 18 MW 与 36 MW 中网格 heavy 长算，阶段 2 随后已独立完成。2026-08-19 经用户明确批准，当前外部调度改为阶段 3–4 剩余 11 条一次合批，但科学审计仍按 3→4 串行，后置结果不得越过前置门。此结论只建立背景偏流和数值温度地板，不形成火灾稳态、网格或公式结论。
 
 ## 背景地板与偏流
 

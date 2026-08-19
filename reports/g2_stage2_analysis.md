@@ -4,11 +4,13 @@
 >
 > 阶段结论：`G2_STAGE2_PASS`
 >
-> 下一状态：`G2_PILOT_STAGE3_EXTERNAL_FDS_RUN_REQUIRED`
+> 当时下一状态：`G2_PILOT_STAGE3_EXTERNAL_FDS_RUN_REQUIRED`
+>
+> 2026-08-19 调度补充后当前状态：`G2_PILOT_REMAINING_BATCH_EXTERNAL_FDS_RUN_REQUIRED`
 
 ## 结论
 
-18 MW 和 36 MW 两个 `dx=0.25 m`、`T_END=300 s` 的 heavy 工况均使用 FDS 6.10.1 精确 Revision `FDS-6.10.1-0-g12efa16-release`、21 MPI × 1 OpenMP 正常完成。联合质量检查为 `PASS=2, REVIEW=0, FAIL=0`，因此 G2 阶段 2 通过，可按预注册顺序放行阶段 3 的 8 个网格与随机种子工况。
+18 MW 和 36 MW 两个 `dx=0.25 m`、`T_END=300 s` 的 heavy 工况均使用 FDS 6.10.1 精确 Revision `FDS-6.10.1-0-g12efa16-release`、21 MPI × 1 OpenMP 正常完成。联合质量检查为 `PASS=2, REVIEW=0, FAIL=0`，因此 G2 阶段 2 通过。原记录放行阶段 3 的 8 个网格与随机种子工况；2026-08-19 调度补充允许阶段 3–4 的剩余 11 条一次外算，但科学分析仍严格按 3→4 进行。
 
 本结论只说明两个功率端点可以稳定长算，HRR、设备时序和 heavy 输出合同有效；它不代表网格、种子不确定性、测高、有效域或最终公式已经冻结。
 
