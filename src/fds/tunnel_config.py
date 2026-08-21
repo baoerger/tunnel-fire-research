@@ -234,12 +234,19 @@ def no_wind_global_sensor_layout():
 
 
 NO_WIND_TEMPERATURE_HEIGHT_RATIOS = (0.85, 0.90, 0.95)
+NO_WIND_FORMAL_TEMPERATURE_HEIGHT_RATIO = 0.90
 
 
 def no_wind_temperature_heights(height=None):
     """先导/G1 同时使用的三个近顶棚气相测温高度。"""
     height = H if height is None else height
     return tuple(ratio * height for ratio in NO_WIND_TEMPERATURE_HEIGHT_RATIOS)
+
+
+def no_wind_formal_temperature_height(height=None):
+    """返回 G2 冻结后正式开发/锁箱工况的唯一测温高度。"""
+    height = H if height is None else height
+    return NO_WIND_FORMAL_TEMPERATURE_HEIGHT_RATIO * height
 
 
 # ============================================================================

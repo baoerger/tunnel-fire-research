@@ -102,7 +102,11 @@ def guard_subset(subset, operation, protocol_path=None):
     protocol = json.loads(protocol_path.read_text(encoding="utf-8-sig"))
     lockbox = protocol.get("lockbox", {})
     operation = str(operation).strip().lower()
-    key = "run_allowed" if operation in {"generate", "prepare", "run"} else "read_allowed"
+    key = {
+        "generate": "generation_allowed",
+        "prepare": "preparation_allowed",
+        "run": "run_allowed",
+    }.get(operation, "read_allowed")
     if not lockbox.get(key, False):
         raise PermissionError(
             f"锁箱未解锁：subset=lockbox 禁止 {operation or 'access'}（{key}=false）"
@@ -207,6 +211,11 @@ def prepare_attempt(*, source_input, return_dir, subset, purpose, case_kind,
     shutil.copyfile(source_input, attempt_input)
     if sha256_file(attempt_input) != input_hash:
         raise OSError("回传目录中的输入副本哈希不一致")
+    lockbox_sealed = False
+    if str(subset).strip().lower() == "lockbox":
+        selected_protocol = Path(protocol_path or PROJECT_ROOT / "config" / "protocol_v1.json")
+        protocol = json.loads(selected_protocol.read_text(encoding="utf-8-sig"))
+        lockbox_sealed = not protocol.get("lockbox", {}).get("run_allowed", False)
     row = {
         "job_attempt_id": job_attempt_id, "run_chid": run_chid,
         "attempt_kind": attempt_kind,
@@ -215,7 +224,8 @@ def prepare_attempt(*, source_input, return_dir, subset, purpose, case_kind,
         "attempt_input_path": str(attempt_input), "return_dir": str(return_dir),
         "checkpoint_manifest_sha256": checkpoint_hash,
         "prepared_at_utc": datetime.now(timezone.utc).isoformat(),
-        "status": "AWAITING_EXTERNAL_RUN",
+        "status": ("LOCKBOX_SEALED_NOT_RUNNABLE" if lockbox_sealed
+                   else "AWAITING_EXTERNAL_RUN"),
     }
     attempt_metadata = dict(attempt_metadata or {})
     unknown = set(attempt_metadata) - set(ATTEMPT_FIELDS)

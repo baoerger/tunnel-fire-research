@@ -175,6 +175,22 @@ class NoWindCaseContracts(unittest.TestCase):
         self.assertEqual(coordinate_sets[0], coordinate_sets[1])
         self.assertEqual(coordinate_sets[1], coordinate_sets[2])
 
+    def test_formal_global_profile_keeps_only_frozen_t90_layer(self):
+        case = self.formal_case(
+            chid="formal_t90", sensor_profile="no_wind_global_t90_v1",
+            output_profile="heavy",
+        )
+        text = gen.render_fds(
+            chid=case["chid"], Q=case["Q"], U=case["U"], Df=case["Df"],
+            dx=case["dx"], _normalized=case,
+        )
+        expected = cfg.no_wind_global_sensor_layout()
+        self.assertEqual(len(expected), len(re.findall(r"^&DEVC ID='T90_", text, re.MULTILINE)))
+        self.assertEqual(len(expected), len(re.findall(r"^&DEVC ID='U95_", text, re.MULTILINE)))
+        self.assertNotIn("ID='T85_", text)
+        self.assertNotIn("ID='T95_", text)
+        self.assertIn("&SLCF PBZ=4.500, QUANTITY='TEMPERATURE' /", text)
+
     def test_symmetric_mesh_has_21_meshes_and_central_activity_block(self):
         case = self.formal_case()
         text = gen.render_fds(

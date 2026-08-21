@@ -223,9 +223,12 @@ def normalize_case(spec, row_number=None):
         "mesh_profile": mesh_profile,
     })
     sensor_profile = str(raw.get("sensor_profile") or "standard").strip().lower()
-    if sensor_profile not in ("standard", "no_wind_dense", "no_wind_global_v1"):
+    if sensor_profile not in (
+            "standard", "no_wind_dense", "no_wind_global_v1",
+            "no_wind_global_t90_v1"):
         raise ValueError(
-            f"{prefix}: sensor_profile={sensor_profile!r} 仅支持 standard/no_wind_dense/no_wind_global_v1"
+            f"{prefix}: sensor_profile={sensor_profile!r} 仅支持 "
+            "standard/no_wind_dense/no_wind_global_v1/no_wind_global_t90_v1"
         )
     if sensor_profile == "no_wind_dense":
         if abs(values["U"]) > 1e-6:
@@ -234,12 +237,12 @@ def normalize_case(spec, row_number=None):
                 values["x_fire"], values["L"] / 2.0,
                 rel_tol=0.0, abs_tol=1e-8):
             raise ValueError(f"{prefix}: no_wind_dense 要求火源位于 x=L/2")
-    if sensor_profile == "no_wind_global_v1":
+    if sensor_profile in ("no_wind_global_v1", "no_wind_global_t90_v1"):
         if abs(values["U"]) > 1e-8:
-            raise ValueError(f"{prefix}: no_wind_global_v1 只允许 U=0")
+            raise ValueError(f"{prefix}: {sensor_profile} 只允许 U=0")
         if not all(math.isclose(values[key], expected, abs_tol=1e-8)
                    for key, expected in (("L", cfg.L), ("W", cfg.W), ("H", cfg.H))):
-            raise ValueError(f"{prefix}: no_wind_global_v1 仅适用于 100×10×5 m")
+            raise ValueError(f"{prefix}: {sensor_profile} 仅适用于 100×10×5 m")
     values["sensor_profile"] = sensor_profile
     # 旧 CSV 没有该字段；默认 heavy 保持历史生成文本的场输出合同。
     output_profile = str(raw.get("output_profile") or "heavy").strip().lower()
@@ -493,6 +496,13 @@ def _fmt_devices(x_fire, sensor_xs, L=None, W=None, H=None, hrr_region=None,
                     f"&DEVC ID='{_id_x(prefix, x)}', QUANTITY='{cfg.QUANTITY_TEMPERATURE}', "
                     f"XYZ={x:.3f} {y_mid:.3f} {height:.3f} /"
                 )
+    elif sensor_profile == "no_wind_global_t90_v1":
+        height = cfg.no_wind_formal_temperature_height(H)
+        for x in sensor_xs:
+            lines.append(
+                f"&DEVC ID='{_id_x('T90', x)}', QUANTITY='{cfg.QUANTITY_TEMPERATURE}', "
+                f"XYZ={x:.3f} {y_mid:.3f} {height:.3f} /"
+            )
     else:
         for x in sensor_xs:
             lines.append(
@@ -502,7 +512,10 @@ def _fmt_devices(x_fire, sensor_xs, L=None, W=None, H=None, hrr_region=None,
 
     # 4b 顶棚附近纵向速度测点（回流/输运参考）
     # 气相点取 x 速度分量须用 'U-VELOCITY'；IOR 仅对固壁设备有效
-    velocity_prefix = "U95" if sensor_profile == "no_wind_global_v1" else "U"
+    velocity_prefix = (
+        "U95" if sensor_profile in ("no_wind_global_v1", "no_wind_global_t90_v1")
+        else "U"
+    )
     for x in sensor_xs:
         lines.append(
             f"&DEVC ID='{_id_x(velocity_prefix, x)}', QUANTITY='{cfg.QUANTITY_VELOCITY_U}', "
@@ -550,8 +563,12 @@ def _fmt_slices(L, W, H, x_fire, sensor_profile="standard", output_profile="ligh
 
     # 无风公式重发现需要检查顶棚射流何时横向触及侧墙；在温度测点高度
     # 增加水平温度切片。默认 standard 不增加输出，保持历史工况逐字稳定。
-    if output_profile == "heavy" and sensor_profile in ("no_wind_dense", "no_wind_global_v1"):
-        z_temp, _ = cfg.sensor_heights(H)
+    if output_profile == "heavy" and sensor_profile in (
+            "no_wind_dense", "no_wind_global_v1", "no_wind_global_t90_v1"):
+        if sensor_profile == "no_wind_global_t90_v1":
+            z_temp = cfg.no_wind_formal_temperature_height(H)
+        else:
+            z_temp, _ = cfg.sensor_heights(H)
         lines.append(
             f"&SLCF PBZ={z_temp:.3f}, QUANTITY='{cfg.QUANTITY_TEMPERATURE}' /"
         )
@@ -602,7 +619,8 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     group     : 工况分组标签（仅写入 &HEAD 的 TITLE，便于检索）
     ramp_inlet: 风速是否渐升（默认 True）
     rnd_seed : FDS 6.9.1 ``MISC RND_SEED``；0 表示沿用默认固定序列
-    sensor_profile: ``standard`` 或无风公式研究用 ``no_wind_dense``
+    sensor_profile: ``standard``、先导三层 ``no_wind_global_v1`` 或
+                    G2 冻结后的正式单层 ``no_wind_global_t90_v1``
     """
     normalized = _normalized or normalize_case(dict(
         chid=chid, Q=Q, U=U, Df=Df, dx=dx, L=L, W=W, H=H,
@@ -638,7 +656,7 @@ def render_fds(chid, Q, U, Df, dx, L=None, W=None, H=None, x_fire=None, T_end=No
     # 传感器属于隧道布置而不是火源工况：同一几何下始终以隧道中点为
     # 布置参考，偏移火源不得带着传感器一起平移。这样 6 个偏移工况才
     # 能真实检验定位和平移性质。外部试验的实测位置另由测点映射表给出。
-    if sensor_profile == "no_wind_global_v1":
+    if sensor_profile in ("no_wind_global_v1", "no_wind_global_t90_v1"):
         sensor_xs = cfg.no_wind_global_sensor_layout()
     elif sensor_profile == "no_wind_dense":
         sensor_xs = cfg.no_wind_dense_sensor_layout(
@@ -911,7 +929,9 @@ def main():
     ap.add_argument("--rnd_seed", type=int, default=0,
                     help="FDS 6.9.1 MISC RND_SEED；0 使用默认固定序列")
     ap.add_argument(
-        "--sensor-profile", choices=("standard", "no_wind_dense", "no_wind_global_v1"),
+        "--sensor-profile", choices=(
+            "standard", "no_wind_dense", "no_wind_global_v1",
+            "no_wind_global_t90_v1"),
         default="standard", help="测点配置；无风公式研究使用 no_wind_dense",
     )
     ap.add_argument("--case-kind", choices=("fire", "background"), default="fire")

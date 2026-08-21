@@ -2,9 +2,9 @@
   "schema_version": "1.1",
   "protocol_id": "no_wind_ceiling_temperature_v1.1",
   "created_at": "2026-08-18T19:47:14+08:00",
-  "updated_at": "2026-08-21T10:59:46+08:00",
-  "status": "G2_PILOT_FREEZE_COMPLETE_G3_DESIGN_REQUIRED",
-  "formal_run_authorized": false,
+  "updated_at": "2026-08-21T11:19:31+08:00",
+  "status": "G3_PASS_G4_D1_EXTERNAL_FDS_RUN_REQUIRED",
+  "formal_run_authorized": true,
   "g1_short_run_authorized": true,
   "g2_pilot_preparation_authorized": true,
   "g2_pilot_stage1_run_authorized": true,
@@ -72,7 +72,9 @@
     "dx_0_25_failure_action": "STOP_V1_0_AND_REQUIRE_NEW_PROTOCOL"
   },
   "sensors": {
-    "profile": "no_wind_global_v1",
+    "profile": "no_wind_global_t90_v1",
+    "pilot_profile": "no_wind_global_v1",
+    "formal_temperature_height_z_over_H": 0.9,
     "temperature_height_priority_z_over_H": [0.9, 0.85, 0.95],
     "velocity_height_z_over_H": 0.95,
     "formula_x_m": [15, 17.5, 20, 22.5, 25, 27.5, 30, 31.25, 32.5, 33.75, 35, 36.25, 37.5, 38.75, 40, 41.25, 42.5, 43.75, 45, 46.25, 47.5, 48.75, 50, 51.25, 52.5, 53.75, 55, 56.25, 57.5, 58.75, 60, 61.25, 62.5, 63.75, 65, 66.25, 67.5, 68.75, 70, 72.5, 75, 77.5, 80, 82.5, 85],
@@ -108,7 +110,14 @@
     "core_hour_cap_factor_over_g3_science_budget": 1.35,
     "estimation_margin": 1.25,
     "benchmark_case_duration_s": 60,
-    "benchmark_status": "G1_40S_LOCAL_EVIDENCE_AVAILABLE",
+    "benchmark_status": "G3_FROZEN_FROM_COMPLETED_G2_025M_300S_RUNS_NORMALIZED_TO_60S",
+    "g3_science_budget_core_hours": 2270.1887297916664,
+    "absolute_core_hour_cap": 3064.75478521875,
+    "development_projected_core_hours": 1167.725890625,
+    "lockbox_projected_core_hours": 610.4307708333332,
+    "remaining_projected_disk_GiB": 36.408611641963944,
+    "planned_accepted_scientific_trajectories": 57,
+    "planned_fds_process_starts_including_one_g2_failure": 58,
     "per_node_concurrency_max": "USER_MANAGED"
   },
   "paths": {
@@ -119,9 +128,15 @@
     "server_details_required_by_project": false
   },
   "lockbox": {
-    "status": "NOT_GENERATED",
+    "status": "SEALED_G3",
+    "generation_allowed": false,
+    "preparation_allowed": false,
     "read_allowed": false,
-    "run_allowed": false
+    "run_allowed": false,
+    "case_csv": "config/lockbox_cases.csv",
+    "archive_manifest": "reports/g3_lockbox_archive_manifest.csv",
+    "freeze_file": "freezes/g3/g3_design_freeze_v1.json",
+    "unlock_stage": "G8_ONLY"
   },
   "fast_inversion": {
     "status": "G7_SKIPPED_NOT_REQUESTED",
@@ -240,6 +255,34 @@
       "formal_run_authorized": false,
       "next_action": "G3_GENERATE_AND_AUDIT_DESIGN"
     }
+  },
+  "g3_design": {
+    "decision": "PASS_G4_DEVELOPMENT_EXTERNAL_RUN_AUTHORIZED",
+    "freeze_file": "freezes/g3/g3_design_freeze_v1.json",
+    "analysis": "reports/g3_design_freeze.md",
+    "design_audit": "reports/g3_design_audit.json",
+    "approval_table": "reports/g3_batch_approval.csv",
+    "resource_budget": "reports/g3_resource_budget.csv",
+    "development_cases": "config/development_cases.csv",
+    "development_handoff": "reports/g3_development_run_handoff.csv",
+    "development_physical_cases": 19,
+    "development_runs": 27,
+    "development_batches": {"D1": 5, "D2": 6, "D3": 16},
+    "extension_pool_cases": 4,
+    "extension_pool_enabled": false,
+    "lockbox_physical_cases": 10,
+    "lockbox_runs": 14,
+    "formal_sensor_profile": "no_wind_global_t90_v1",
+    "formal_run_authorized": true,
+    "current_batch": "D1",
+    "current_batch_run_chids": [
+      "d_q018_s35_x50_g25_r104729",
+      "d_q027_s45_x40_g25_r104729",
+      "d_q027_s45_x50_g25_r104729",
+      "d_q027_s45_x60_g25_r104729",
+      "d_q036_s50_x50_g25_r104729"
+    ],
+    "next_action": "G4_D1_EXTERNAL_FDS_RUN_AND_TECHNICAL_ACCEPTANCE"
   },
   "pending_g1_external_evidence": []
 }

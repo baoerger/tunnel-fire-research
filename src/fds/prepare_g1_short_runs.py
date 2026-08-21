@@ -34,7 +34,13 @@ def static_audit(path, case):
     duplicates = sorted({value for value in device_ids if device_ids.count(value) > 1})
     if duplicates:
         issues.append("DEVC ID 重复: " + ",".join(duplicates))
-    required_prefixes = ("T85_", "T90_", "T95_", "U95_")
+    if case["sensor_profile"] == "no_wind_global_t90_v1":
+        required_prefixes = ("T90_", "U95_")
+        for forbidden_prefix in ("T85_", "T95_"):
+            if any(value.startswith(forbidden_prefix) for value in device_ids):
+                issues.append(f"正式单层配置不应含 {forbidden_prefix} 设备")
+    else:
+        required_prefixes = ("T85_", "T90_", "T95_", "U95_")
     for prefix in required_prefixes:
         if not any(value.startswith(prefix) for value in device_ids):
             issues.append(f"缺少 {prefix} 设备")

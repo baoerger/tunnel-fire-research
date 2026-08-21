@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "generated_at_utc": "2026-08-21T03:23:15.398108+00:00",
+  "decision": "PASS",
+  "design": {
+    "status": "PASS",
+    "criteria": {
+      "main_effect_rank": true,
+      "nine_parent_rank": true,
+      "five_complete_position_pairs": true,
+      "position_not_confounded": true,
+      "unique_input_hashes": true,
+      "cross_subset_hash_overlap": true
+    },
+    "development_physical_cases": 19,
+    "development_runs": 27,
+    "lockbox_runs": 14,
+    "main_effect_matrix_rank": 4,
+    "main_effect_matrix_columns": 4,
+    "standardized_condition_number": 1.0081892267960892,
+    "nine_parent_matrix_rank": 3,
+    "nine_parent_matrix_columns": 3,
+    "correlation_logQ_logDf": 0.008155696193536604,
+    "correlation_position_logQ": 0.0,
+    "correlation_position_logDf": 0.0,
+    "complete_position_pair_parent_ids": [
+      "d_q018_s35",
+      "d_q018_s50",
+      "d_q027_s45",
+      "d_q036_s35",
+      "d_q036_s50"
+    ]
+  },
+  "numerical": {
+    "status": "PASS",
+    "audited_input_count": 41,
+    "development_input_count": 27,
+    "lockbox_input_count": 14,
+    "mesh_count_each": 21,
+    "sensor_profile": "no_wind_global_t90_v1",
+    "temperature_height_z_over_H": 0.9
+  },
+  "resources": {
+    "status": "PASS",
+    "criteria": {
+      "accepted_trajectories_within_61": true,
+      "initial_job_starts_within_79": true,
+      "benchmark_profiles_available": true,
+      "frozen_cap_not_exceeded_by_budget": true
+    },
+    "estimation_margin": 1.25,
+    "benchmark_source": "completed G2 0.25 m fire runs, normalized from 300 s to 60 s",
+    "profiles": {
+      "light": {
+        "sample_count": 4,
+        "normalized_60s_wall_clock_s": 1195.946,
+        "median_300s_wall_clock_s": 5979.73,
+        "planned_cores_per_job": 21,
+        "estimated_300s_wall_clock_with_margin_s": 7474.662499999999,
+        "estimated_300s_core_hours_with_margin": 43.60219791666666,
+        "median_300s_output_GiB": 0.7370571293868124,
+        "estimated_300s_output_with_margin_GiB": 0.9213214117335156
+      },
+      "heavy": {
+        "sample_count": 5,
+        "normalized_60s_wall_clock_s": 1143.6482,
+        "median_300s_wall_clock_s": 5718.241,
+        "planned_cores_per_job": 21,
+        "estimated_300s_wall_clock_with_margin_s": 7147.80125,
+        "estimated_300s_core_hours_with_margin": 41.69550729166667,
+        "median_300s_output_GiB": 0.5185665311291814,
+        "estimated_300s_output_with_margin_GiB": 0.6482081639114767
+      }
+    },
+    "completed_pilot_actual_core_hours": 492.0320683333333,
+    "development_projected_core_hours": 1167.725890625,
+    "lockbox_projected_core_hours": 610.4307708333332,
+    "remaining_projected_core_hours": 1778.1566614583332,
+    "g3_science_budget_core_hours": 2270.1887297916664,
+    "absolute_core_hour_cap": 3064.75478521875,
+    "remaining_projected_disk_GiB": 36.408611641963944,
+    "accepted_trajectory_budget": {
+      "planned": 57,
+      "limit": 61
+    },
+    "initial_job_start_budget": {
+      "planned": 58,
+      "limit": 79
+    },
+    "completed_or_started_g2_jobs": 17,
+    "development_sequential_wall_days": 2.3169164496527777,
+    "lockbox_sequential_wall_days": 1.2111721643518518,
+    "concurrency": "USER_MANAGED; each benchmarked job used 21 MPI processes"
+  },
+  "isolation": {
+    "status": "PASS",
+    "lockbox_run_count": 14,
+    "run_allowed": false,
+    "read_allowed": false,
+    "output_files_seen": 0
+  }
+}

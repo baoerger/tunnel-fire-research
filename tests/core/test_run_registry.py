@@ -13,7 +13,8 @@ class RunRegistryContracts(unittest.TestCase):
         self.attempts = self.root / "job_attempts.csv"
         self.protocol = self.root / "protocol.json"
         self.protocol.write_text(
-            '{"lockbox":{"read_allowed":false,"run_allowed":false}}',
+            '{"lockbox":{"generation_allowed":false,"preparation_allowed":false,'
+            '"read_allowed":false,"run_allowed":false}}',
             encoding="utf-8",
         )
 
@@ -79,10 +80,30 @@ class RunRegistryContracts(unittest.TestCase):
             self._prepare(source, job_attempt_id="case_a_a02", return_name="a02")
 
     def test_lockbox_is_denied_until_protocol_unlock(self):
-        for operation in ("generate", "read", "train"):
+        for operation in ("generate", "prepare", "run", "read", "train"):
             with self.subTest(operation=operation), self.assertRaises(PermissionError):
                 registry.guard_subset("lockbox", operation, self.protocol)
         registry.guard_subset("pilot", "prepare", self.protocol)
+
+    def test_lockbox_can_be_generated_and_prepared_without_run_or_read_access(self):
+        self.protocol.write_text(
+            '{"lockbox":{"generation_allowed":true,"preparation_allowed":true,'
+            '"read_allowed":false,"run_allowed":false}}',
+            encoding="utf-8",
+        )
+        registry.guard_subset("lockbox", "generate", self.protocol)
+        source = self._named_input(chid="lockbox_case")
+        row = registry.prepare_attempt(
+            source_input=source, return_dir=self.root / "runs" / "lockbox",
+            subset="lockbox", purpose="independent_confirmation", case_kind="fire",
+            parent_case_id="l01", physical_case_id="l01",
+            job_attempt_id="lockbox_case_a01", protocol_path=self.protocol,
+            case_registry_path=self.cases, attempts_path=self.attempts,
+        )
+        self.assertEqual("LOCKBOX_SEALED_NOT_RUNNABLE", row["status"])
+        for operation in ("run", "read", "train"):
+            with self.subTest(operation=operation), self.assertRaises(PermissionError):
+                registry.guard_subset("lockbox", operation, self.protocol)
 
     def test_restart_transition_requires_next_registered_end_and_same_core(self):
         parent = self._input(t_end=300, restart=False)

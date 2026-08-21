@@ -1,0 +1,10 @@
+﻿item,unit,value,status,evidence
+benchmark_light,profile,light,PASS,n=4;60s_wall=1195.946;300s_margin_core_h=43.602;300s_margin_GiB=0.921
+benchmark_heavy,profile,heavy,PASS,n=5;60s_wall=1143.648;300s_margin_core_h=41.696;300s_margin_GiB=0.648
+accepted_scientific_trajectories,run_chid,57/61,PASS,G3 frozen estimate
+initial_job_starts,job_attempt_id,58/79,PASS,G3 frozen estimate
+development_projected_core_hours,core-hour,1167.726,PASS,G3 frozen estimate
+lockbox_projected_core_hours,core-hour,610.431,PASS,G3 frozen estimate
+g3_science_budget,core-hour,2270.189,PASS,G3 frozen estimate
+absolute_core_hour_cap,core-hour,3064.755,PASS,G3 frozen estimate
+remaining_projected_disk,GiB,36.409,PASS,G3 frozen estimate
