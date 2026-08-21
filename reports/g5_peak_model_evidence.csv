@@ -1,0 +1,2 @@
+﻿candidate,b_d,b_d_cluster_bootstrap_ci95_low,b_d_cluster_bootstrap_ci95_high,outer_fold_b_d_direction_consistent_fraction,outer_fold_b_d_min,outer_fold_b_d_max,worst_parent_not_worse,status
+M1_SIZE_TERM,-0.596201603771646,-0.8936067185761088,-0.34664067176738017,1.0,-0.7194949550147821,-0.5194658178920806,True,RETAIN

@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "stage": "G4_DEVELOPMENT",
+  "generated_at_utc": "2026-08-21T15:45:38.379098+00:00",
+  "decision": "PASS_WITH_USER_VERSION_OVERRIDE_READY_FOR_G5",
+  "version_policy": "USER_DIRECTED_IGNORE_VERSION_DIFFERENCE",
+  "actual_fds_versions": [
+    "6.9.1"
+  ],
+  "formal_baseline_version": "6.10.1",
+  "technical_pass": 27,
+  "steady_pass": 27,
+  "scientific_run_pass": 27,
+  "physical_case_count": 19,
+  "batch_gates": {
+    "D1": "PASS",
+    "D2": "PASS",
+    "D3": "PASS"
+  },
+  "seed_gate": "PASS",
+  "translation_gate": "PASS",
+  "flame_regime_gate": "PASS_SINGLE_CEILING_IMPINGING_OR_NEAR_IMPINGING_LAYER",
+  "detection_limit_K": 0.5,
+  "effective_domain_xi_h": 5.0,
+  "bootstrap_replicates": 2000,
+  "peak_grid_uncertainty_fraction_retained": 0.13,
+  "strict_grid_independence_claim_allowed": false,
+  "lockbox_status": "SEALED_UNREAD_UNRUN",
+  "database_manifest": "reports/g4_development_database_manifest.csv",
+  "next_action": "G5_FORWARD_MODEL_SELECTION_AND_FREEZE_A"
+}
