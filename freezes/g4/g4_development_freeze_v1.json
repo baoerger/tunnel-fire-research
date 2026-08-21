@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "freeze_id": "g4_development_freeze_v1",
+  "generated_at_utc": "2026-08-21T15:48:03.773493+00:00",
+  "decision": "PASS_WITH_USER_VERSION_OVERRIDE_READY_FOR_G5",
+  "version_policy": "USER_DIRECTED_IGNORE_VERSION_DIFFERENCE",
+  "actual_fds_versions": [
+    "6.9.1"
+  ],
+  "formal_baseline_version": "6.10.1",
+  "accepted_runs": 27,
+  "physical_cases": 19,
+  "batch_gates": {
+    "D1": "PASS",
+    "D2": "PASS",
+    "D3": "PASS"
+  },
+  "seed_gate": "PASS",
+  "translation_gate": "PASS",
+  "flame_regime_gate": "PASS_SINGLE_CEILING_IMPINGING_OR_NEAR_IMPINGING_LAYER",
+  "peak_grid_uncertainty_fraction_retained": 0.13,
+  "strict_grid_independence_claim_allowed": false,
+  "lockbox_status": "SEALED_UNREAD_UNRUN",
+  "database": {
+    "derived/development/case_master.csv": "de5dea31c7e121892cc53c46b0abdb768452be66af7fd88ed4d7af17dacd7a60",
+    "derived/development/steady_windows.csv": "82e2e150fc990daed79048c8fd9014406bae5b99d15fda7b5320a7014f47d230",
+    "derived/development/curve_points.csv": "e5222d35143945bea27b808a1e95f28fa728815d2c95f21496dfd14acda4ab73",
+    "derived/development/case_metrics.csv": "d97f50bc253b9e7cb45e58990f59f741888a7fb26e2746508ae1f664f5acbde1",
+    "derived/development/run_exclusions.csv": "b453c24c1572eca2aa2b28da56cc4eccb9d4eeed1f1dc97fbee1591eb992ebfa",
+    "derived/development/seed_metrics.csv": "c7173bf9c5e94b121f6917d956d98025efc0e3ab7fda9a24374576ff5829ee90",
+    "derived/development/translation_metrics.csv": "23b5de7ab2a1e1afea929b9178cf41420ff45e1cbd3a873162fa51b4bf234d52",
+    "derived/development/d1_flame_regime_evidence.csv": "3a062a11aa4e1b990b931f973c21c51bad08ade57f60711e590961938a15cbe6"
+  },
+  "evidence_sha256": {
+    "config/protocol_v1.json": "92a6e7da1d070e101bdf4bbf4815249681816044a4881dae2b90e9b7373388e5",
+    "config/development_cases.csv": "af7c93d26c0c7ae85846683e3cb29fb2386e12113c89f742eace0aa5602380fb",
+    "config/case_registry.csv": "8aba1b4ee58539c42f96882c6afea78ba0a07da3bf4c019d8a1eb2bf29f6fe19",
+    "config/job_attempts.csv": "5cd9a5258551f3157462ef612151593283d1a741bfbf4b0d27121c5e926a5020",
+    "reports/g3_development_run_handoff.csv": "2d061d1e8ca6716064d4580287b7e44ea2d7a8cac8fa332c6f990dff68a9ffbc",
+    "reports/g4_development_decision.json": "585e00433475feef8bc7feb2d0115242d6e403464ee4caae470f5d695903846f",
+    "reports/g4_development_technical_acceptance.csv": "bb763d47005c0710793dd630fb1959b040a83059d8d7ec10be43276eb2b1c8d9",
+    "reports/g4_development_batch_gates.csv": "fa9d22097b41fdeb9eca4248a1afc765a6b161ee42032c788119b064bbd34d83",
+    "reports/g4_development_seed_metrics.csv": "c7173bf9c5e94b121f6917d956d98025efc0e3ab7fda9a24374576ff5829ee90",
+    "reports/g4_development_translation_metrics.csv": "23b5de7ab2a1e1afea929b9178cf41420ff45e1cbd3a873162fa51b4bf234d52",
+    "reports/g4_d1_flame_regime_evidence.csv": "3a062a11aa4e1b990b931f973c21c51bad08ade57f60711e590961938a15cbe6",
+    "reports/g4_accepted_chain_hashes.csv": "8aee7fbbefb705773c68958212b0eb1b17f57d89e5ca9d71cbd1c8a33bcf59d9",
+    "reports/g4_development_database_manifest.csv": "a720a82e18eafb7ff88b49c2a6a670bf9ca43d748872d6366f4d1875d501d45b",
+    "reports/g4_development_analysis.md": "403452780c9c12c20e8d5a6952cff6e1e8dfcd03c80d73174a0f3ccf7858efae",
+    "src/analysis/analyze_g4_development.py": "5c56971501500740f9de99c4efe404bbdee764d59f4cca8055719b22d6d1a3c5",
+    "src/analysis/finalize_g4_development.py": "c9a4f8f443d97b9c53e34ba3bb29457a0721cd781fc6a2d3b529dca3c688994d"
+  },
+  "next_action": "G5_FORWARD_MODEL_SELECTION_AND_FREEZE_A"
+}

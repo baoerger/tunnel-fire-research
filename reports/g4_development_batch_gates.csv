@@ -1,0 +1,4 @@
+﻿batch,expected_count,accepted_count,technical_pass_count,steady_pass_count,science_pass_count,prior_batch_gate,heavy_flame_regime_gate,status
+D1,5,5,5,5,5,PASS,PASS,PASS
+D2,6,6,6,6,6,PASS,NOT_APPLICABLE,PASS
+D3,16,16,16,16,16,PASS,NOT_APPLICABLE,PASS

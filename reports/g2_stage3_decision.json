@@ -1,0 +1,9 @@
+{
+  "stage": "G2_STAGE3",
+  "decision": "FAIL",
+  "largest_passing_xi_h": null,
+  "version_policy": "USER_DIRECTED_IGNORE_VERSION_DIFFERENCE",
+  "case_count": 10,
+  "grid_group_count": 2,
+  "seed_group_count": 2
+}

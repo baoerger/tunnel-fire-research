@@ -1,0 +1,331 @@
+{
+  "schema_version": "1.0",
+  "freeze_id": "g2_pilot_freeze_v1",
+  "generated_at_utc": "2026-08-21T02:58:42.308227+00:00",
+  "decision": "READY_FOR_G3_WITH_USER_ACCEPTED_GRID_UNCERTAINTY",
+  "protocol_id": "no_wind_ceiling_temperature_v1.1",
+  "version_policy": "USER_DIRECTED_IGNORE_VERSION_DIFFERENCE",
+  "frozen_values": {
+    "working_dx_m": 0.25,
+    "strict_grid_independence_claim_allowed": false,
+    "peak_grid_uncertainty_fraction": 0.13,
+    "temperature_height_z_over_H": 0.9,
+    "temperature_sensor_prefix": "T90",
+    "mean_window_s": 60,
+    "minimum_sufficient_T_END_s": 300,
+    "detection_limit_C": 0.5,
+    "effective_domain_xi_h": 5,
+    "effective_domain_m": 25.0,
+    "opening_buffer_h": 3.0,
+    "allowed_x_fire_m": [
+      40.0,
+      60.0
+    ],
+    "flame_regime_layer": "CEILING_IMPINGING_OR_NEAR_IMPINGING",
+    "development_extension_pool_enabled": false
+  },
+  "uncertainty_floor_components": {
+    "absolute_detection_limit_C": 0.5,
+    "maximum_pilot_seed_peak_cv": 0.06739465059013305,
+    "maximum_pilot_seed_curve_nrmse": 0.04730950942841787,
+    "peak_grid_uncertainty_fraction": 0.13,
+    "combination_rule": "时间块不确定性按工况估计；种子、网格和后续模型残差作为独立分量保留，不在 G2 中伪合并为单一已知标准差。"
+  },
+  "flame_regime_evidence": {
+    "classification": "CONSERVATIVE_SINGLE_CEILING_INTERACTING_LAYER",
+    "heskestad_is_screening_not_fds_truth": true,
+    "full_design_screening": [
+      {
+        "Q_MW": 18.0,
+        "burner_side_m": 3.5,
+        "equivalent_diameter_m": 3.949327084834294,
+        "heskestad_Lf_m": 7.806920791012987,
+        "Lf_minus_H_m": 2.8069207910129874
+      },
+      {
+        "Q_MW": 18.0,
+        "burner_side_m": 4.5,
+        "equivalent_diameter_m": 5.077706251929807,
+        "heskestad_Lf_m": 6.655974040575564,
+        "Lf_minus_H_m": 1.6559740405755639
+      },
+      {
+        "Q_MW": 18.0,
+        "burner_side_m": 5.0,
+        "equivalent_diameter_m": 5.641895835477563,
+        "heskestad_Lf_m": 6.080500665356853,
+        "Lf_minus_H_m": 1.080500665356853
+      },
+      {
+        "Q_MW": 27.0,
+        "burner_side_m": 3.5,
+        "equivalent_diameter_m": 3.949327084834294,
+        "heskestad_Lf_m": 9.890857298604502,
+        "Lf_minus_H_m": 4.890857298604502
+      },
+      {
+        "Q_MW": 27.0,
+        "burner_side_m": 4.5,
+        "equivalent_diameter_m": 5.077706251929807,
+        "heskestad_Lf_m": 8.739910548167078,
+        "Lf_minus_H_m": 3.739910548167078
+      },
+      {
+        "Q_MW": 27.0,
+        "burner_side_m": 5.0,
+        "equivalent_diameter_m": 5.641895835477563,
+        "heskestad_Lf_m": 8.164437172948368,
+        "Lf_minus_H_m": 3.164437172948368
+      },
+      {
+        "Q_MW": 36.0,
+        "burner_side_m": 3.5,
+        "equivalent_diameter_m": 3.949327084834294,
+        "heskestad_Lf_m": 11.588371813269912,
+        "Lf_minus_H_m": 6.588371813269912
+      },
+      {
+        "Q_MW": 36.0,
+        "burner_side_m": 4.5,
+        "equivalent_diameter_m": 5.077706251929807,
+        "heskestad_Lf_m": 10.437425062832489,
+        "Lf_minus_H_m": 5.437425062832489
+      },
+      {
+        "Q_MW": 36.0,
+        "burner_side_m": 5.0,
+        "equivalent_diameter_m": 5.641895835477563,
+        "heskestad_Lf_m": 9.861951687613777,
+        "Lf_minus_H_m": 4.861951687613777
+      }
+    ],
+    "heavy_pilot_near_ceiling_temperature": [
+      {
+        "chid": "p_q018_s40_x50_g25_r104729",
+        "Q_MW": 18.0,
+        "x_fire_m": 50.0,
+        "sensor": "T95_5000",
+        "mean_temperature_C": 679.6047491803279
+      },
+      {
+        "chid": "p_q036_s40_x50_g25_r104729",
+        "Q_MW": 36.0,
+        "x_fire_m": 50.0,
+        "sensor": "T95_5000",
+        "mean_temperature_C": 1029.7725819672132
+      },
+      {
+        "chid": "p_q027_s45_x40_g25_r104729",
+        "Q_MW": 27.0,
+        "x_fire_m": 40.0,
+        "sensor": "T95_4000",
+        "mean_temperature_C": 872.548416
+      },
+      {
+        "chid": "p_q027_s45_x50_g25_r104729",
+        "Q_MW": 27.0,
+        "x_fire_m": 50.0,
+        "sensor": "T95_5000",
+        "mean_temperature_C": 844.8107245
+      },
+      {
+        "chid": "p_q027_s45_x60_g25_r104729",
+        "Q_MW": 27.0,
+        "x_fire_m": 60.0,
+        "sensor": "T95_6000",
+        "mean_temperature_C": 875.3371649180328
+      }
+    ],
+    "development_recheck_required": true,
+    "stop_if_mixed_regime_observed": true
+  },
+  "unselected_or_failed_candidates": {
+    "strict_grid_gate": {
+      "status": "FAIL_RETAINED_AS_EVIDENCE",
+      "reason": "18/36 MW 中-细峰值差 12.79%/8.34% 超过 7.5%",
+      "evidence": "reports/g2_stage3_grid_metrics.csv"
+    },
+    "effective_domain_xi_h": {
+      "selected": 5,
+      "unselected_but_passing": [
+        4,
+        3
+      ]
+    },
+    "temperature_height_priority": {
+      "selected_first_passing": 0.9,
+      "not_selected": [
+        0.85,
+        0.95
+      ]
+    },
+    "development_extension_pool": {
+      "status": "DISABLED",
+      "reason": "主体结果不可见时没有充分证据证明必须为 S3 增加 4 个工况"
+    }
+  },
+  "evidence_files": {
+    "stage1": "reports/g2_stage1_background_analysis.md",
+    "stage2": "reports/g2_stage2_analysis.md",
+    "stage3": "reports/g2_stage3_analysis.md",
+    "stage3_user_mesh_decision": "reports/g2_stage3_working_mesh_decision.md",
+    "stage4": "reports/g2_stage4_analysis.md"
+  },
+  "script_sha256": {
+    "src/fds/check_fds_results.py": "dd4364b7348d8e72e250a2dec53ac6954886ad8402124b8968ad753e39b73b9b",
+    "src/fds/fds_io.py": "828cd7db2d37a18ad75869efb51a07fc4adb7baed3c98e0099c201bdad7dedf3",
+    "src/analysis/quasi_steady_detect.py": "3b4046431484dee36cb3b399e0001c3bc7dc0ba3c2ef6794faa5cf7adb962431",
+    "src/analysis/time_average_bootstrap.py": "16c1027a225e9baf41dd06302444874ed56b9cc052a72e5426fe5a6b05f1f461",
+    "src/analysis/analyze_g2_stage3.py": "fc34bb720a6ac5c8c33a00b9e660dbc899870aa9a8419e62d987f5209ff11992",
+    "src/analysis/analyze_g2_stage4.py": "4495e7c534d00e1436d1bd54d271e8ffc1779d6b4c230c957ac4f24e2426ce20",
+    "src/analysis/finalize_g2_pilot_freeze.py": "30f2b1146b0aa17aff3c8ebe09624b11b34a44a8c35b933917aacd012e93619d"
+  },
+  "pilot_runs": [
+    {
+      "chid": "p_bg_g25_r104729",
+      "job_attempt_id": "p_bg_g25_r104729_a01",
+      "purpose": "background",
+      "attempt_input_sha256": "73e46d1c8e6dd5345d4b5f572c8b1959507d2f7e03d59172514e820dcf527532",
+      "run_core_sha256": "61cbcdb6c906b8bbd7cf16c74f6dba2619e517518c5a418f78ea70fdbdba429e",
+      "fds_version_actual": "6.10.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_bg_g25_r204729",
+      "job_attempt_id": "p_bg_g25_r204729_a01",
+      "purpose": "background",
+      "attempt_input_sha256": "9c7ee73e763719f5b7311ac3ee4c6b6d71418861af2ee7d2f859cc80bac6a281",
+      "run_core_sha256": "4bb044d2781c6206fe313376e6028f4239a28561ebf30c82aec5800aee3cded2",
+      "fds_version_actual": "6.10.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_bg_g25_r304729",
+      "job_attempt_id": "p_bg_g25_r304729_a01",
+      "purpose": "background",
+      "attempt_input_sha256": "71a778ce07cf48db6311f9b0ee63f8d4a2103cab058f3a194ad2a60540aafcf3",
+      "run_core_sha256": "c2d7b53f9878c2a12f269ae71b81b53984314ae260182e69355e646303f458c6",
+      "fds_version_actual": "6.10.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q018_s40_x50_g50m18_r104729",
+      "job_attempt_id": "p_q018_s40_x50_g50m18_r104729_a01",
+      "purpose": "grid_low",
+      "attempt_input_sha256": "f0bf26eea0d1d88a1367493652d088de75fde76d8b01afcce930760c507a1751",
+      "run_core_sha256": "e1758d089ef3f06cba24cd08c617dcf2e861be74be8358371dadc4e3db7eef3b",
+      "fds_version_actual": "6.9.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q018_s40_x50_g25_r104729",
+      "job_attempt_id": "p_q018_s40_x50_g25_r104729_a01",
+      "purpose": "grid_low",
+      "attempt_input_sha256": "65516361483efaa942ce12b6ef96bf25984cb82616bd30db3e475583d438c7e6",
+      "run_core_sha256": "395015ce42dbe4e291161e7b084628f07552d1e1bec08f702b57c627e611db50",
+      "fds_version_actual": "6.10.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q018_s40_x50_g20_r104729",
+      "job_attempt_id": "p_q018_s40_x50_g20_r104729_a01",
+      "purpose": "grid_low",
+      "attempt_input_sha256": "e979458086d946eb6b3b3f2899451de8c760d8d0eaca2332918bf3dc3beab947",
+      "run_core_sha256": "9f92db130f4fde39d203781ef040979616aa42be53a1dc1380bc97b7b13b19fb",
+      "fds_version_actual": "6.9.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q036_s40_x50_g50m18_r104729",
+      "job_attempt_id": "p_q036_s40_x50_g50m18_r104729_a01",
+      "purpose": "grid_high",
+      "attempt_input_sha256": "7c376424cb51a5c8d913e675a49eb35780969e6dc654dd9aaeeb6e9b115a7a45",
+      "run_core_sha256": "517640d7af6008537d013a0c22f7e8065ef44f9c7b327bdd3a6876a482ce53ae",
+      "fds_version_actual": "6.9.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q036_s40_x50_g25_r104729",
+      "job_attempt_id": "p_q036_s40_x50_g25_r104729_a01",
+      "purpose": "grid_high",
+      "attempt_input_sha256": "1e7e0f863acfd27d27b9aa9a9bc013402593e240eaa1ef74d6ed70008507c1bb",
+      "run_core_sha256": "b9a3402c45a92cceebf3891af78c52052c53d1bf6ee692b62b8dce1a7ad58e93",
+      "fds_version_actual": "6.10.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q036_s40_x50_g20_r104729",
+      "job_attempt_id": "p_q036_s40_x50_g20_r104729_a01",
+      "purpose": "grid_high",
+      "attempt_input_sha256": "f5f8699c19df915c6b1d93d159e49acb7baae161514f5dc6442395c91cb6208b",
+      "run_core_sha256": "ad1c8610a18d3c90206206aedac7238162d1d53bd6b6264a9bd6950123b3668e",
+      "fds_version_actual": "6.9.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q027_s45_x40_g25_r104729",
+      "job_attempt_id": "p_q027_s45_x40_g25_r104729_a01",
+      "purpose": "opening_translation",
+      "attempt_input_sha256": "da615b84905887875b894b66697e53f173894d5a0533b51424c21f82f37e1343",
+      "run_core_sha256": "ef9ba6afb8616a7f1ff72f8bc45ad75ee0b71527130c6cb2d559bb1d157bb8c6",
+      "fds_version_actual": "6.9.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q027_s45_x50_g25_r104729",
+      "job_attempt_id": "p_q027_s45_x50_g25_r104729_a01",
+      "purpose": "opening_translation",
+      "attempt_input_sha256": "993997b2b177cbe972292ce1a73bdd903478d1ea5577c849eebd83599da2cd42",
+      "run_core_sha256": "45a05cb9c2af74c979a073ace38abc03a018dc25d31992a9b66daa290cdee65e",
+      "fds_version_actual": "6.9.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q027_s45_x60_g25_r104729",
+      "job_attempt_id": "p_q027_s45_x60_g25_r104729_a01",
+      "purpose": "opening_translation",
+      "attempt_input_sha256": "c49c96ae3d23a40e48d87667eba856e10d5c9c9f47b0957fd6ba3de27ea69631",
+      "run_core_sha256": "f5b2f87dbefbbff53372ac9c66a7381a2e37cbb297bbebb62901cfedd609e780",
+      "fds_version_actual": "6.9.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q018_s40_x50_g25_r204729",
+      "job_attempt_id": "p_q018_s40_x50_g25_r204729_a01",
+      "purpose": "seed_repeat_low",
+      "attempt_input_sha256": "13b38494e32fbcb345de9428b8ba17fc1259132cbca8f16b9d02993354e9f272",
+      "run_core_sha256": "5dace9b672937995f3038a11c08893eb18dd9d1bbf553ce54ab31b8d306a0e0b",
+      "fds_version_actual": "6.10.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q018_s40_x50_g25_r304729",
+      "job_attempt_id": "p_q018_s40_x50_g25_r304729_a01",
+      "purpose": "seed_repeat_low",
+      "attempt_input_sha256": "591ee982681a11eca168c3b8641aa3e31a74f0daf2aedf0554122859e7c63c2e",
+      "run_core_sha256": "50946bf83e8cc63d59de628f07b96c73eccadf6a38264e30acfb0ab296397acf",
+      "fds_version_actual": "6.10.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q036_s40_x50_g25_r204729",
+      "job_attempt_id": "p_q036_s40_x50_g25_r204729_a01",
+      "purpose": "seed_repeat_high",
+      "attempt_input_sha256": "032d519e960960fa6dc063b5e89875515cc9e2e31cc82540aaf4289e911a65d8",
+      "run_core_sha256": "25336a2c0683723d5a2fec14665864d678df8feff1cd8072b9f40a130ec5a0e0",
+      "fds_version_actual": "6.10.1",
+      "quality_status": "PASS"
+    },
+    {
+      "chid": "p_q036_s40_x50_g25_r304729",
+      "job_attempt_id": "p_q036_s40_x50_g25_r304729_a01",
+      "purpose": "seed_repeat_high",
+      "attempt_input_sha256": "30e771987ccd0644356ed7cbd30da9de63fc87da2cd9c9cef84ae5bcbac702f4",
+      "run_core_sha256": "15c0d5b924726d0f9848fc2df56dddbb3a372f24064518d2e7144593ab6ec5af",
+      "fds_version_actual": "6.9.1",
+      "quality_status": "PASS"
+    }
+  ],
+  "pilot_run_count": 16,
+  "raw_results_gitignored": true
+}

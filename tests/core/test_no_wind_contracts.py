@@ -175,6 +175,22 @@ class NoWindCaseContracts(unittest.TestCase):
         self.assertEqual(coordinate_sets[0], coordinate_sets[1])
         self.assertEqual(coordinate_sets[1], coordinate_sets[2])
 
+    def test_formal_global_profile_keeps_only_frozen_t90_layer(self):
+        case = self.formal_case(
+            chid="formal_t90", sensor_profile="no_wind_global_t90_v1",
+            output_profile="heavy",
+        )
+        text = gen.render_fds(
+            chid=case["chid"], Q=case["Q"], U=case["U"], Df=case["Df"],
+            dx=case["dx"], _normalized=case,
+        )
+        expected = cfg.no_wind_global_sensor_layout()
+        self.assertEqual(len(expected), len(re.findall(r"^&DEVC ID='T90_", text, re.MULTILINE)))
+        self.assertEqual(len(expected), len(re.findall(r"^&DEVC ID='U95_", text, re.MULTILINE)))
+        self.assertNotIn("ID='T85_", text)
+        self.assertNotIn("ID='T95_", text)
+        self.assertIn("&SLCF PBZ=4.500, QUANTITY='TEMPERATURE' /", text)
+
     def test_symmetric_mesh_has_21_meshes_and_central_activity_block(self):
         case = self.formal_case()
         text = gen.render_fds(
@@ -186,6 +202,26 @@ class NoWindCaseContracts(unittest.TestCase):
         self.assertEqual(5, sum("XB=36.000 64.000" in line for line in meshes))
         self.assertAlmostEqual(16.0, case["Af_discrete_m2"])
         self.assertAlmostEqual(50.0, case["xf_actual_m"])
+
+    def test_coarse_symmetric_mesh_avoids_two_cell_poisson_partitions(self):
+        case = self.formal_case(chid="coarse_mesh", dx=0.5)
+        text = gen.render_fds(
+            chid=case["chid"], Q=case["Q"], U=case["U"], Df=case["Df"],
+            dx=case["dx"], _normalized=case,
+        )
+        meshes = [line for line in text.splitlines() if line.startswith("&MESH")]
+        self.assertEqual(18, len(meshes))
+        central = [line for line in meshes if "XB=36.000 64.000" in line]
+        self.assertEqual(2, len(central))
+        self.assertTrue(all("IJK=56 20 5" in line for line in central))
+
+        cell_count = 0
+        for line in meshes:
+            match = re.search(r"IJK=(\d+) (\d+) (\d+)", line)
+            self.assertIsNotNone(match)
+            nx, ny, nz = (int(value) for value in match.groups())
+            cell_count += nx * ny * nz
+        self.assertEqual(40000, cell_count)
 
     def test_light_and_heavy_output_profiles_are_distinct(self):
         light = self.formal_case(output_profile="light")

@@ -1,0 +1,14 @@
+{
+  "stage": "G2_STAGE4",
+  "decision": "PASS_WITH_USER_ACCEPTED_GRID_UNCERTAINTY",
+  "largest_passing_xi_h": 5,
+  "working_dx_m": 0.25,
+  "peak_grid_uncertainty_fraction": 0.13,
+  "strict_grid_independence_claim_allowed": false,
+  "opening_buffer_h": 3.0,
+  "detection_limit_C": 0.5,
+  "working_case_count": 9,
+  "stage4_new_case_count": 3,
+  "bootstrap_replicates": 2000,
+  "version_policy": "USER_DIRECTED_IGNORE_VERSION_DIFFERENCE"
+}

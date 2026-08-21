@@ -234,12 +234,19 @@ def no_wind_global_sensor_layout():
 
 
 NO_WIND_TEMPERATURE_HEIGHT_RATIOS = (0.85, 0.90, 0.95)
+NO_WIND_FORMAL_TEMPERATURE_HEIGHT_RATIO = 0.90
 
 
 def no_wind_temperature_heights(height=None):
     """先导/G1 同时使用的三个近顶棚气相测温高度。"""
     height = H if height is None else height
     return tuple(ratio * height for ratio in NO_WIND_TEMPERATURE_HEIGHT_RATIOS)
+
+
+def no_wind_formal_temperature_height(height=None):
+    """返回 G2 冻结后正式开发/锁箱工况的唯一测温高度。"""
+    height = H if height is None else height
+    return NO_WIND_FORMAL_TEMPERATURE_HEIGHT_RATIO * height
 
 
 # ============================================================================
@@ -281,7 +288,7 @@ DT_DEVC = 1.0      # 设备/传感器输出间隔 [s]（准稳态时间平均需
 DT_HRR = 1.0       # _hrr.csv 输出间隔 [s]（含 HRR、Q_RADI、Q_CONV 等能量收支项）
 DT_SLCF = 5.0      # 切片场输出间隔 [s]（控制三维/二维数据量）
 DT_BNDF = 10.0     # 边界场输出间隔 [s]
-T_END_DEFAULT = 300.0   # 默认模拟结束时间 [s]（需 ≥ 稳态到达 + 30 s 平均窗口）
+T_END_DEFAULT = 300.0   # 默认模拟结束时间 [s]（需 ≥ 稳态到达 + 60 s 平均窗口）
 TAU_RAMP = 10.0          # 火源 HRR 斜坡时间 [s]（避免冲击式启动）
 
 if __name__ == "__main__":

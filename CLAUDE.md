@@ -321,12 +321,13 @@ FDS 6.10.1 本项目实跑输出：
 
 ### 1.14 多 MESH 与并行运行
 
-- 当前无风设计草案使用 `n_mesh_x=11`、`n_mesh_y=1`、`n_mesh_z=2`，即 `11×1×2=22 MESH`，但该值在 `protocol_v1.json` 冻结并通过先导网格门前不是正式生产结论。参数由 `config/` 中当前协议工况表提供，生成逻辑由 `src/fds/generate_fds_case.py` 实现。
+- 当前无风正式输入使用 `no_wind_symmetric_v1` 镜像分区，具体分区数按 `dx` 冻结在 `config/protocol_v1.json`，生成逻辑由 `src/fds/generate_fds_case.py` 实现。
 - 多 MESH 边界必须按各轴整数单元索引划分并严格落在原始 `dx` 网格线上；所有分区必须完整覆盖计算域、互不重叠且无缝隙，总单元数必须与单 MESH 模型一致。
 - 离散后的燃烧器 VENT 不得被任何内部 x/y MESH 边界切穿；修改火源位置、直径、网格尺寸或分区数后必须重新校验。地面燃烧器位于 `z=0`，当前 z 向内部边界不切穿燃烧器。
 - 不得长期手改生成后的多 MESH `.fds`。分区策略修改必须先进入 CSV 或生成器，再重新生成全部受影响输入并运行合同测试。
-- MPI 进程数不得超过 MESH 数。44 核及以上可优先短测 `22 MPI × 2 OpenMP`；40 核分配不得超配，可比较 `11 MPI × 3 OpenMP` 与 `22 MPI × 1 OpenMP`。这些配置只是起点，正式采用前必须以同一短算例的 wall-clock 比较为准。
+- MPI 进程数不得超过 MESH 数。外部运行建议每个 MESH 先分配 1 MPI × 1 OpenMP：粗网格 18 MPI，中/细网格 21 MPI；若要改变并行配置，正式采用前必须用同一短算例比较 wall-clock。
 - 并行基准与首次正式运行必须检查各 MESH 负载、FDS 日志中的第一条 `ERROR(...)`、全部 `WARNING` 和 `rejected`，并核验火源 HRR、设备 CSV 与能量输出；MESH 数更多不自动代表运行更快。
+- `no_wind_symmetric_v1` 按物理网格尺寸选择分区：`dx=0.5 m` 使用 18 MESH，`dx=0.25/0.2 m` 使用 21 MESH。粗网格中间区不得采用只含 2 层单元的 z 分区；FDS 6.10.1 已实跑确认 18 MESH 修复版可正常完成 Poisson 初始化和时间推进。
 
 ### 1.15 输入文件结构
 

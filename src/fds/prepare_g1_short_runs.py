@@ -21,8 +21,9 @@ def static_audit(path, case):
     issues = []
     if not text.rstrip().endswith("&TAIL /"):
         issues.append("TAIL 不是最后记录")
-    if text.count("&MESH ID=") != 21:
-        issues.append("MESH 数不是 21")
+    expected_meshes = 18 if abs(float(case["dx"]) - 0.5) < 1e-10 else 21
+    if text.count("&MESH ID=") != expected_meshes:
+        issues.append(f"MESH 数不是 {expected_meshes}")
     if text.count("SURF_ID='OPEN'") != 2:
         issues.append("两端 OPEN 数量错误")
     for forbidden in ("SURF ID='INLET'", "RAMP_V", "U VELOCITY",
@@ -33,7 +34,13 @@ def static_audit(path, case):
     duplicates = sorted({value for value in device_ids if device_ids.count(value) > 1})
     if duplicates:
         issues.append("DEVC ID 重复: " + ",".join(duplicates))
-    required_prefixes = ("T85_", "T90_", "T95_", "U95_")
+    if case["sensor_profile"] == "no_wind_global_t90_v1":
+        required_prefixes = ("T90_", "U95_")
+        for forbidden_prefix in ("T85_", "T95_"):
+            if any(value.startswith(forbidden_prefix) for value in device_ids):
+                issues.append(f"正式单层配置不应含 {forbidden_prefix} 设备")
+    else:
+        required_prefixes = ("T85_", "T90_", "T95_", "U95_")
     for prefix in required_prefixes:
         if not any(value.startswith(prefix) for value in device_ids):
             issues.append(f"缺少 {prefix} 设备")

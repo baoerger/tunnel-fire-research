@@ -1,0 +1,4 @@
+﻿component,parameters_json,parameter_bound_hit
+M1,"{""C_m"": 2.5694229433426554, ""D_ref_m"": 5.07770625192981, ""Q_ref_MW"": 27.0, ""a"": 0.8133338164830236, ""b_d"": -0.596201603771646}",False
+S1,"{""A_s"": 4.96916669207512, ""p_s"": 0.3960240243721241}",False
+ERROR_MODEL,"{""correlation_length_xi"": 2.0, ""covariance_nugget"": 0.2, ""minimum_absolute_sigma_K"": 0.5, ""model_sigma_K"": 25.03416861564171, ""peak_grid_uncertainty_fraction"": 0.13}",False

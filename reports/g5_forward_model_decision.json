@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "stage": "G5_FORWARD_MODEL_SELECTION",
+  "generated_at_utc": "2026-08-21T15:56:20.341750+00:00",
+  "decision": "PASS_FREEZE_A",
+  "selected_peak_model": "M1",
+  "selected_shape_model": "S1",
+  "selected_model_id": "M1_S1",
+  "selected_outer_metrics": {
+    "model_id": "M1_S1",
+    "peak_model": "M1",
+    "shape_model": "S1",
+    "outer_parent_count": 9,
+    "peak_relative_error_median": 0.04339480750953149,
+    "peak_relative_error_p90": 0.11208444792254081,
+    "curve_nrmse_median": 0.03266079464186925,
+    "curve_nrmse_p90": 0.04479302798945935,
+    "pi90_coverage": 1.0,
+    "mean_parent_correlated_nll": 175.90677034246647,
+    "constraint_pass_fraction": 1.0,
+    "worst_parent_curve_nrmse": 0.044845116713793466
+  },
+  "s3_evidence": {
+    "best_simple_shape": "S1",
+    "s3_mean_nll_relative_improvement": 0.01777373990991667,
+    "s3_median_nrmse_improvement": 0.0011010375088328847,
+    "s3_parent_improved_fraction": 0.8888888888888888,
+    "s3_parameter_bound_hit_any_fold": true,
+    "s3_status": "REJECT_NO_TWO_ZONE_EVIDENCE"
+  },
+  "systematic_residual_gate": "PASS",
+  "final_peak_parameters": {
+    "C_m": 2.5694229433426554,
+    "a": 0.8133338164830236,
+    "Q_ref_MW": 27.0,
+    "b_d": -0.596201603771646,
+    "D_ref_m": 5.07770625192981
+  },
+  "final_shape_parameters": {
+    "A_s": 4.96916669207512,
+    "p_s": 0.3960240243721241
+  },
+  "prediction_error": {
+    "model_sigma_K": 25.03416861564171,
+    "correlation_length_xi": 2.0,
+    "covariance_nugget": 0.2,
+    "peak_grid_uncertainty_fraction": 0.13,
+    "minimum_absolute_sigma_K": 0.5
+  },
+  "lockbox_status": "SEALED_UNREAD_UNRUN",
+  "next_action": "G6_DIRECT_INVERSION"
+}

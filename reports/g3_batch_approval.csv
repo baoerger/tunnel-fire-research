@@ -1,0 +1,5 @@
+﻿gate,status,evidence,decision
+design,PASS,reports/g3_design_audit.json,"Q,Df,xf full-rank and unconfounded"
+numerical,PASS,41 generated inputs passed static audit,development may be externally run
+resource,PASS,reports/g3_resource_budget.csv,57/61 trajectories and 58/79 process starts
+isolation,PASS,reports/g3_lockbox_archive_manifest.csv,lockbox sealed; run/read denied

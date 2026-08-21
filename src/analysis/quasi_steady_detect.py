@@ -329,7 +329,7 @@ def detect(chid, rundir, window_s=90.0, thr_hrr=DEFAULT_THR_HRR,
            thr_tmax_slope=DEFAULT_THR_TMAX_SLOPE,
            thr_rep_slope=DEFAULT_THR_REP_SLOPE,
            thr_backflow_slope=0.05, thr_enthalpy_slope=0.05,
-           min_steady=30.0, smooth_s=15.0, field_integrals_path=None):
+           min_steady=60.0, smooth_s=15.0, field_integrals_path=None):
     """返回 ``(start, end, info)``；失败原因在 ``info`` 中。"""
     times, series, units = fds_io.read_devc(rundir, chid)
     if times is None:
@@ -425,8 +425,8 @@ def detect(chid, rundir, window_s=90.0, thr_hrr=DEFAULT_THR_HRR,
         flags.append(all(checks.values()))
 
     # 每个 flag 已总结一个不少于 min_steady 的完整趋势窗口；不再要求随后
-    # 每一个 1 s 滚动检查连续 30 s 全部通过。取首个合格趋势窗的末 30 s
-    # 作为时间平均窗口，既过滤瞬时湍流尖峰，也保留明确的稳定性门槛。
+    # 每一个 1 s 滚动检查连续通过。默认取首个合格趋势窗的末 60 s，和
+    # 冻结协议的同步平均时长一致。
     end_index = next((i for i, flag in enumerate(flags) if flag), None)
     if end_index is None:
         start = end = None
@@ -497,8 +497,8 @@ def main():
                         help="长期趋势判断窗口 [s]（默认 90）")
     parser.add_argument("--smooth_s", type=float, default=15.0,
                         help="温度和速度短时平均窗口 [s]（默认 15）")
-    parser.add_argument("--min_steady", type=float, default=30.0)
-    parser.add_argument("--avg_duration", type=float, default=30.0)
+    parser.add_argument("--min_steady", type=float, default=60.0)
+    parser.add_argument("--avg_duration", type=float, default=60.0)
     parser.add_argument("--thr_hrr", type=float, default=DEFAULT_THR_HRR,
                         help="HRR 变异系数上限（默认 0.15，均值闭合另行检查）")
     parser.add_argument("--thr_tmax_slope", type=float,

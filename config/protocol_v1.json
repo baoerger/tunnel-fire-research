@@ -2,8 +2,8 @@
   "schema_version": "1.1",
   "protocol_id": "no_wind_ceiling_temperature_v1.1",
   "created_at": "2026-08-18T19:47:14+08:00",
-  "updated_at": "2026-08-19T17:08:34+08:00",
-  "status": "G2_PILOT_REMAINING_BATCH_EXTERNAL_FDS_RUN_REQUIRED",
+  "updated_at": "2026-08-21T23:58:19.167278+08:00",
+  "status": "G5_PASS_FREEZE_A_G6_DIRECT_INVERSION_REQUIRED",
   "formal_run_authorized": false,
   "g1_short_run_authorized": true,
   "g2_pilot_preparation_authorized": true,
@@ -20,8 +20,15 @@
   },
   "study": {
     "mechanical_longitudinal_wind_m_s": 0.0,
-    "geometry_m": {"L": 100.0, "W": 10.0, "H": 5.0},
-    "portals": {"x0": "OPEN", "x100": "OPEN"},
+    "geometry_m": {
+      "L": 100.0,
+      "W": 10.0,
+      "H": 5.0
+    },
+    "portals": {
+      "x0": "OPEN",
+      "x100": "OPEN"
+    },
     "ambient_temperature_C": 20.0,
     "fuel": "N-HEPTANE",
     "wall_material": "concrete",
@@ -39,14 +46,41 @@
     "version_switch_requires_new_protocol": true
   },
   "design": {
-    "case_kinds": ["background", "fire"],
-    "Q_MW": [18.0, 27.0, 36.0],
-    "development_burner_side_m": [3.5, 4.5, 5.0],
+    "case_kinds": [
+      "background",
+      "fire"
+    ],
+    "Q_MW": [
+      18.0,
+      27.0,
+      36.0
+    ],
+    "development_burner_side_m": [
+      3.5,
+      4.5,
+      5.0
+    ],
     "pilot_burner_side_m": 4.0,
-    "development_xf_m": [40.0, 50.0, 60.0],
-    "lockbox_xf_m": [42.5, 50.0, 57.5],
-    "fallback_xf_m": [45.0, 50.0, 55.0],
-    "random_seeds": [104729, 204729, 304729],
+    "development_xf_m": [
+      40.0,
+      50.0,
+      60.0
+    ],
+    "lockbox_xf_m": [
+      42.5,
+      50.0,
+      57.5
+    ],
+    "fallback_xf_m": [
+      45.0,
+      50.0,
+      55.0
+    ],
+    "random_seeds": [
+      104729,
+      204729,
+      304729
+    ],
     "pilot_long_runs": 16,
     "development_physical_cases": 19,
     "development_long_runs": 27,
@@ -55,42 +89,189 @@
   },
   "mesh": {
     "profile": "no_wind_symmetric_v1",
-    "candidate_dx_m": [0.5, 0.25, 0.2],
+    "candidate_dx_m": [
+      0.5,
+      0.25,
+      0.2
+    ],
     "conditional_working_dx_m": 0.25,
-    "mesh_count": 21,
-    "x_boundaries_m": [0, 9, 18, 27, 36, 64, 73, 82, 91, 100],
+    "working_dx_m": 0.25,
+    "working_dx_decision": "USER_ACCEPTED_WITH_PEAK_GRID_UNCERTAINTY",
+    "peak_grid_uncertainty_fraction": 0.13,
+    "mesh_count_by_dx_m": {
+      "0.5": 18,
+      "0.25": 21,
+      "0.2": 21
+    },
+    "x_boundaries_m": [
+      0,
+      9,
+      18,
+      27,
+      36,
+      64,
+      73,
+      82,
+      91,
+      100
+    ],
     "y_internal_boundaries_m": [],
-    "central_z_boundaries_m": [0, 1, 2, 3, 4, 5],
-    "outer_z_boundaries_default_m": [0, 2.5, 5],
+    "central_z_boundaries_by_dx_m": {
+      "0.5": [
+        0,
+        2.5,
+        5
+      ],
+      "0.25": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "0.2": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "outer_z_boundaries_default_m": [
+      0,
+      2.5,
+      5
+    ],
     "dx_0_25_failure_action": "STOP_V1_0_AND_REQUIRE_NEW_PROTOCOL"
   },
   "sensors": {
-    "profile": "no_wind_global_v1",
-    "temperature_height_priority_z_over_H": [0.9, 0.85, 0.95],
+    "profile": "no_wind_global_t90_v1",
+    "pilot_profile": "no_wind_global_v1",
+    "formal_temperature_height_z_over_H": 0.9,
+    "temperature_height_priority_z_over_H": [
+      0.9,
+      0.85,
+      0.95
+    ],
     "velocity_height_z_over_H": 0.95,
-    "formula_x_m": [15, 17.5, 20, 22.5, 25, 27.5, 30, 31.25, 32.5, 33.75, 35, 36.25, 37.5, 38.75, 40, 41.25, 42.5, 43.75, 45, 46.25, 47.5, 48.75, 50, 51.25, 52.5, 53.75, 55, 56.25, 57.5, 58.75, 60, 61.25, 62.5, 63.75, 65, 66.25, 67.5, 68.75, 70, 72.5, 75, 77.5, 80, 82.5, 85],
-    "qc_only_x_m": [5, 10, 90, 95]
+    "formula_x_m": [
+      15,
+      17.5,
+      20,
+      22.5,
+      25,
+      27.5,
+      30,
+      31.25,
+      32.5,
+      33.75,
+      35,
+      36.25,
+      37.5,
+      38.75,
+      40,
+      41.25,
+      42.5,
+      43.75,
+      45,
+      46.25,
+      47.5,
+      48.75,
+      50,
+      51.25,
+      52.5,
+      53.75,
+      55,
+      56.25,
+      57.5,
+      58.75,
+      60,
+      61.25,
+      62.5,
+      63.75,
+      65,
+      66.25,
+      67.5,
+      68.75,
+      70,
+      72.5,
+      75,
+      77.5,
+      80,
+      82.5,
+      85
+    ],
+    "qc_only_x_m": [
+      5,
+      10,
+      90,
+      95
+    ]
   },
   "outputs": {
-    "profiles": ["light", "heavy"],
+    "profiles": [
+      "light",
+      "heavy"
+    ],
     "dt_devc_s": 1.0,
     "dt_hrr_s": 1.0,
     "heavy_scope": "pilot_and_preregistered_representative_cases_only"
   },
   "identity": {
-    "chain": ["parent_case_id", "physical_case_id", "run_chid", "job_attempt_id"],
+    "chain": [
+      "parent_case_id",
+      "physical_case_id",
+      "run_chid",
+      "job_attempt_id"
+    ],
     "run_core_sha256_required": true,
     "attempt_input_sha256_required": true,
-    "restart_allowed_t_end_s": [300, 450, 600],
+    "restart_allowed_t_end_s": [
+      300,
+      450,
+      600
+    ],
     "attempt_outputs_must_not_overwrite": true
   },
   "thresholds": {
-    "fds": {"errors_max": 0, "rejected_max": 0, "steady_hrr_relative_error_max": 0.1},
-    "quasi_steady": {"earliest_s": 30, "trend_window_min_s": 90, "mean_window_s": 60, "hrr_cv_max": 0.15, "temperature_trend_abs_C_s_max": 0.15, "max_t_end_s": 600},
-    "grid": {"deltaT_peak_relative_max": 0.075, "curve_nrmse_max": 0.1, "peak_position_difference_m_max": 0.5, "A_global_difference_max": 0.03, "hrr_difference_max": 0.05},
-    "seed": {"deltaT_peak_cv_pass_max": 0.1, "curve_nrmse_pass_max": 0.1, "stop_above": 0.15},
-    "symmetry": {"peak_shift_m_max": 0.625, "A_global_point_max": 0.1, "A_global_ci95_upper_max": 0.15, "left_right_nrmse_max": 0.1},
-    "effective_domain_candidates_xi_h": [5, 4, 3],
+    "fds": {
+      "errors_max": 0,
+      "rejected_max": 0,
+      "steady_hrr_relative_error_max": 0.1
+    },
+    "quasi_steady": {
+      "earliest_s": 30,
+      "trend_window_min_s": 90,
+      "mean_window_s": 60,
+      "hrr_cv_max": 0.15,
+      "temperature_trend_abs_C_s_max": 0.15,
+      "max_t_end_s": 600
+    },
+    "grid": {
+      "deltaT_peak_relative_max": 0.075,
+      "curve_nrmse_max": 0.1,
+      "peak_position_difference_m_max": 0.5,
+      "A_global_difference_max": 0.03,
+      "hrr_difference_max": 0.05
+    },
+    "seed": {
+      "deltaT_peak_cv_pass_max": 0.1,
+      "curve_nrmse_pass_max": 0.1,
+      "stop_above": 0.15
+    },
+    "symmetry": {
+      "peak_shift_m_max": 0.625,
+      "A_global_point_max": 0.1,
+      "A_global_ci95_upper_max": 0.15,
+      "left_right_nrmse_max": 0.1
+    },
+    "effective_domain_candidates_xi_h": [
+      5,
+      4,
+      3
+    ],
     "minimum_effective_domain_xi_h": 3,
     "detection_limit": "max(0.5 K, background_abs_deltaT_p99, 3*background_deltaT_sd)",
     "forward_inverse_lockbox": "docs/实施方案.md#16-数值与统计验收门"
@@ -101,7 +282,14 @@
     "core_hour_cap_factor_over_g3_science_budget": 1.35,
     "estimation_margin": 1.25,
     "benchmark_case_duration_s": 60,
-    "benchmark_status": "G1_40S_LOCAL_EVIDENCE_AVAILABLE",
+    "benchmark_status": "G3_FROZEN_FROM_COMPLETED_G2_025M_300S_RUNS_NORMALIZED_TO_60S",
+    "g3_science_budget_core_hours": 2270.1887297916664,
+    "absolute_core_hour_cap": 3064.75478521875,
+    "development_projected_core_hours": 1167.725890625,
+    "lockbox_projected_core_hours": 610.4307708333332,
+    "remaining_projected_disk_GiB": 36.408611641963944,
+    "planned_accepted_scientific_trajectories": 57,
+    "planned_fds_process_starts_including_one_g2_failure": 58,
     "per_node_concurrency_max": "USER_MANAGED"
   },
   "paths": {
@@ -112,9 +300,15 @@
     "server_details_required_by_project": false
   },
   "lockbox": {
-    "status": "NOT_GENERATED",
+    "status": "SEALED_G3",
+    "generation_allowed": false,
+    "preparation_allowed": false,
     "read_allowed": false,
-    "run_allowed": false
+    "run_allowed": false,
+    "case_csv": "config/lockbox_cases.csv",
+    "archive_manifest": "reports/g3_lockbox_archive_manifest.csv",
+    "freeze_file": "freezes/g3/g3_design_freeze_v1.json",
+    "unlock_stage": "G8_ONLY"
   },
   "fast_inversion": {
     "status": "G7_SKIPPED_NOT_REQUESTED",
@@ -133,39 +327,23 @@
     "design_csv": "config/pilot_cases.csv",
     "handoff_manifest": "reports/g2_pilot_run_handoff.csv",
     "input_count": 16,
-    "stage_counts": {"1_background": 3, "2_medium_grid": 2, "3_grid_and_seed": 8, "4_opening_translation": 3},
-    "current_stage": 3,
-    "current_stage_run_chids": [
-      "p_q018_s40_x50_g20_r104729",
-      "p_q018_s40_x50_g25_r204729",
-      "p_q018_s40_x50_g25_r304729",
-      "p_q018_s40_x50_g50_r104729",
-      "p_q036_s40_x50_g20_r104729",
-      "p_q036_s40_x50_g25_r204729",
-      "p_q036_s40_x50_g25_r304729",
-      "p_q036_s40_x50_g50_r104729"
-    ],
-    "remaining_execution_batch_stages": [3, 4],
-    "remaining_execution_batch_count": 11,
+    "stage_counts": {
+      "1_background": 3,
+      "2_medium_grid": 2,
+      "3_grid_and_seed": 8,
+      "4_opening_translation": 3
+    },
+    "current_stage": 4,
+    "current_stage_run_chids": [],
+    "remaining_execution_batch_stages": [],
+    "remaining_execution_batch_count": 0,
     "execution_batch_authorized_at": "2026-08-19T17:08:34+08:00",
     "execution_batch_change_scope": "Scheduling only; inputs, hashes, thresholds, analysis gates, budgets, identity rules and lockbox isolation unchanged",
-    "remaining_execution_batch_run_chids": [
-      "p_q018_s40_x50_g20_r104729",
-      "p_q018_s40_x50_g25_r204729",
-      "p_q018_s40_x50_g25_r304729",
-      "p_q018_s40_x50_g50_r104729",
-      "p_q036_s40_x50_g20_r104729",
-      "p_q036_s40_x50_g25_r204729",
-      "p_q036_s40_x50_g25_r304729",
-      "p_q036_s40_x50_g50_r104729",
-      "p_q027_s45_x40_g25_r104729",
-      "p_q027_s45_x50_g25_r104729",
-      "p_q027_s45_x60_g25_r104729"
-    ],
+    "remaining_execution_batch_run_chids": [],
     "later_stages_require_previous_stage_pass_for_analysis": true,
     "later_stage_science_outputs_quarantined_until_prior_gate_pass": true,
     "batching_scope": "EXTERNAL_EXECUTION_ONLY_NO_SCIENTIFIC_GATE_BYPASS",
-    "local_test_status": "157 passed; 42 subtests",
+    "local_test_status": "64 core passed on 2026-08-21; prior full baseline 158 passed",
     "stage1_background_evidence": {
       "decision": "PASS",
       "result_check": "reports/g2_stage1_background_result_check.csv",
@@ -181,7 +359,166 @@
       "metrics": "reports/g2_stage2_metrics.csv",
       "analysis": "reports/g2_stage2_analysis.md",
       "raw_results_gitignored": true
+    },
+    "stage3_coarse_mesh_repair": {
+      "decision": "STARTUP_PASS",
+      "superseded_mesh_count": 21,
+      "replacement_mesh_count": 18,
+      "physical_cell_count_unchanged": 40000,
+      "fds_revision": "FDS-6.10.1-0-g12efa16-release",
+      "startup_probe_t_end_s": 0.5,
+      "evidence": "reports/g2_stage3_coarse_mesh_repair.md"
+    },
+    "stage3_grid_seed_evidence": {
+      "decision": "STRICT_GATE_FAIL_USER_ACCEPTED_WORKING_MESH",
+      "quality_check": "PASS_10_REVIEW_0_FAIL_0",
+      "quasi_steady_window_s": 60,
+      "analyzed_case_count": 10,
+      "grid_decision": "STRICT_FAIL_CONDITIONAL_ACCEPT_0_25",
+      "seed_decision": "PASS",
+      "largest_passing_xi_h": null,
+      "version_policy": "USER_DIRECTED_IGNORE_VERSION_DIFFERENCE",
+      "result_check": "reports/g2_stage3_result_check.csv",
+      "steady_windows": "reports/g2_stage3_steady_windows.csv",
+      "case_metrics": "reports/g2_stage3_case_metrics.csv",
+      "grid_metrics": "reports/g2_stage3_grid_metrics.csv",
+      "seed_metrics": "reports/g2_stage3_seed_metrics.csv",
+      "analysis": "reports/g2_stage3_analysis.md",
+      "version_sensitivity": "reports/g2_stage3_version_sensitivity.md",
+      "working_mesh_decision": "reports/g2_stage3_working_mesh_decision.md",
+      "working_dx_m": 0.25,
+      "peak_grid_uncertainty_fraction": 0.13,
+      "strict_grid_independence_claim_allowed": false,
+      "next_action": "G2_PILOT_STAGE4_EXTERNAL_FDS_RUN_REQUIRED"
+    },
+    "stage4_opening_translation_evidence": {
+      "decision": "PASS_WITH_USER_ACCEPTED_GRID_UNCERTAINTY",
+      "quality_check": "PASS_3_REVIEW_0_FAIL_0",
+      "quasi_steady_window_s": 60,
+      "working_case_count": 9,
+      "stage4_new_case_count": 3,
+      "largest_passing_xi_h": 5,
+      "effective_domain_m": 25.0,
+      "opening_buffer_h": 3.0,
+      "allowed_x_fire_m": [
+        40.0,
+        60.0
+      ],
+      "detection_limit_C": 0.5,
+      "bootstrap_replicates": 2000,
+      "version_policy": "USER_DIRECTED_IGNORE_VERSION_DIFFERENCE",
+      "result_check": "reports/g2_stage4_result_check.csv",
+      "steady_windows": "reports/g2_stage4_steady_windows.csv",
+      "case_metrics": "reports/g2_stage4_case_metrics.csv",
+      "translation_metrics": "reports/g2_stage4_translation_metrics.csv",
+      "domain_metrics": "reports/g2_stage4_domain_metrics.csv",
+      "decision_file": "reports/g2_stage4_decision.json",
+      "analysis": "reports/g2_stage4_analysis.md",
+      "raw_results_gitignored": true,
+      "next_action": "FINALIZE_G2_PILOT_FREEZE"
+    },
+    "pilot_freeze_evidence": {
+      "decision": "READY_FOR_G3_WITH_USER_ACCEPTED_GRID_UNCERTAINTY",
+      "freeze_file": "freezes/pilot/pilot_freeze_v1.json",
+      "analysis": "reports/g2_pilot_freeze.md",
+      "pilot_run_count": 16,
+      "working_dx_m": 0.25,
+      "temperature_height_z_over_H": 0.9,
+      "mean_window_s": 60,
+      "minimum_sufficient_T_END_s": 300,
+      "detection_limit_C": 0.5,
+      "effective_domain_xi_h": 5,
+      "opening_buffer_h": 3.0,
+      "allowed_x_fire_m": [
+        40.0,
+        60.0
+      ],
+      "flame_regime_layer": "CEILING_IMPINGING_OR_NEAR_IMPINGING",
+      "development_extension_pool_enabled": false,
+      "formal_run_authorized": false,
+      "next_action": "G3_GENERATE_AND_AUDIT_DESIGN"
     }
   },
-  "pending_g1_external_evidence": []
+  "g3_design": {
+    "decision": "PASS_G4_DEVELOPMENT_EXTERNAL_RUN_AUTHORIZED",
+    "freeze_file": "freezes/g3/g3_design_freeze_v1.json",
+    "analysis": "reports/g3_design_freeze.md",
+    "design_audit": "reports/g3_design_audit.json",
+    "approval_table": "reports/g3_batch_approval.csv",
+    "resource_budget": "reports/g3_resource_budget.csv",
+    "development_cases": "config/development_cases.csv",
+    "development_handoff": "reports/g3_development_run_handoff.csv",
+    "development_physical_cases": 19,
+    "development_runs": 27,
+    "development_batches": {
+      "D1": 5,
+      "D2": 6,
+      "D3": 16
+    },
+    "extension_pool_cases": 4,
+    "extension_pool_enabled": false,
+    "lockbox_physical_cases": 10,
+    "lockbox_runs": 14,
+    "formal_sensor_profile": "no_wind_global_t90_v1",
+    "formal_run_authorized": false,
+    "current_batch": "COMPLETE",
+    "current_batch_run_chids": [],
+    "next_action": "G5_FORWARD_MODEL_SELECTION_AND_FREEZE_A"
+  },
+  "pending_g1_external_evidence": [],
+  "g4_development": {
+    "decision": "PASS_WITH_USER_VERSION_OVERRIDE_READY_FOR_G5",
+    "version_policy": "USER_DIRECTED_IGNORE_VERSION_DIFFERENCE",
+    "actual_fds_versions": [
+      "6.9.1"
+    ],
+    "formal_baseline_version": "6.10.1",
+    "technical_pass": 27,
+    "steady_pass": 27,
+    "scientific_run_pass": 27,
+    "physical_case_count": 19,
+    "batch_gates": {
+      "D1": "PASS",
+      "D2": "PASS",
+      "D3": "PASS"
+    },
+    "seed_gate": "PASS",
+    "translation_gate": "PASS",
+    "flame_regime_gate": "PASS_SINGLE_CEILING_IMPINGING_OR_NEAR_IMPINGING_LAYER",
+    "effective_domain_xi_h": 5.0,
+    "detection_limit_K": 0.5,
+    "bootstrap_replicates": 2000,
+    "peak_grid_uncertainty_fraction_retained": 0.13,
+    "strict_grid_independence_claim_allowed": false,
+    "database_manifest": "reports/g4_development_database_manifest.csv",
+    "decision_file": "reports/g4_development_decision.json",
+    "analysis": "reports/g4_development_analysis.md",
+    "freeze_file": "freezes/g4/g4_development_freeze_v1.json",
+    "raw_results_gitignored": true,
+    "next_action": "G5_FORWARD_MODEL_SELECTION_AND_FREEZE_A"
+  },
+  "g5_forward_model": {
+    "decision": "PASS_FREEZE_A",
+    "selected_model_id": "M1_S1",
+    "outer_validation": {
+      "model_id": "M1_S1",
+      "peak_model": "M1",
+      "shape_model": "S1",
+      "outer_parent_count": 9,
+      "peak_relative_error_median": 0.04339480750953149,
+      "peak_relative_error_p90": 0.11208444792254081,
+      "curve_nrmse_median": 0.03266079464186925,
+      "curve_nrmse_p90": 0.04479302798945935,
+      "pi90_coverage": 1.0,
+      "mean_parent_correlated_nll": 175.90677034246647,
+      "constraint_pass_fraction": 1.0,
+      "worst_parent_curve_nrmse": 0.044845116713793466
+    },
+    "freeze_file": "freezes/A/forward_model_v1.json",
+    "analysis": "reports/g5_forward_model_analysis.md",
+    "candidate_summary": "reports/g5_candidate_summary.csv",
+    "systematic_residuals": "reports/g5_systematic_residuals.csv",
+    "lockbox_status": "SEALED_UNREAD_UNRUN",
+    "next_action": "G6_DIRECT_INVERSION"
+  }
 }

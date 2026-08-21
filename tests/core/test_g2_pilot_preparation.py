@@ -33,7 +33,8 @@ class G2PilotPreparationContracts(unittest.TestCase):
                     path = generator.write_fds(row, directory)
                     pilot.static_audit(path, case)
                     text = Path(path).read_text(encoding="utf-8")
-                    self.assertEqual(21, text.count("&MESH ID="))
+                    expected_meshes = 18 if case["dx"] == 0.5 else 21
+                    self.assertEqual(expected_meshes, text.count("&MESH ID="))
                     self.assertEqual(2, text.count("SURF_ID='OPEN'"))
                     self.assertNotIn("SURF ID='INLET'", text)
 

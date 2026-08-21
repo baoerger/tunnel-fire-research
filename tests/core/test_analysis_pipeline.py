@@ -104,6 +104,41 @@ class StageOneAnalysisTests(unittest.TestCase):
         self.assertIsNone(xs)
         self.assertIsNone(values)
 
+    def test_temperature_profile_prefers_t90_without_mixing_heights(self):
+        times = [0.0, 1.0]
+        series = {
+            "T85_5000": [30.0, 30.0],
+            "T90_5000": [40.0, 42.0],
+            "T95_5000": [50.0, 50.0],
+            "T90_6000": [30.0, 32.0],
+        }
+        xs, values = fds_io.extract_T_profile(
+            times, series, 50.0, 20.0, t_window=(0.0, 1.0))
+        self.assertEqual([50.0, 60.0], xs)
+        self.assertEqual([21.0, 11.0], values)
+
+    def test_fds_io_resolves_registered_attempt_directories(self):
+        chid = "nested"
+        attempt = self.root / chid / "attempts" / f"{chid}_a01"
+        attempt.mkdir(parents=True)
+        with (attempt / f"{chid}_devc.csv").open(
+                "w", newline="", encoding="utf-8") as stream:
+            csv.writer(stream).writerows([
+                ["s", "C"], ["Time", "T90_5000"], [0, 20], [1, 21],
+            ])
+        with (attempt / f"{chid}_hrr.csv").open(
+                "w", newline="", encoding="utf-8") as stream:
+            csv.writer(stream).writerows([
+                ["s", "kW"], ["Time", "HRR"], [0, 0], [1, 100],
+            ])
+
+        devc_times, devc_series, _ = fds_io.read_devc(str(self.root), chid)
+        hrr_times, hrr_series, _ = fds_io.read_hrr(str(self.root), chid)
+        self.assertEqual([0.0, 1.0], devc_times)
+        self.assertEqual([20.0, 21.0], devc_series["T90_5000"])
+        self.assertEqual([0.0, 1.0], hrr_times)
+        self.assertEqual([0.0, 100.0], hrr_series["HRR"])
+
     def test_backflow_detects_far_positive_near_fire_negative(self):
         times = [0.0]
         series = {
