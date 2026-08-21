@@ -1,3 +1,3 @@
 chid,status,reason,t_steady_start,t_steady_end,avg_t0,avg_t1,enthalpy_flux_criterion,window_s,smooth_s,min_steady_s,thr_hrr_rel,thr_tmax_C_per_s,thr_rep_C_per_s,thr_backflow_m_per_s,thr_enthalpy_rel_drift
-p_q018_s40_x50_g25_r104729,PASS,检测到准稳态趋势窗,167.00943,197.00306,167.00943,197.00306,UNCHECKED_NO_FIELD_DATA,90.0,15.0,30.0,0.15,0.15,0.15,0.05,0.05
-p_q036_s40_x50_g25_r104729,PASS,检测到准稳态趋势窗,133.00585,163.00434,133.00585,163.00434,UNCHECKED_NO_FIELD_DATA,90.0,15.0,30.0,0.15,0.15,0.15,0.05,0.05
+p_q018_s40_x50_g25_r104729,PASS,检测到准稳态趋势窗,137.0073,197.00306,137.0073,197.00306,UNCHECKED_NO_FIELD_DATA,90.0,15.0,60.0,0.15,0.15,0.15,0.05,0.05
+p_q036_s40_x50_g25_r104729,PASS,检测到准稳态趋势窗,103.00653,163.00434,103.00653,163.00434,UNCHECKED_NO_FIELD_DATA,90.0,15.0,60.0,0.15,0.15,0.15,0.05,0.05

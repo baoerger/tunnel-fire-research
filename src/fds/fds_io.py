@@ -10,6 +10,7 @@ fds_io.py — FDS 设备输出读取与温度曲线特征提取
 import os
 import csv
 import math
+import re
 
 try:
     import numpy as np
@@ -19,7 +20,7 @@ except ImportError:
 
 
 def _find_devc(chid_dir, chid):
-    """定位设备输出，兼容平铺目录和 ``runs/<chid>`` 分目录。"""
+    """定位设备输出，兼容平铺目录、``runs/<chid>`` 和 attempt 目录。"""
     candidates = [
         os.path.join(chid_dir, f"{chid}_devc.csv"),
         os.path.join(chid_dir, f"{chid}.devc"),
@@ -29,6 +30,14 @@ def _find_devc(chid_dir, chid):
     for p in candidates:
         if os.path.isfile(p):
             return p
+    attempts_dir = os.path.join(chid_dir, chid, "attempts")
+    if os.path.isdir(attempts_dir):
+        for attempt in sorted(os.listdir(attempts_dir), reverse=True):
+            attempt_dir = os.path.join(attempts_dir, attempt)
+            for name in (f"{chid}_devc.csv", f"{chid}.devc"):
+                path = os.path.join(attempt_dir, name)
+                if os.path.isfile(path):
+                    return path
     return None
 
 
@@ -84,6 +93,12 @@ def read_hrr(chid_dir, chid):
     ):
         if os.path.isfile(path):
             return _read_fds_csv(path)
+    attempts_dir = os.path.join(chid_dir, chid, "attempts")
+    if os.path.isdir(attempts_dir):
+        for attempt in sorted(os.listdir(attempts_dir), reverse=True):
+            path = os.path.join(attempts_dir, attempt, f"{chid}_hrr.csv")
+            if os.path.isfile(path):
+                return _read_fds_csv(path)
     return None, {}, {}
 
 
@@ -142,11 +157,19 @@ def extract_T_profile(times, series, fire_x, T_ambient, t_window=None):
     if not idx:
         return None, None
 
-    pts = []
+    # 无风正式输入同时输出 z/H=0.85/0.90/0.95 三层温度。主体合同
+    # 优先使用 T90；历史输入只有 T_* 时仍保持兼容。不得把三层混在
+    # 同一条纵向曲线中，否则同一 x 会被重复计入峰值和 NRMSE。
+    grouped = {prefix: [] for prefix in ("T90", "T85", "T95", "T")}
     for fid, vals in series.items():
-        if not (fid.startswith("T_") and fid[2:].isdigit()):
-            continue
-        x = int(fid[2:]) / 100.0
+        match = re.fullmatch(r"(T(?:85|90|95)?)_(\d+)", fid)
+        if match:
+            grouped[match.group(1)].append((fid, vals, int(match.group(2)) / 100.0))
+    selected = next((grouped[prefix] for prefix in ("T90", "T85", "T95", "T")
+                     if grouped[prefix]), [])
+
+    pts = []
+    for fid, vals, x in selected:
         col = [vals[i] for i in idx if i < len(vals) and math.isfinite(vals[i])]
         if not col:
             continue
