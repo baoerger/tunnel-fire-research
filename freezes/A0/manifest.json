@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "identity": "A0",
+  "role": "IMMUTABLE_HUMAN_CANDIDATE_BASELINE",
+  "model_id": "M1_S1",
+  "canonical_file": "freezes/A0/forward_model_v1.json",
+  "legacy_compatibility_file": "freezes/A/forward_model_v1.json",
+  "canonical_sha256": "f4e90939fcf3507930bbbe883a9888d7e92b58eeb63b24de07b12ad8663e509b",
+  "legacy_sha256": "f4e90939fcf3507930bbbe883a9888d7e92b58eeb63b24de07b12ad8663e509b",
+  "copy_contract": "The canonical and legacy files are byte-identical. The legacy path remains read-only for historical compatibility and is not A_active.",
+  "immutability": "Neither path may be overwritten by G5-SR. A_SR is additive and A_active is created only after the G5-SR decision.",
+  "status": "BASELINE_FROZEN_AWAITING_G5_SR"
+}

@@ -1,0 +1,425 @@
+{
+  "schema_version": "1.0",
+  "protocol_id": "g5_symbolic_regression_v1",
+  "status": "SR_PROTOCOL_APPROVED",
+  "execution_state": "APPROVED_NOT_RUN",
+  "approval": {
+    "decision": "SR_PROTOCOL_APPROVED",
+    "approved_by": "USER",
+    "approved_date": "2026-08-23",
+    "scope": "Run G5-SR before G6; do not read or run the lockbox"
+  },
+  "immutability": {
+    "hash_algorithm": "SHA-256",
+    "hash_scope": "exact bytes of this JSON file",
+    "change_rule": "Any byte change before or during formal search requires a new protocol version and a new approval record",
+    "results_must_not_modify_protocol": true
+  },
+  "data_contract": {
+    "allowed_subset": "development",
+    "forbidden_subsets": [
+      "lockbox"
+    ],
+    "development_registry": "config/development_cases.csv",
+    "g4_decision": "reports/g4_development_decision.json",
+    "g4_required_decision": "PASS_WITH_USER_VERSION_OVERRIDE_READY_FOR_G5",
+    "g4_manifest": "reports/g4_development_database_manifest.csv",
+    "expected_counts": {
+      "runs": 27,
+      "parent_groups": 9,
+      "physical_cases": 19,
+      "curve_rows": 1323
+    },
+    "required_sources": [
+      {
+        "relative_path": "derived/development/case_metrics.csv",
+        "sha256": "d97f50bc253b9e7cb45e58990f59f741888a7fb26e2746508ae1f664f5acbde1",
+        "bytes": 15799,
+        "row_count": 27,
+        "required_columns": [
+          "physical_case_id",
+          "parent_case_id",
+          "run_chid",
+          "job_attempt_id",
+          "window_id",
+          "batch",
+          "Q_actual_kW",
+          "Q_star",
+          "Df_discrete_m",
+          "xf_actual_m",
+          "deltaT_max_K",
+          "deltaT_peak_ci95_low_K",
+          "deltaT_peak_ci95_high_K",
+          "censored_fraction",
+          "bootstrap_n",
+          "bootstrap_success_rate",
+          "bootstrap_block_len_samples",
+          "quality_status",
+          "exclusion_reason"
+        ]
+      },
+      {
+        "relative_path": "derived/development/curve_points.csv",
+        "sha256": "e5222d35143945bea27b808a1e95f28fa728815d2c95f21496dfd14acda4ab73",
+        "bytes": 301127,
+        "row_count": 1323,
+        "required_columns": [
+          "physical_case_id",
+          "parent_case_id",
+          "run_chid",
+          "job_attempt_id",
+          "window_id",
+          "batch",
+          "x_coord_m",
+          "xf_actual_m",
+          "xi",
+          "deltaT_mean_K",
+          "deltaT_ci95_low_K",
+          "deltaT_ci95_high_K",
+          "Theta",
+          "point_role",
+          "detection_limit_K",
+          "bootstrap_n",
+          "bootstrap_block_len_samples"
+        ]
+      }
+    ],
+    "identity_keys": [
+      "parent_case_id",
+      "physical_case_id",
+      "run_chid",
+      "job_attempt_id"
+    ],
+    "group_key": "parent_case_id",
+    "effective_domain": {
+      "xi_min": 0.0,
+      "xi_max": 5.0,
+      "include_point_roles": [
+        "ACTIVE",
+        "CENSORED_LOW_SIGNAL"
+      ],
+      "censored_role": "CENSORED_LOW_SIGNAL",
+      "censoring_policy": "left_censored_likelihood_at_detection_limit"
+    },
+    "parent_weighting": "equal total weight per parent_case_id; repeated positions and seeds remain nested observations",
+    "lockbox_policy": "No lockbox path, identifier, metadata-derived feature, result, or prediction may be opened or used before A_active and Freeze B are complete"
+  },
+  "normalization": {
+    "Q_ref_kW": 27000.0,
+    "D_ref_m": 5.07770625192981,
+    "H_eff_m": 5.0,
+    "T0_K": 293.15,
+    "definitions": {
+      "q": "Q_actual_kW/Q_ref_kW",
+      "d": "Df_discrete_m/D_ref_m",
+      "xi": "abs(x_coord_m-xf_actual_m)/H_eff_m",
+      "F_T": "deltaT_max_K/T0_K",
+      "Theta": "deltaT_mean_K/deltaT_max_K"
+    }
+  },
+  "tasks": {
+    "peak": {
+      "target": "F_T",
+      "variables": [
+        "q",
+        "d"
+      ],
+      "max_complexity": 12,
+      "max_depth": 4,
+      "max_free_constants": 3
+    },
+    "shape": {
+      "target": "Theta",
+      "variables": [
+        "xi",
+        "q",
+        "d"
+      ],
+      "max_complexity": 16,
+      "max_depth": 5,
+      "max_free_constants": 4,
+      "search_order": [
+        "xi_only_collapse",
+        "xi_q_d_if_fold_evidence_requires"
+      ]
+    }
+  },
+  "operator_contract": {
+    "costs": {
+      "variable": 1,
+      "constant": 1,
+      "add": 1,
+      "subtract": 1,
+      "multiply": 1,
+      "divide": 2,
+      "square": 2,
+      "sqrt": 2,
+      "exp": 3,
+      "log": 3,
+      "pow_positive_base": 3
+    },
+    "allowed_binary": [
+      "add",
+      "subtract",
+      "multiply",
+      "divide",
+      "pow_positive_base"
+    ],
+    "allowed_unary": [
+      "square",
+      "sqrt",
+      "exp",
+      "log"
+    ],
+    "pow_positive_base_constant_exponent_range": [
+      -3.0,
+      3.0
+    ],
+    "forbidden": [
+      "trigonometric",
+      "hyperbolic",
+      "rounding",
+      "conditional_branch",
+      "protected_division",
+      "protected_log",
+      "nested_absolute_value",
+      "arbitrary_high_order_polynomial"
+    ],
+    "nesting_rules": [
+      "log requires a continuously certified strictly positive argument",
+      "sqrt and noninteger powers require a continuously certified nonnegative base",
+      "xi may not be the direct argument of log or a negative power",
+      "exp and log may not be nested within exp or log",
+      "complexity is recomputed after canonical simplification"
+    ]
+  },
+  "engine_contract": {
+    "primary": "PySR/SymbolicRegression.jl",
+    "structural_auditor": "AI Feynman 2.0",
+    "structural_auditor_required_for_decision": false,
+    "exact_environment_record": "reports/g5_sr_environment.json",
+    "environment_rule": "Exact Python, PySR, Julia, SymbolicRegression.jl, SymPy, NumPy and SciPy versions and source hashes must be recorded before the first formal search",
+    "engine_conflict_rule": "Frozen grouped validation and physical gates decide; engine agreement is supporting evidence only"
+  },
+  "search_budget": {
+    "outer_folds": {
+      "count": 9,
+      "method": "leave_one_parent_case_id_out",
+      "order": "lexicographic_parent_case_id"
+    },
+    "inner_folds": {
+      "count": 4,
+      "method": "deterministic_balanced_group_kfold",
+      "group": "parent_case_id",
+      "assignment": "For each outer fold, sort the remaining eight parent IDs lexicographically, rotate left by the outer-fold index, and assign adjacent pairs to inner folds 0..3",
+      "preprocessing_search_constants_and_error_model_refit_inside_each_fold": true
+    },
+    "outer_search_seeds": [
+      2026082301,
+      2026082302,
+      2026082303,
+      2026082304,
+      2026082305
+    ],
+    "final_search_seeds": [
+      2026082401,
+      2026082402,
+      2026082403,
+      2026082404,
+      2026082405,
+      2026082406,
+      2026082407,
+      2026082408,
+      2026082409,
+      2026082410,
+      2026082411,
+      2026082412,
+      2026082413,
+      2026082414,
+      2026082415,
+      2026082416,
+      2026082417,
+      2026082418,
+      2026082419,
+      2026082420
+    ],
+    "per_seed": {
+      "populations": 8,
+      "population_size": 64,
+      "iterations": 300,
+      "candidate_evaluations_max": 50000,
+      "wall_time_s_max": 900,
+      "early_stop_on_preferred_expression": false
+    },
+    "failed_or_timed_out_seed_policy": "Retain in the denominator with zero selections; never silently rerun with a new seed",
+    "weak_constraint_ablation_uses_same_budget": true
+  },
+  "loss_contract": {
+    "search_proxy": "stable parent-balanced proxy monotone with the frozen likelihood",
+    "selection_and_refit": "full parent-group likelihood",
+    "peak": "uncertainty-weighted parent likelihood including 13 percent peak grid uncertainty",
+    "shape": "parent-balanced likelihood retaining spatial covariance, shared peak normalization error and left censoring",
+    "final": "joint fit to original deltaT with parent/physical-case/seed/time-block hierarchy",
+    "full_development_refit_is_not_outer_validation": true
+  },
+  "physical_constraints": {
+    "layers": [
+      "symbolic",
+      "continuous_domain_interval",
+      "fixed_sobol_numeric_audit"
+    ],
+    "uncertified_action": "DOMAIN_NOT_CERTIFIED_REJECT",
+    "requirements": [
+      "dimensionless_consistency",
+      "real_finite_no_singularity_on_support",
+      "F_T_strictly_positive",
+      "Theta_at_zero_equals_one",
+      "Theta_between_zero_and_one",
+      "Theta_nonincreasing_in_xi",
+      "predicted_deltaT_nonnegative",
+      "peak_non_decreasing_with_q",
+      "no_identifier_seed_grid_or_requested_value_features"
+    ],
+    "continuous_support": {
+      "q": [
+        0.6663915370370371,
+        1.333524590123457
+      ],
+      "d": [
+        0.7777777777777778,
+        1.1111111111111112
+      ],
+      "xi": [
+        0.0,
+        5.0
+      ]
+    },
+    "sobol_seed": 20260825,
+    "sobol_points": 16384,
+    "save_worst_margin_and_witness": true
+  },
+  "equivalence_contract": {
+    "canonical_operations": [
+      "cancel",
+      "factor",
+      "powsimp_under_positive_variables",
+      "reference_scale_absorption",
+      "recount_complexity"
+    ],
+    "algebraic_or_reference_scale_equivalent_is_same_formula": true,
+    "prediction_equivalence": {
+      "rms_fraction_of_project_temperature_scale_max": 0.01,
+      "max_fraction_of_project_temperature_scale_max": 0.03,
+      "label": "DOMAIN_PREDICTION_EQUIVALENT_NOT_ALGEBRAICALLY_IDENTICAL"
+    }
+  },
+  "stability_gate": {
+    "equivalence_family_outer_folds_min": 7,
+    "core_variable_support_final_seeds_min": 16,
+    "core_variable_support_final_seeds_denominator": 20,
+    "physical_constraint_outer_folds_required": 9,
+    "free_exponent_or_size_effect_may_not_systematically_reverse_sign": true,
+    "unstable_unique_structure_claim_allowed": false
+  },
+  "replacement_gate": {
+    "baseline": "A0",
+    "routes": {
+      "simpler_noninferior": {
+        "normalized_complexity_strictly_lower": true,
+        "peak_and_curve_median_error_worsening_percentage_points_max": 2.0,
+        "p90_and_worst_parent_worsening_percentage_points_max": 5.0
+      },
+      "materially_better": {
+        "mean_parent_correlated_nll_relative_improvement_min": 0.10,
+        "or_curve_nrmse_median_improvement_percentage_points_min": 2.0,
+        "improved_parent_groups_min": 7,
+        "parent_groups_total": 9,
+        "worst_parent_worsening_percentage_points_max": 5.0
+      },
+      "independent_rediscovery": {
+        "must_be_algebraic_or_reference_scale_equivalent_to_A0": true,
+        "must_pass_stability_gate": true
+      }
+    },
+    "absolute_forward_gates_and_systematic_residual_gate_still_required": true,
+    "inverse_or_lockbox_evidence_may_select_formula": false,
+    "no_qualifying_candidate_action": "SR_NO_REPLACEMENT_USE_A0"
+  },
+  "final_refit": {
+    "response": "original_deltaT_K",
+    "minimum_hierarchical_bootstrap_replicates": 2000,
+    "bootstrap_levels": [
+      "parent_case_id",
+      "physical_case_id_and_seed",
+      "synchronized_time_block"
+    ],
+    "retain_peak_grid_uncertainty_fraction": 0.13,
+    "retain_spatial_covariance": true,
+    "retain_left_censoring": true
+  },
+  "freeze_identity": {
+    "A0": {
+      "role": "IMMUTABLE_HUMAN_CANDIDATE_BASELINE",
+      "model_id": "M1_S1",
+      "canonical_file": "freezes/A0/forward_model_v1.json",
+      "legacy_compatibility_file": "freezes/A/forward_model_v1.json",
+      "sha256": "f4e90939fcf3507930bbbe883a9888d7e92b58eeb63b24de07b12ad8663e509b"
+    },
+    "A_SR": {
+      "role": "SYMBOLIC_REGRESSION_CANDIDATE_FREEZE",
+      "state": "NOT_CREATED",
+      "directory": "freezes/A_SR"
+    },
+    "A_active": {
+      "role": "FINAL_FORWARD_FORMULA_CONSUMED_BY_G6",
+      "state": "PENDING_G5_SR_DECISION",
+      "directory": "freezes/A_active",
+      "allowed_source": [
+        "A0",
+        "A_SR"
+      ],
+      "must_be_self_contained_and_hash_target": true
+    }
+  },
+  "output_contract": {
+    "environment": "reports/g5_sr_environment.json",
+    "protocol_freeze": "reports/g5_sr_protocol_freeze.json",
+    "dataset_manifest": "reports/g5_sr_dataset_manifest.csv",
+    "fold_assignments": "reports/g5_sr_fold_assignments.csv",
+    "search_trials": "reports/g5_sr_search_trials.csv",
+    "pareto_front": "reports/g5_sr_pareto_front.csv",
+    "candidate_families": "reports/g5_sr_candidate_families.csv",
+    "variable_selection_frequency": "reports/g5_sr_variable_selection_frequency.csv",
+    "crossfold_stability": "reports/g5_sr_crossfold_stability.csv",
+    "physics_rejections": "reports/g5_sr_physics_rejections.csv",
+    "outer_predictions": "derived/development/g5_sr_outer_predictions.csv",
+    "outer_metrics": "reports/g5_sr_outer_metrics.csv",
+    "joint_refit": "reports/g5_sr_joint_refit.json",
+    "decision": "reports/g5_sr_decision.json",
+    "analysis": "reports/g5_sr_formula_discovery.md",
+    "database_manifest": "reports/g5_sr_database_manifest.csv",
+    "required_paper_result_sections": [
+      "Pareto frontier",
+      "candidate structure families",
+      "variable selection frequency",
+      "cross-fold and cross-seed stability",
+      "physical-constraint eliminations",
+      "final joint refit",
+      "A0 versus selected candidate and A_active decision"
+    ]
+  },
+  "conditional_fds_extension": {
+    "automatic_generation_or_run_allowed": false,
+    "first_batch_physical_cases_max": 4,
+    "second_batch_physical_cases_max": 4,
+    "total_physical_cases_max": 8,
+    "requires_new_protocol_and_user_approval": true,
+    "version_warning": "Existing G4 development evidence is FDS 6.9.1; CLAUDE.md forbids mixing it with new 6.10.1 results in one fit"
+  },
+  "preflight_blocker_codes": {
+    "missing_g4_derived_inputs": "MISSING_G4_DERIVED_INPUTS",
+    "source_hash_or_schema_mismatch": "G4_DERIVED_INPUT_CONTRACT_MISMATCH",
+    "lockbox_not_sealed": "LOCKBOX_ISOLATION_VIOLATION",
+    "approval_or_protocol_hash_mismatch": "SR_PROTOCOL_NOT_AUTHORIZED"
+  }
+}

@@ -653,9 +653,9 @@ def _write_reports(development, extension, lockbox, development_manifest,
             row["run_chid"]: row["attempt_input_sha256"] for row in lockbox_manifest
         },
         "approval_gates": {row["gate"]: row["status"] for row in approvals},
-        "lockbox": {"status": "SEALED_G3", "generation_allowed": False,
-                    "preparation_allowed": False, "run_allowed": False,
-                    "read_allowed": False},
+        "lockbox": {"status": "SEALED_UNREAD_UNRUN", "sealed_at_stage": "G3",
+                    "generation_allowed": False, "preparation_allowed": False,
+                    "run_allowed": False, "read_allowed": False},
     }
     G3_FREEZE.parent.mkdir(parents=True, exist_ok=True)
     G3_FREEZE.write_text(json.dumps(freeze, ensure_ascii=False, indent=2) + "\n",

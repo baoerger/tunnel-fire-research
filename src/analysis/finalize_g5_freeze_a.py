@@ -1,4 +1,9 @@
-"""Finalize the passed G5 candidate as freeze A and update protocol state."""
+"""Legacy finalizer for the pre-SR G5 Freeze-A route.
+
+The existing output is retained only as immutable A0 historical evidence.
+After ``SR_PROTOCOL_APPROVED`` this entry point is blocked before any write, so
+it cannot overwrite A0 or move the project directly to G6.
+"""
 
 from __future__ import annotations
 
@@ -11,6 +16,7 @@ from pathlib import Path
 
 from src.fds import tunnel_config as cfg
 from src.fds.project_paths import PROJECT_ROOT
+from src.analysis.g5_route_guard import refuse_legacy_route_after_sr_approval
 
 
 def _read_csv(path):
@@ -104,6 +110,9 @@ G5 通过父组留一的 9 折外层验证，正向门为 `PASS`。峰值选择
 
 def finalize(repo):
     repo = Path(repo).resolve()
+    refuse_legacy_route_after_sr_approval(
+        repo, "src.analysis.finalize_g5_freeze_a"
+    )
     decision_path = repo / "reports" / "g5_forward_model_decision.json"
     decision = json.loads(decision_path.read_text(encoding="utf-8"))
     if decision.get("decision") != "PASS_FREEZE_A":

@@ -1,4 +1,9 @@
-"""G5 finite-candidate forward-model selection with parent-group outer CV."""
+"""Legacy G5-A0 finite-candidate analysis with parent-group outer CV.
+
+The tracked outputs are immutable evidence for the human-candidate baseline
+``A0=M1_S1``.  Once ``SR_PROTOCOL_APPROVED`` is present, this old writer is
+blocked before it can overwrite that evidence or advertise a direct G6 route.
+"""
 
 from __future__ import annotations
 
@@ -19,6 +24,7 @@ from scipy.optimize import least_squares
 from src.analysis.forward_temperature import (
     peak_m0, peak_m1, shape_s1, shape_s2, shape_s3,
 )
+from src.analysis.g5_route_guard import refuse_legacy_route_after_sr_approval
 from src.fds import tunnel_config as cfg
 from src.fds.project_paths import PROJECT_ROOT
 
@@ -519,6 +525,9 @@ def _systematic_residuals(point_rows, model_id, n_boot, seed):
 
 def analyze(repo, n_boot=2000, seed=20260821):
     repo = Path(repo).resolve()
+    refuse_legacy_route_after_sr_approval(
+        repo, "src.analysis.analyze_g5_forward_models"
+    )
     g4 = json.loads((repo / "reports" / "g4_development_decision.json").read_text(encoding="utf-8"))
     if g4.get("decision") != "PASS_WITH_USER_VERSION_OVERRIDE_READY_FOR_G5":
         raise ValueError("G4 未冻结，不得运行 G5")

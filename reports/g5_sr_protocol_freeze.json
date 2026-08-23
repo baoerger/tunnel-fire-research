@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "stage": "G5_SR0_PROTOCOL_FREEZE",
+  "generated_date": "2026-08-23",
+  "decision": "SR_PROTOCOL_APPROVED",
+  "static_preflight": "PASS",
+  "execution_status": "NOT_RUN_EXECUTION_SUPPLEMENT_APPROVAL_AND_G4_INPUTS_REQUIRED",
+  "blocker_code": "G5_SR_EXECUTION_SUPPLEMENT_NOT_APPROVED",
+  "additional_blocker_codes": [
+    "MISSING_G4_DERIVED_INPUTS",
+    "SR5_SYNCHRONIZED_TIME_BLOCK_INPUT_MISSING"
+  ],
+  "execution_supplement": {
+    "status": "DRAFT_REQUIRES_USER_APPROVAL",
+    "draft_path": "config/g5_sr_execution_supplement_v1.draft.json",
+    "approved_path": "config/g5_sr_execution_supplement_v1.json",
+    "approved_sha256": null
+  },
+  "machine_protocol": "config/symbolic_regression_v1.json",
+  "machine_protocol_sha256": "453c6a9dbc6ba19d096c9ae6dfb6836b82df3f4ef8501b17a41e60f12dc21a8b",
+  "A0": {
+    "role": "IMMUTABLE_HUMAN_CANDIDATE_BASELINE",
+    "model_id": "M1_S1",
+    "canonical_file": "freezes/A0/forward_model_v1.json",
+    "legacy_compatibility_file": "freezes/A/forward_model_v1.json",
+    "sha256": "f4e90939fcf3507930bbbe883a9888d7e92b58eeb63b24de07b12ad8663e509b",
+    "byte_identical_copy_verified": true
+  },
+  "A_SR": {
+    "status": "NOT_CREATED"
+  },
+  "A_active": {
+    "status": "PENDING_G5_SR_DECISION"
+  },
+  "lockbox": {
+    "status": "SEALED_UNREAD_UNRUN",
+    "generation_allowed": false,
+    "preparation_allowed": false,
+    "run_allowed": false,
+    "read_allowed": false,
+    "used_by_g5_sr": false
+  },
+  "required_missing_inputs": [
+    {
+      "relative_path": "derived/development/case_metrics.csv",
+      "expected_sha256": "d97f50bc253b9e7cb45e58990f59f741888a7fb26e2746508ae1f664f5acbde1",
+      "expected_rows": 27,
+      "present": false
+    },
+    {
+      "relative_path": "derived/development/curve_points.csv",
+      "expected_sha256": "e5222d35143945bea27b808a1e95f28fa728815d2c95f21496dfd14acda4ab73",
+      "expected_rows": 1323,
+      "present": false
+    }
+  ],
+  "search_started": false,
+  "search_results_created": false,
+  "formula_selected": false,
+  "next_action": "Approve and freeze the execution supplement, restore the two exact G4 development tables, pass the dual-protocol preflight, and restore the synchronized-time-block input before SR5"
+}

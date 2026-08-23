@@ -2,8 +2,8 @@
   "schema_version": "1.1",
   "protocol_id": "no_wind_ceiling_temperature_v1.1",
   "created_at": "2026-08-18T19:47:14+08:00",
-  "updated_at": "2026-08-21T23:58:19.167278+08:00",
-  "status": "G5_PASS_FREEZE_A_G6_DIRECT_INVERSION_REQUIRED",
+  "updated_at": "2026-08-23T00:00:00+08:00",
+  "status": "G5_SR_EXECUTION_SUPPLEMENT_APPROVAL_AND_INPUT_RESTORE_REQUIRED",
   "formal_run_authorized": false,
   "g1_short_run_authorized": true,
   "g2_pilot_preparation_authorized": true,
@@ -17,6 +17,14 @@
     "execution_protocol": "docs/实施方案.md",
     "fds_rules": "CLAUDE.md",
     "progress_anchor": "docs/当前实施进度.md"
+  },
+  "protocol_lineage": {
+    "prior_protocol": "v1.0",
+    "prior_protocol_stop_reason": "STRICT_0_25_M_GRID_GATE_FAILED",
+    "same_protocol_switch_to_0_20_m_allowed": false,
+    "current_protocol": "v1.1",
+    "current_mesh_amendment": "USER_ACCEPTED_0_25_M_WITH_13_PERCENT_PEAK_GRID_UNCERTAINTY_AND_NO_GRID_INDEPENDENCE_CLAIM",
+    "next_invalidating_change_requires": "v1.2_OR_LATER_NEW_APPROVAL"
   },
   "study": {
     "mechanical_longitudinal_wind_m_s": 0.0,
@@ -144,7 +152,11 @@
       2.5,
       5
     ],
-    "dx_0_25_failure_action": "STOP_V1_0_AND_REQUIRE_NEW_PROTOCOL"
+    "historical_v1_0_dx_0_25_failure_action": "STOP_V1_0_AND_FORBID_SAME_VERSION_SWITCH_TO_0_20_M",
+    "current_v1_1_status": "USER_ACCEPTED_0_25_M_WITH_13_PERCENT_PEAK_GRID_UNCERTAINTY",
+    "strict_grid_independence_claim_allowed": false,
+    "same_protocol_switch_to_0_20_m_allowed": false,
+    "future_invalidating_failure_action": "STOP_CURRENT_PROTOCOL_AND_REQUIRE_NEXT_APPROVED_VERSION"
   },
   "sensors": {
     "profile": "no_wind_global_t90_v1",
@@ -228,6 +240,20 @@
     ],
     "run_core_sha256_required": true,
     "attempt_input_sha256_required": true,
+    "run_chid_equals_fds_chid": true,
+    "run_chid_identifies_one_scientific_trajectory": true,
+    "identical_input_retry_preserves_run_chid": true,
+    "non_whitelisted_core_change_requires_new_run_chid": true,
+    "every_fds_process_start_requires_new_job_attempt_id": true,
+    "job_attempt_directory_must_be_unique_and_non_overwriting": true,
+    "restart_preserves_run_chid": true,
+    "restart_requires_new_job_attempt_id": true,
+    "restart_parent_attempt_id_required": true,
+    "restart_parent_checkpoint_sha256_required": true,
+    "restart_allowed_input_changes": [
+      "T_END",
+      "RESTART"
+    ],
     "restart_allowed_t_end_s": [
       300,
       450,
@@ -300,7 +326,8 @@
     "server_details_required_by_project": false
   },
   "lockbox": {
-    "status": "SEALED_G3",
+    "status": "SEALED_UNREAD_UNRUN",
+    "sealed_at_stage": "G3",
     "generation_allowed": false,
     "preparation_allowed": false,
     "read_allowed": false,
@@ -312,7 +339,14 @@
   },
   "fast_inversion": {
     "status": "G7_SKIPPED_NOT_REQUESTED",
-    "blocks_mainline": false
+    "blocks_mainline": false,
+    "activation_requires": [
+      "A_active_COMPLETE",
+      "FREEZE_B_PASS",
+      "LOCKBOX_SEALED_UNREAD_UNRUN",
+      "ADVISOR_EXPLICIT_REQUEST"
+    ],
+    "activation_after_lockbox_open_requires_new_unseen_lockbox": true
   },
   "g1_evidence": {
     "decision": "PASS",
@@ -463,7 +497,8 @@
     "formal_run_authorized": false,
     "current_batch": "COMPLETE",
     "current_batch_run_chids": [],
-    "next_action": "G5_FORWARD_MODEL_SELECTION_AND_FREEZE_A"
+    "historical_next_action": "G5_FORWARD_MODEL_SELECTION_AND_FREEZE_A",
+    "next_action": "COMPLETE_G5_SR_AND_CREATE_A_ACTIVE_BEFORE_G6"
   },
   "pending_g1_external_evidence": [],
   "g4_development": {
@@ -495,10 +530,13 @@
     "analysis": "reports/g4_development_analysis.md",
     "freeze_file": "freezes/g4/g4_development_freeze_v1.json",
     "raw_results_gitignored": true,
-    "next_action": "G5_FORWARD_MODEL_SELECTION_AND_FREEZE_A"
+    "historical_next_action": "G5_FORWARD_MODEL_SELECTION_AND_FREEZE_A",
+    "next_action": "COMPLETE_G5_SR_AND_CREATE_A_ACTIVE_BEFORE_G6"
   },
   "g5_forward_model": {
-    "decision": "PASS_FREEZE_A",
+    "decision": "PASS_HUMAN_CANDIDATE_BASELINE_A0",
+    "historical_decision": "PASS_FREEZE_A",
+    "freeze_role": "IMMUTABLE_HUMAN_CANDIDATE_BASELINE",
     "selected_model_id": "M1_S1",
     "outer_validation": {
       "model_id": "M1_S1",
@@ -514,11 +552,51 @@
       "constraint_pass_fraction": 1.0,
       "worst_parent_curve_nrmse": 0.044845116713793466
     },
-    "freeze_file": "freezes/A/forward_model_v1.json",
+    "freeze_file": "freezes/A0/forward_model_v1.json",
+    "legacy_compatibility_file": "freezes/A/forward_model_v1.json",
+    "freeze_sha256": "f4e90939fcf3507930bbbe883a9888d7e92b58eeb63b24de07b12ad8663e509b",
     "analysis": "reports/g5_forward_model_analysis.md",
     "candidate_summary": "reports/g5_candidate_summary.csv",
     "systematic_residuals": "reports/g5_systematic_residuals.csv",
     "lockbox_status": "SEALED_UNREAD_UNRUN",
-    "next_action": "G6_DIRECT_INVERSION"
+    "next_action": "RUN_APPROVED_G5_SR_BEFORE_G6"
+  },
+  "g5_symbolic_regression": {
+    "status": "SR_PROTOCOL_APPROVED",
+    "approved_date": "2026-08-23",
+    "machine_protocol": "config/symbolic_regression_v1.json",
+    "machine_protocol_sha256": "453c6a9dbc6ba19d096c9ae6dfb6836b82df3f4ef8501b17a41e60f12dc21a8b",
+    "preflight_module": "src.analysis.g5_sr_protocol",
+    "execution_status": "NOT_RUN_EXECUTION_SUPPLEMENT_APPROVAL_AND_G4_INPUTS_REQUIRED",
+    "execution_supplement": {
+      "status": "DRAFT_REQUIRES_USER_APPROVAL",
+      "draft_path": "config/g5_sr_execution_supplement_v1.draft.json",
+      "approved_path": "config/g5_sr_execution_supplement_v1.json",
+      "approved_sha256": null
+    },
+    "A0": {
+      "role": "IMMUTABLE_HUMAN_CANDIDATE_BASELINE",
+      "model_id": "M1_S1",
+      "freeze_file": "freezes/A0/forward_model_v1.json",
+      "legacy_compatibility_file": "freezes/A/forward_model_v1.json",
+      "sha256": "f4e90939fcf3507930bbbe883a9888d7e92b58eeb63b24de07b12ad8663e509b"
+    },
+    "A_SR": {
+      "status": "NOT_CREATED"
+    },
+    "A_active": {
+      "status": "PENDING_G5_SR_DECISION",
+      "allowed_source": [
+        "A0",
+        "A_SR"
+      ]
+    },
+    "lockbox_status": "SEALED_UNREAD_UNRUN",
+    "blockers": [
+      "G5_SR_EXECUTION_SUPPLEMENT_NOT_APPROVED",
+      "MISSING_G4_DERIVED_INPUTS",
+      "SR5_SYNCHRONIZED_TIME_BLOCK_INPUT_MISSING"
+    ],
+    "next_action": "APPROVE_EXECUTION_SUPPLEMENT_AND_RESTORE_G4_INPUTS_BEFORE_FORMAL_G5_SR"
   }
 }

@@ -1,0 +1,165 @@
+{
+  "schema_version": "1.0",
+  "freeze_id": "forward_model_v1",
+  "generated_at_utc": "2026-08-21T15:58:19.161722+00:00",
+  "decision": "PASS_FREEZE_A",
+  "selected_model_id": "M1_S1",
+  "formula": {
+    "peak": "DeltaT_p/T0=C_m*(Q_actual/Q_ref)^a*(Df/D_ref)^b_d",
+    "shape": "Theta(xi)=[1+(A_s*xi)^2]^(-p_s/2)",
+    "combined": "DeltaT(x)=DeltaT_p*Theta(abs(x-xf)/H_eff)"
+  },
+  "forward_callable": {
+    "callable": "src.analysis.forward_temperature.forward_temperature",
+    "peak_model": "M1",
+    "shape_model": "S1",
+    "peak_parameters": {
+      "C_m": 2.5694229433426554,
+      "a": 0.8133338164830236,
+      "Q_ref_MW": 27.0,
+      "b_d": -0.596201603771646,
+      "D_ref_m": 5.07770625192981
+    },
+    "shape_parameters": {
+      "A_s": 4.96916669207512,
+      "p_s": 0.3960240243721241
+    },
+    "prediction_error": {
+      "model_sigma_K": 25.03416861564171,
+      "correlation_length_xi": 2.0,
+      "covariance_nugget": 0.2,
+      "peak_grid_uncertainty_fraction": 0.13,
+      "minimum_absolute_sigma_K": 0.5
+    },
+    "flame_regime_layer": "CEILING_IMPINGING_OR_NEAR_IMPINGING",
+    "support": {
+      "Q_actual_kW": [
+        17992.571500000002,
+        36005.16393333334
+      ],
+      "Df_discrete_m": [
+        3.94932708483429,
+        5.64189583547756
+      ],
+      "xf_actual_m": [
+        40.0,
+        60.0
+      ],
+      "H_eff_m": 5.0,
+      "xi_h": 5.0,
+      "T0_K": 293.15,
+      "mechanical_longitudinal_wind_m_s": 0.0,
+      "geometry_m": {
+        "L": 100.0,
+        "W": 10.0,
+        "H": 5.0
+      }
+    }
+  },
+  "outer_validation": {
+    "model_id": "M1_S1",
+    "peak_model": "M1",
+    "shape_model": "S1",
+    "outer_parent_count": 9,
+    "peak_relative_error_median": 0.04339480750953149,
+    "peak_relative_error_p90": 0.11208444792254081,
+    "curve_nrmse_median": 0.03266079464186925,
+    "curve_nrmse_p90": 0.04479302798945935,
+    "pi90_coverage": 1.0,
+    "mean_parent_correlated_nll": 175.90677034246647,
+    "constraint_pass_fraction": 1.0,
+    "worst_parent_curve_nrmse": 0.044845116713793466
+  },
+  "candidate_decisions": {
+    "M0": "REJECT_SIZE_TERM_IS_MATERIAL_AND_STABLE",
+    "M1": "SELECT",
+    "S1": "SELECT",
+    "S2": "REJECT_WORSE_OUTER_ERROR_AND_BOUND_HIT",
+    "S3": "REJECT_NO_TWO_ZONE_EVIDENCE"
+  },
+  "uncertainty_contract": {
+    "time_block_bootstrap": "G4 pointwise synchronized blocks",
+    "seed_difference": "retained in development repeats and model residual",
+    "spatial_covariance": "exponential kernel plus shrinkage nugget",
+    "peak_grid_uncertainty_fraction": 0.13,
+    "strict_grid_independence_claim_allowed": false
+  },
+  "development_runs": [
+    "d_q018_s35_x40_g25_r104729",
+    "d_q018_s35_x50_g25_r104729",
+    "d_q018_s35_x50_g25_r204729",
+    "d_q018_s35_x50_g25_r304729",
+    "d_q018_s35_x60_g25_r104729",
+    "d_q018_s45_x50_g25_r104729",
+    "d_q018_s50_x40_g25_r104729",
+    "d_q018_s50_x50_g25_r104729",
+    "d_q018_s50_x60_g25_r104729",
+    "d_q027_s35_x50_g25_r104729",
+    "d_q027_s45_x40_g25_r104729",
+    "d_q027_s45_x40_g25_r204729",
+    "d_q027_s45_x40_g25_r304729",
+    "d_q027_s45_x50_g25_r104729",
+    "d_q027_s45_x60_g25_r104729",
+    "d_q027_s45_x60_g25_r204729",
+    "d_q027_s45_x60_g25_r304729",
+    "d_q027_s50_x50_g25_r104729",
+    "d_q036_s35_x40_g25_r104729",
+    "d_q036_s35_x50_g25_r104729",
+    "d_q036_s35_x60_g25_r104729",
+    "d_q036_s45_x50_g25_r104729",
+    "d_q036_s50_x40_g25_r104729",
+    "d_q036_s50_x50_g25_r104729",
+    "d_q036_s50_x50_g25_r204729",
+    "d_q036_s50_x50_g25_r304729",
+    "d_q036_s50_x60_g25_r104729"
+  ],
+  "development_parent_groups": [
+    "d_q018_s35",
+    "d_q018_s45",
+    "d_q018_s50",
+    "d_q027_s35",
+    "d_q027_s45",
+    "d_q027_s50",
+    "d_q036_s35",
+    "d_q036_s45",
+    "d_q036_s50"
+  ],
+  "database_sha256": {
+    "derived/development/g5_outer_run_predictions.csv": "a2ab27f16e72889ce5e46d775a126e58ff664c2ae4e41be912242059998f019e",
+    "derived/development/g5_outer_point_predictions.csv": "210dd0c5048810bcf8479c20f236db6781e959e9b003dca70d5e5301eec7e84e",
+    "derived/development/g5_outer_parameters.csv": "cc41a3bb016d8a793107857f1ded9d6d92b01138a8ea36e67fcd04218a108b54",
+    "derived/development/g5_shape_outer_metrics.csv": "2a3dfbbd244a9e2746d479cea26c11154bd13a1eae265b7edcbe44944c15418d",
+    "derived/development/g5_candidate_summary.csv": "d9d835d574a65a1dce8926524940fe496ccf4883a9094c8967bb613d084d956c",
+    "derived/development/g5_shape_summary.csv": "805b60ce2a4b3af811b208cb14870653681993ba5b83e439ce2a255372045fc1",
+    "derived/development/g5_peak_model_evidence.csv": "7c252327d76db11a9fa4dfb0ba668c593840674fe47f777d6ef73a6daa3066de",
+    "derived/development/g5_systematic_residuals.csv": "0633641a4ed4090744a8d8e9835ad4cd7771e1d6758adf766c77548b3da9861d",
+    "derived/development/g5_final_parameters.csv": "fac4b4f506fcbfa2579d35452c621e6b68bf3ff02d71c54ab2c3da2c52025e1c"
+  },
+  "evidence_sha256": {
+    "reports/g5_forward_model_decision.json": "c0d87303a382fbbe3f2ca1889a66677c2c1fa4e3060eb2dcda2585b5503c3c2b",
+    "reports/g5_candidate_summary.csv": "d9d835d574a65a1dce8926524940fe496ccf4883a9094c8967bb613d084d956c",
+    "reports/g5_shape_summary.csv": "805b60ce2a4b3af811b208cb14870653681993ba5b83e439ce2a255372045fc1",
+    "reports/g5_peak_model_evidence.csv": "7c252327d76db11a9fa4dfb0ba668c593840674fe47f777d6ef73a6daa3066de",
+    "reports/g5_systematic_residuals.csv": "0633641a4ed4090744a8d8e9835ad4cd7771e1d6758adf766c77548b3da9861d",
+    "reports/g5_final_parameters.csv": "fac4b4f506fcbfa2579d35452c621e6b68bf3ff02d71c54ab2c3da2c52025e1c",
+    "reports/g5_database_manifest.csv": "fbebe432e9ef3ac49fd0955114218140314a179a32ea77c2c6c561e7f7ebbe88",
+    "reports/g5_forward_model_analysis.md": "ab19468e0c61597610402b0d04ff200e816eb0e8767d385cfac90c4422cf831f",
+    "src/analysis/analyze_g5_forward_models.py": "a9e2a78b6fc82b00505df10614f618a3ed80d92cba4928115ff3f832a99911eb",
+    "src/analysis/forward_temperature.py": "04590ec8b881c6b3ccecfbe7e802f57d1ea34c8aa22eebd3f66f388a41d5eb00",
+    "src/analysis/finalize_g5_freeze_a.py": "521621943bb7eccc0bc4758723c74751e9a815735be356baff2a3651acc7d8f9"
+  },
+  "inverse_search_space": {
+    "Q_actual_kW": [
+      17992.571500000002,
+      36005.16393333334
+    ],
+    "xf_actual_m": [
+      40.0,
+      60.0
+    ],
+    "Df_is_known_not_inverted": true,
+    "xi_h": 5.0
+  },
+  "lockbox_status": "SEALED_UNREAD_UNRUN",
+  "next_action": "G6_DIRECT_INVERSION"
+}

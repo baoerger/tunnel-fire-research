@@ -1,0 +1,405 @@
+{
+  "schema_version": "1.0-draft",
+  "supplement_id": "g5_sr_execution_supplement_v1",
+  "status": "DRAFT_REQUIRES_USER_APPROVAL",
+  "execution_state": "NOT_AUTHORIZED_FOR_FORMAL_SEARCH",
+  "created_date": "2026-08-23",
+  "parent_protocol": {
+    "relative_path": "config/symbolic_regression_v1.json",
+    "protocol_id": "g5_symbolic_regression_v1",
+    "required_status": "SR_PROTOCOL_APPROVED",
+    "sha256": "453c6a9dbc6ba19d096c9ae6dfb6836b82df3f4ef8501b17a41e60f12dc21a8b",
+    "precedence": "The approved parent protocol controls every scientific claim and gate; any conflict is a hard stop"
+  },
+  "scope_and_authority": {
+    "purpose": "Freeze only execution details that are not fully determined by the approved parent protocol",
+    "scientific_claims_changed": false,
+    "parent_protocol_may_be_modified_by_this_file": false,
+    "formal_search_authorized_by_this_draft": false,
+    "lockbox_read_or_run_authorized": false,
+    "new_fds_generation_or_run_authorized": false,
+    "result_dependent_editing_allowed": false,
+    "approval_rule": "Before formal search, copy this draft to config/g5_sr_execution_supplement_v1.json, record explicit user approval, freeze its exact-byte SHA-256, and make the runner require both approved protocol hashes",
+    "conflict_action": "STOP_EXECUTION_AND_REQUEST_NEW_USER_APPROVAL"
+  },
+  "shape_search_sequence": {
+    "phase_1": {
+      "campaign_id": "shape_xi_only",
+      "variables": [
+        "xi"
+      ],
+      "required_first": true,
+      "trial_count": 245
+    },
+    "expansion_trigger": {
+      "logic": "OR",
+      "evaluate_from": "Outer-fold out-of-fold predictions of the single selected xi-only structure in each fold; never from training residuals or any Pareto candidate chosen after seeing the outer holdout",
+      "decision_statistics": {
+        "bootstrap_replicates": 2000,
+        "bootstrap_seed": 2026082601,
+        "resampling_unit": "parent_case_id",
+        "two_sided_p_value": "2*min((1+count(estimate<=0))/(B+1),(1+count(estimate>=0))/(B+1)), capped at 1",
+        "multiple_testing_method": "Holm step-down",
+        "holm_family_in_order": [
+          "log(q)",
+          "log(d)",
+          "xf_actual_m-50",
+          "right_minus_left"
+        ],
+        "trigger_predictors": [
+          "log(q)",
+          "log(d)"
+        ],
+        "standardized_effect_definition": "OLS slope on parent-level mean standardized residual multiplied by the observed full-development predictor range",
+        "unique_outer_selection_required": "Exactly one leakage-free selected xi-only structure and its held-out predictions for each of 9 outer folds",
+        "missing_or_ambiguous_selection_action": "SHAPE_EXPANSION_DECISION_NOT_EVALUABLE_STOP"
+      },
+      "conditions": [
+        {
+          "condition_id": "XI_ONLY_Q_OR_D_SYSTEMATIC_RESIDUAL_FAIL",
+          "predictors": [
+            "log(q)",
+            "log(d)"
+          ],
+          "bootstrap_cluster": "parent_case_id",
+          "confidence_interval": 0.95,
+          "multiple_testing": "Holm adjustment over the frozen systematic-residual family",
+          "trigger_when": "At least one listed predictor has a Holm-adjusted interval excluding zero AND abs(standardized_effect_across_full_design_range) >= 0.25",
+          "source_rule": "Reuse the existing systematic-residual gate; do not introduce an unregistered residual test"
+        },
+        {
+          "condition_id": "XI_ONLY_ABSOLUTE_SHAPE_GATE_FAIL",
+          "curve_nrmse_median_max": 0.15,
+          "curve_nrmse_p90_max": 0.25,
+          "pi90_coverage_min": 0.8,
+          "physical_prediction_pass_fraction_min": 1.0,
+          "trigger_when": "The selected xi-only outer-fold predictions fail any applicable approved absolute shape gate"
+        }
+      ],
+      "no_trigger_action": "DO_NOT_RUN_SHAPE_XI_Q_D",
+      "decision_artifact_required_before_phase_2": "reports/g5_sr_shape_expansion_decision.json"
+    },
+    "phase_2": {
+      "campaign_id": "shape_xi_q_d",
+      "variables": [
+        "xi",
+        "q",
+        "d"
+      ],
+      "conditional": true,
+      "trial_count": 245,
+      "launch_requires_trigger_pass": true,
+      "acceptance_rule": {
+        "comparators": [
+          "BEST_XI_ONLY_CANDIDATE_SELECTED_WITHOUT_OUTER_HOLDOUT_LEAKAGE",
+          "A0"
+        ],
+        "must_pass_against_each_comparator": "replacement_gate.routes.materially_better from the approved parent protocol",
+        "must_also_pass": [
+          "all approved absolute forward gates",
+          "systematic residual gate",
+          "stability gate",
+          "continuous-domain physical constraints"
+        ],
+        "failure_action": "Discard q/d-dependent shape as a final candidate and retain the best eligible xi-only route or A0 under the parent protocol"
+      }
+    }
+  },
+  "trial_budget": {
+    "trial_definition": "One task/campaign x outer/inner stage x frozen seed execution, with one fixed per-seed budget",
+    "per_campaign_derivation": {
+      "inner_search": "9 outer folds * 4 inner folds * 5 outer-search seeds = 180",
+      "outer_refit_search": "9 outer folds * 5 outer-search seeds = 45",
+      "final_search": "20 final-search seeds = 20",
+      "total": 245
+    },
+    "initial_campaigns": [
+      "peak_q_d",
+      "shape_xi_only"
+    ],
+    "initial_trial_count": 490,
+    "conditional_campaign": "shape_xi_q_d",
+    "conditional_additional_trial_count": 245,
+    "maximum_main_search_trial_count": 735,
+    "per_trial_stop_at_first_reached": {
+      "populations": 8,
+      "population_size": 64,
+      "iterations_max": 300,
+      "candidate_evaluations_max": 50000,
+      "wall_time_s_max": 900,
+      "early_stop_on_preferred_expression": false
+    },
+    "derived_upper_bounds": {
+      "initial_candidate_evaluations_max": 24500000,
+      "maximum_main_search_candidate_evaluations_max": 36750000,
+      "initial_serial_trial_hours_max": 122.5,
+      "maximum_main_search_serial_trial_hours_max": 183.75
+    },
+    "budget_interpretation": [
+      "Iteration, candidate-evaluation and wall-time values are independent per-trial ceilings; reaching any one ends that trial",
+      "Serial trial-hours are sums of per-trial wall-time ceilings, not elapsed-clock promises and not CPU-core hours",
+      "Failed, interrupted, timed-out and no-candidate trials remain in their frozen denominators and receive no replacement seed",
+      "The conditional 245 trials may not be spent unless the frozen shape-expansion trigger passes",
+      "AI Feynman optional audit and deterministic post-processing are not PySR trials"
+    ],
+    "trial_identity_rule": "campaign_id must be part of trial_id so shape_xi_only and shape_xi_q_d can never collide"
+  },
+  "weak_constraint_ablation": {
+    "mode": "POST_HOC_REEVALUATION_OF_IDENTICAL_RAW_CANDIDATE_POOL",
+    "additional_symbolic_search_trials": 0,
+    "additional_candidate_evaluation_budget": 0,
+    "allowed_change": "Recompute diagnostic eligibility after removing the directional/shape physical filters designated for the weak-constraint comparison",
+    "constraints_that_remain_mandatory": [
+      "approved data isolation",
+      "whitelisted grammar",
+      "dimensionless consistency",
+      "real and finite evaluation on support",
+      "identical folds, seeds, raw candidates and refitted constants"
+    ],
+    "may_select_A_SR_or_A_active": false,
+    "interpretation": "The approved same-budget requirement means the same realized raw search pool; it does not authorize an undefined second stochastic search"
+  },
+  "deterministic_selection": {
+    "outer_holdout_may_be_used_for_selection": false,
+    "eligible_pool": "Candidates that pass all parent-protocol gates applicable at the current stage",
+    "primary_metric": "full parent-group likelihood on the stage-appropriate training/inner-validation data",
+    "numeric_tie_tolerance": "abs(a-b) <= 1e-10 * max(1, abs(a), abs(b))",
+    "unique_tie_break_order": [
+      "lower normalized_complexity",
+      "lower free_constant_count",
+      "lower task-specific grouped median error",
+      "lower task-specific grouped p90 error",
+      "lexicographically smaller NFC-normalized canonical_expression by UTF-8 bytes",
+      "lexicographically smaller SHA-256 of the canonical structural template"
+    ],
+    "scope": "The tie-break is used only after approved primary metrics are numerically tied; it never overrides physical, stability, absolute or replacement gates",
+    "selected_structure_cardinality": {
+      "per_inner_trial": 1,
+      "per_outer_fold": 1,
+      "per_final_seed": 1
+    }
+  },
+  "constant_refit_proposal": {
+    "decision_status": "DRAFT_PARAMETERIZATION_REQUIRES_USER_APPROVAL",
+    "applies_equally_to": [
+      "A0",
+      "all SR candidates"
+    ],
+    "template_extraction": {
+      "source": "engine expression AST before numeric coefficient folding",
+      "rule": "Replace each engine-created ephemeral numeric leaf with a distinct parameter in deterministic prefix traversal order",
+      "structural_literals_not_refitted": [
+        "-1 introduced solely by subtraction or unary negation",
+        "0 and 1 introduced solely as algebraic identities",
+        "2 in the registered square operator",
+        "1/2 in the registered sqrt operator",
+        "Q_ref, D_ref, H_eff and T0 frozen by the parent protocol"
+      ],
+      "parameter_names": "c_0001, c_0002, ...; exponent parameters use p_0001, p_0002, ...",
+      "same_literal_occurrences_share_parameter_only_if_the_engine AST records the same parameter identity": true,
+      "required_artifacts": [
+        "canonical structural template",
+        "ordered parameter-role table",
+        "template SHA-256",
+        "full-precision fitted vector"
+      ]
+    },
+    "proposed_bounds": {
+      "signed_dimensionless_coefficient": [
+        -100.0,
+        100.0
+      ],
+      "strictly_positive_dimensionless_scale": [
+        1e-06,
+        100.0
+      ],
+      "pow_positive_base_exponent": [
+        -3.0,
+        3.0
+      ],
+      "positive_scale_parameterization": "optimize log(scale) inside the stated physical bounds",
+      "role_assignment_rule": "Use exponent bounds only for registered free exponents; use positive-scale bounds only where the structural domain contract requires that constant to be positive; otherwise use signed-coefficient bounds",
+      "post_result_bound_expansion_allowed": false
+    },
+    "proposed_optimizer": {
+      "implementation": "scipy.optimize.minimize",
+      "method": "L-BFGS-B",
+      "starts_total": 32,
+      "start_0": "engine estimate projected strictly inside the bounds, or the bound midpoint if unavailable/nonfinite",
+      "starts_1_to_31": "deterministically scrambled Sobol points in transformed parameter space",
+      "sobol_seed": "first 32 bits of SHA-256(template_sha256 + '|' + stage_id + '|' + fold_id + '|' + search_seed)",
+      "maxiter_per_start": 5000,
+      "ftol": 1e-12,
+      "gtol": 1e-08,
+      "objective": "the approved full parent-group likelihood for the current fold/stage",
+      "store_every_start": true
+    },
+    "failure_rules": {
+      "invalid_start": "Exception, optimizer failure, nonfinite objective/prediction, or any domain/grammar violation",
+      "candidate_refit_failed": "No valid start",
+      "candidate_refit_unstable": "Fewer than two valid starts reproduce the best objective within 1e-6 * max(1, abs(best_objective))",
+      "candidate_bound_hit": "Any selected constant lies within 1e-6 of its normalized bound width from a bound",
+      "freeze_eligibility": "FAILED, UNSTABLE or BOUND_HIT candidates are not freeze-eligible",
+      "rerun_or_manual_repair": "Forbidden; changing bounds, starts, optimizer or template requires a new approved supplement version before inspecting replacement or lockbox results"
+    },
+    "best_start_tie_break": [
+      "lower full parent-group objective",
+      "lower L2 norm of transformed parameter vector",
+      "lexicographically smaller full-precision transformed parameter vector"
+    ]
+  },
+  "stability_accounting": {
+    "count_only_fold_final_selected_structure": true,
+    "pareto_presence_does_not_count": true,
+    "inner_candidate_presence_does_not_count": true,
+    "outer_fold_denominator": 9,
+    "outer_fold_numerator": "For a family, count an outer fold only when that fold's single leakage-free selected structure belongs to the family",
+    "final_seed_denominator": 20,
+    "final_seed_numerator": "For a core-variable support, count a final seed only when that seed's single selected structure has exactly that support",
+    "failed_trial_credit": 0,
+    "failed_trials_remain_in_denominator": true,
+    "diagnostic_any_candidate_frequency_may_be_reported_separately": true,
+    "diagnostic_frequency_may_satisfy_stability_gate": false
+  },
+  "prediction_equivalence_clustering": {
+    "relation_is_transitive": false,
+    "pairwise_rule": "Both approved RMS and maximum prediction-difference thresholds must pass on the frozen domain audit set",
+    "forbidden_algorithm": "connected components or union-find transitive closure of pairwise-equivalence edges",
+    "algorithm": "DETERMINISTIC_COMPLETE_LINK_LEADER",
+    "member_order": [
+      "lower normalized_complexity",
+      "lower free_constant_count",
+      "lexicographically smaller NFC-normalized canonical_expression by UTF-8 bytes",
+      "lexicographically smaller candidate_instance_id"
+    ],
+    "assignment": "Visit members in frozen order; assign to the first existing cluster only if the candidate passes both pairwise thresholds against every current member, otherwise create a new cluster",
+    "multiple_eligible_clusters": "Choose the eligible cluster with the earliest representative in the frozen member order; never merge clusters through the new member",
+    "cluster_invariant": "Every pair within a prediction-equivalence cluster must directly pass both thresholds",
+    "claim_rule": "Prediction-equivalent clusters remain current-domain indistinguishability classes and are never called algebraically identical formulas"
+  },
+  "g4_fds_evidence_reuse": {
+    "decision": "ACCEPT_EXISTING_G4_RECORDS_NO_REPEAT_FDS_VALIDATION",
+    "directed_by": "USER",
+    "decision_date": "2026-08-23",
+    "accepted_evidence": [
+      "reports/g4_development_decision.json",
+      "reports/g4_development_technical_acceptance.csv",
+      "reports/g4_development_result_check.csv",
+      "reports/g4_development_batch_gates.csv",
+      "reports/g4_accepted_chain_hashes.csv",
+      "reports/g4_development_database_manifest.csv"
+    ],
+    "accepted_scope": "The existing G4 records remain the authoritative FDS technical and scientific acceptance for all 27 development runs",
+    "version_scope": "All 27 accepted G4 development runs are the already-approved FDS 6.9.1 evidence set; no new FDS 6.10.1 run may be mixed into this fit",
+    "not_repeated_in_g5_sr": [
+      "FDS rerun",
+      "restoration of .out, _hrr.csv, .smv or full-field files solely for re-validation",
+      "FDS version re-acceptance",
+      "log ERROR/WARNING/rejected audit",
+      "HRR closure re-acceptance",
+      "quasi-steady-window scientific re-selection",
+      "G4 batch-gate re-adjudication"
+    ],
+    "restored_data_checks_still_required": [
+      "Exact hashes, schemas and row counts of the two frozen G4 derived tables",
+      "One-to-one run_chid/job_attempt_id/window_id joins for restored time-series-derived inputs",
+      "Readable time coordinates, complete frozen-window coverage and synchronized spatial coordinates",
+      "No development/lockbox mixing"
+    ],
+    "interpretation": "The remaining checks establish provenance and statistical-input integrity only; they are not a new FDS validation or a new scientific acceptance"
+  },
+  "sr5_synchronized_time_block_input": {
+    "decision_status": "DRAFT_SCHEMA_REQUIRES_USER_APPROVAL",
+    "relative_path": "derived/development/g5_sr_synchronized_time_block_profiles.csv",
+    "manifest_path": "reports/g5_sr_synchronized_time_block_manifest.json",
+    "construction": {
+      "source": "Original accepted development-run ceiling-temperature samples inside each frozen steady window",
+      "method": "circular moving source blocks with stride one sample and the per-run frozen bootstrap_block_len_samples",
+      "same_time_indices_for_all_spatial_points": true,
+      "wraparound": true,
+      "contains_source_blocks_not_bootstrap_replicates": true,
+      "may_be_reconstructed_from_case_metrics_or_curve_points": false
+    },
+    "required_columns": [
+      "parent_case_id",
+      "physical_case_id",
+      "run_chid",
+      "job_attempt_id",
+      "window_id",
+      "rnd_seed",
+      "time_block_id",
+      "block_start_sample_index",
+      "block_start_s",
+      "block_end_s",
+      "block_len_samples",
+      "x_coord_m",
+      "xf_actual_m",
+      "xi",
+      "deltaT_block_mean_K",
+      "point_role",
+      "detection_limit_K"
+    ],
+    "integrity_rules": [
+      "The identity columns must join one-to-one to the approved development registry and restored G4 tables",
+      "The composite key run_chid/job_attempt_id/window_id/time_block_id/x_coord_m must be unique",
+      "Every time_block_id within a run must contain the same complete spatial-coordinate set",
+      "All positions in one time_block_id must use identical source time indices and block bounds",
+      "block_len_samples must equal the corresponding frozen G4 value",
+      "No source sample may lie outside the frozen steady window",
+      "The manifest must record row count, exact-byte SHA-256, generator hash, source-run hashes and schema validation status"
+    ],
+    "missing_or_invalid_action": {
+      "blocker_code": "SR5_SYNCHRONIZED_TIME_BLOCK_INPUT_MISSING_OR_INVALID",
+      "stop_before": "G5-SR5 joint refit",
+      "forbid": [
+        "fabricating blocks from confidence intervals or bootstrap summaries",
+        "creating A_SR",
+        "creating A_active",
+        "starting G6"
+      ]
+    }
+  },
+  "restored_two_table_scope": {
+    "tables": [
+      {
+        "relative_path": "derived/development/case_metrics.csv",
+        "required_sha256": "d97f50bc253b9e7cb45e58990f59f741888a7fb26e2746508ae1f664f5acbde1"
+      },
+      {
+        "relative_path": "derived/development/curve_points.csv",
+        "required_sha256": "e5222d35143945bea27b808a1e95f28fa728815d2c95f21496dfd14acda4ab73"
+      }
+    ],
+    "restoration_alone_while_supplement_is_draft_allows": [
+      "exact hash/schema/count preflight",
+      "environment evidence regeneration",
+      "dataset manifest and fold-plan generation",
+      "dry-run only"
+    ],
+    "after_this_supplement_is_approved_and_implemented_allows": [
+      "G5-SR1 input reconstruction checks",
+      "G5-SR2 initial 490-trial search",
+      "conditional 245-trial shape expansion only if triggered",
+      "G5-SR3 grouped out-of-fold evaluation, structural stability and provisional replacement assessment",
+      "G5-SR4 diagnostic decision or proposal only; no automatic FDS generation/run"
+    ],
+    "does_not_allow_without_valid_sr5_time_blocks": [
+      "G5-SR5 joint refit",
+      "A_SR freeze",
+      "A_active freeze",
+      "G6",
+      "lockbox access"
+    ]
+  },
+  "implementation_acceptance_before_formal_search": [
+    "An approved non-draft supplement exists and both protocol hashes are checked before any formal output write",
+    "The search planner emits 490 initial trials and at most 735 main-search trials with collision-free campaign-aware IDs",
+    "Shape xi_q_d cannot launch without a saved passing trigger artifact",
+    "Stability counts selected structures only",
+    "Prediction-equivalence clustering satisfies the all-pairs invariant",
+    "Constant-template/refit rules have dedicated deterministic tests",
+    "Weak-constraint ablation launches no second stochastic search",
+    "SR5 refuses to start without the synchronized-time-block table and manifest",
+    "All existing tests pass and the lockbox remains SEALED_UNREAD_UNRUN"
+  ]
+}

@@ -49,7 +49,8 @@ class G3DesignPreparationContracts(unittest.TestCase):
         self.assertEqual(4, len(approvals))
         self.assertTrue(all(row["status"] == "PASS" for row in approvals))
         protocol = json.loads(g3.PROTOCOL_PATH.read_text(encoding="utf-8-sig"))
-        self.assertEqual("SEALED_G3", protocol["lockbox"]["status"])
+        self.assertEqual("SEALED_UNREAD_UNRUN", protocol["lockbox"]["status"])
+        self.assertEqual("G3", protocol["lockbox"]["sealed_at_stage"])
         for operation in ("generate", "prepare", "run", "read", "train"):
             with self.subTest(operation=operation), self.assertRaises(PermissionError):
                 run_registry.guard_subset("lockbox", operation, g3.PROTOCOL_PATH)
