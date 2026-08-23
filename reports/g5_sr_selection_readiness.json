@@ -1,0 +1,186 @@
+{
+  "status": "SHAPE_EXPANSION_DECISION_NOT_EVALUABLE",
+  "next_action": "PROTOCOL_AUTHORIZATION_REQUIRED",
+  "outer_fold_count": 9,
+  "eligible_candidate_instances": 30,
+  "missing_outer_folds": [
+    7
+  ],
+  "per_outer_fold": [
+    {
+      "outer_fold_index": 0,
+      "eligible_inner_candidate_instances": 5,
+      "eligible_outer_refit_candidate_instances": 0,
+      "eligible_candidate_instances_total": 5,
+      "eligible_structure_families": 3,
+      "selection_candidate_available": true
+    },
+    {
+      "outer_fold_index": 1,
+      "eligible_inner_candidate_instances": 2,
+      "eligible_outer_refit_candidate_instances": 0,
+      "eligible_candidate_instances_total": 2,
+      "eligible_structure_families": 1,
+      "selection_candidate_available": true
+    },
+    {
+      "outer_fold_index": 2,
+      "eligible_inner_candidate_instances": 8,
+      "eligible_outer_refit_candidate_instances": 1,
+      "eligible_candidate_instances_total": 9,
+      "eligible_structure_families": 6,
+      "selection_candidate_available": true
+    },
+    {
+      "outer_fold_index": 3,
+      "eligible_inner_candidate_instances": 0,
+      "eligible_outer_refit_candidate_instances": 1,
+      "eligible_candidate_instances_total": 1,
+      "eligible_structure_families": 1,
+      "selection_candidate_available": true
+    },
+    {
+      "outer_fold_index": 4,
+      "eligible_inner_candidate_instances": 7,
+      "eligible_outer_refit_candidate_instances": 1,
+      "eligible_candidate_instances_total": 8,
+      "eligible_structure_families": 5,
+      "selection_candidate_available": true
+    },
+    {
+      "outer_fold_index": 5,
+      "eligible_inner_candidate_instances": 1,
+      "eligible_outer_refit_candidate_instances": 0,
+      "eligible_candidate_instances_total": 1,
+      "eligible_structure_families": 1,
+      "selection_candidate_available": true
+    },
+    {
+      "outer_fold_index": 6,
+      "eligible_inner_candidate_instances": 2,
+      "eligible_outer_refit_candidate_instances": 0,
+      "eligible_candidate_instances_total": 2,
+      "eligible_structure_families": 1,
+      "selection_candidate_available": true
+    },
+    {
+      "outer_fold_index": 7,
+      "eligible_inner_candidate_instances": 0,
+      "eligible_outer_refit_candidate_instances": 0,
+      "eligible_candidate_instances_total": 0,
+      "eligible_structure_families": 0,
+      "selection_candidate_available": false
+    },
+    {
+      "outer_fold_index": 8,
+      "eligible_inner_candidate_instances": 2,
+      "eligible_outer_refit_candidate_instances": 0,
+      "eligible_candidate_instances_total": 2,
+      "eligible_structure_families": 1,
+      "selection_candidate_available": true
+    }
+  ],
+  "can_create_shape_expansion_decision": false,
+  "can_launch_shape_xi_q_d": false,
+  "A_active_created": false,
+  "lockbox_used": false,
+  "schema_version": "1.0",
+  "stage": "G5_SR3_SELECTION_READINESS",
+  "generated_at_utc": "2026-08-23T13:31:16.108036+00:00",
+  "campaign_id": "shape_xi_only",
+  "eligibility_source": "reports/g5_sr_candidate_families.csv freeze_eligible=True; STRUCTURE_NUMERIC_AND_CONTINUOUS_DOMAIN_PASS_ONLY",
+  "decision_rule": "Every one of the 9 outer folds must have at least one leakage-free eligible xi-only candidate before a unique selected structure and held-out prediction can be produced",
+  "campaign_coverage": {
+    "peak_q_d": {
+      "eligible_candidate_instances_all_stages": 1148,
+      "outer_folds_with_eligible_candidate": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "outer_fold_coverage": "9/9",
+      "final_seeds_with_eligible_candidate": [
+        2026082401,
+        2026082402,
+        2026082403,
+        2026082404,
+        2026082405,
+        2026082406,
+        2026082407,
+        2026082408,
+        2026082409,
+        2026082410,
+        2026082411,
+        2026082412,
+        2026082413,
+        2026082414,
+        2026082415,
+        2026082416,
+        2026082417,
+        2026082418,
+        2026082419,
+        2026082420
+      ],
+      "final_seed_coverage": "20/20",
+      "maximum_possible_final_support_frequency": 20,
+      "final_support_stability_threshold": 16,
+      "final_support_stability_still_possible": true
+    },
+    "shape_xi_only": {
+      "eligible_candidate_instances_all_stages": 33,
+      "outer_folds_with_eligible_candidate": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        8
+      ],
+      "outer_fold_coverage": "8/9",
+      "final_seeds_with_eligible_candidate": [
+        2026082402,
+        2026082412,
+        2026082420
+      ],
+      "final_seed_coverage": "3/20",
+      "maximum_possible_final_support_frequency": 3,
+      "final_support_stability_threshold": 16,
+      "final_support_stability_still_possible": false
+    }
+  },
+  "machine_protocol_sha256": "453c6a9dbc6ba19d096c9ae6dfb6836b82df3f4ef8501b17a41e60f12dc21a8b",
+  "execution_supplement_sha256": "c3fe3963d6eaedd1cc3fbb65c73a0bcf57cb260fd2f6fa9c40d3371f40640a55",
+  "input_artifacts": {
+    "search_trials": {
+      "relative_path": "reports/g5_sr_search_trials.csv",
+      "sha256": "1e38a1e15a059313db59e5a49b4a41e5ad133e2525e8b64b9239ad86e62d83c0",
+      "bytes": 329054
+    },
+    "pareto_front": {
+      "relative_path": "reports/g5_sr_pareto_front.csv",
+      "sha256": "26eeebf528ec56ab05ef8d229b97eab1ae486242f49dea31da1b3c888e901462",
+      "bytes": 1220991
+    },
+    "candidate_families": {
+      "relative_path": "reports/g5_sr_candidate_families.csv",
+      "sha256": "81cc4ab858fd775ff75f1e219fe14a57e82b1abf50c0e642368835ad70d78ce0",
+      "bytes": 2045503
+    }
+  },
+  "prohibited_without_new_authorization": [
+    "create reports/g5_sr_shape_expansion_decision.json",
+    "launch shape_xi_q_d conditional campaign",
+    "change search seeds, budget, grammar, normalization, or physics gates",
+    "create A_SR or A_active",
+    "start G6",
+    "read or run the lockbox"
+  ]
+}

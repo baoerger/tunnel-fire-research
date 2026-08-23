@@ -1,14 +1,14 @@
-# G5-SR 符号回归公式发现过程（待实际搜索填充）
+# G5-SR 符号回归公式发现过程
 
-> 报告状态：`TEMPLATE_AWAITING_FORMAL_G5_SR_RUN`
+> 报告状态：`INITIAL_SEARCH_AUDITED_SELECTION_NOT_EVALUABLE`
 >
 > 协议状态：`SR_PROTOCOL_APPROVED`（2026-08-23）
 >
-> 执行补充协议：`DRAFT_REQUIRES_USER_APPROVAL`；正式搜索不得在补充协议冻结和双协议哈希守卫通过前启动。
+> 执行补充协议：`G5_SR_EXECUTION_SUPPLEMENT_APPROVED`；父协议 SHA-256 为 `453c6a9dbc6ba19d096c9ae6dfb6836b82df3f4ef8501b17a41e60f12dc21a8b`，补充协议 SHA-256 为 `c3fe3963d6eaedd1cc3fbb65c73a0bcf57cb260fd2f6fa9c40d3371f40640a55`。
 >
-> 重要说明：本文是论文独立结果章节和正式报告的结构模板，不是 G5-SR 结果。所有标记为 `TBD_AFTER_FORMAL_RUN` 的内容只能由冻结协议下的实际搜索、验证与联合重拟合自动填充，不得人工猜测或从锁箱补全。
+> 重要说明：本文是论文独立结果章节的持续填充稿。初始搜索与候选物理审计结果已经写入；所有仍标记为 `TBD_AFTER_FORMAL_RUN` 的内容必须等待协议阻断解除后的唯一选择、验证与联合重拟合，不得人工猜测或从锁箱补全。
 >
-> 当前模型身份：`M1_S1/A0` 是不可变人工候选基准；父协议与执行补充协议均已批准，两张冻结开发输入及 SR5 同步时间块表均已就位，完整预检与初始 490-trial dry-run 通过。正式搜索尚未启动，最终正向公式冻结 `A_active` 尚未生成。锁箱保持 `SEALED_UNREAD_UNRUN`，G6 暂停，快速反演保持 `G7_SKIPPED_NOT_REQUESTED`。
+> 当前模型身份：`M1_S1/A0` 是不可变人工候选基准。初始 490 个正式 trial 已全部成功，候选结构与连续域物理审计已完成；但 `shape_xi_only` 外层折 7 无合格候选，补充协议要求的九折唯一选择不可评价。最终正向公式冻结 `A_active` 尚未生成；锁箱保持 `SEALED_UNREAD_UNRUN`，G6 暂停，快速反演保持 `G7_SKIPPED_NOT_REQUESTED`。
 
 ## 1. 协议、数据与运行审计
 
@@ -16,14 +16,14 @@
 
 | 项目 | 值 |
 |---|---|
-| SR 机器协议及 SHA-256 | `TBD_AFTER_FORMAL_RUN` |
+| SR 机器协议及 SHA-256 | `config/symbolic_regression_v1.json`；`453c6a9dbc6ba19d096c9ae6dfb6836b82df3f4ef8501b17a41e60f12dc21a8b` |
 | 开发数据清单及 SHA-256 | `TBD_AFTER_FORMAL_RUN` |
 | 外层 `parent_case_id` 折定义 | `TBD_AFTER_FORMAL_RUN` |
-| PySR/SymbolicRegression.jl 版本与环境 | `TBD_AFTER_FORMAL_RUN` |
+| PySR/SymbolicRegression.jl 版本与环境 | PySR 1.5.10；Julia 1.12.7；SymbolicRegression.jl 1.11.3 |
 | AI Feynman 2.0 审计版本与环境 | `TBD_AFTER_FORMAL_RUN` |
 | 峰值/形状正式随机种子 | `TBD_AFTER_FORMAL_RUN` |
-| 搜索预算、停止条件与实际消耗 | `TBD_AFTER_FORMAL_RUN` |
-| 搜索失败、超时、无可行式计数 | `TBD_AFTER_FORMAL_RUN` |
+| 搜索预算、停止条件与实际消耗 | 初始预算 490 trial；实际完成峰值 245 + `shape_xi_only` 245 |
+| 搜索失败、超时、无可行式计数 | 490 `SUCCESS`；0 `FAILED/TIMEOUT/FAILED_NO_CANDIDATES` |
 | 锁箱状态 | `SEALED_UNREAD_UNRUN` |
 
 当前已知的比较基准仅为人工候选 `A0=M1_S1`。其既有折外峰值相对误差中位数/90% 分位数为 4.34%/11.21%，曲线 NRMSE 中位数/90% 分位数为 3.27%/4.48%。这些数值不是符号回归结果，只用于统一评价口径下的基准比较。
@@ -34,19 +34,19 @@
 
 ### 2.1 峰值任务
 
-结果：`TBD_AFTER_FORMAL_RUN`
+初始搜索得到 1,626 个峰值 Pareto 候选；结构、数值与连续域审计后 1,148 个可进入后续选择/重拟合。最终选择与折外指标尚未形成。
 
 必须给出：全部可行 Pareto 点、复杂度、自由常数数、训练折损失、外层折外指标、物理门状态、生成折和随机种子，并在图中标出人工候选基准 `A0`。
 
 ### 2.2 形状任务
 
-结果：`TBD_AFTER_FORMAL_RUN`
+`shape_xi_only` 初始搜索得到 1,120 个 Pareto 候选；审计后仅 33 个可进入后续选择/重拟合。它们覆盖 8/9 个外层折和 3/20 个全量种子，外层折 7 无合格候选，因此尚不能形成协议要求的九折唯一选择。
 
 必须给出：全部可行 Pareto 点、复杂度、自由常数数、训练折损失、外层折外指标、物理门状态、生成折和随机种子，并区分只含 `xi` 与额外含 `q/d` 的结构。
 
 ## 3. 候选结构族与表达式等价
 
-结果：`TBD_AFTER_FORMAL_RUN`
+当前审计结果：2,746 个候选中 1,181 个通过结构、固定数值审计和连续域证明。明细见 `reports/g5_sr_candidate_families.csv` 与 `reports/g5_sr_physics_rejections.csv`。由于外层唯一选择不可评价，本节不得把原始 Pareto 出现次数冒充跨折稳定性，也不得提前填入最终结构族。
 
 | 结构族 ID | 规范化代表式 | 任务 | 核心变量 | 复杂度 | 自由常数 | 等价类型 | 来源折/种子 | 状态 |
 |---|---|---|---|---:|---:|---|---|---|
@@ -56,7 +56,7 @@
 
 ## 4. 变量选择频率
 
-结果：`TBD_AFTER_FORMAL_RUN`
+当前只完成原始 Pareto 候选中的诊断性变量频率统计；尚未形成九个外层折和 20 个全量种子的正式唯一选式，因此不得把“曾在候选池出现”冒充稳定性命中。峰值任务 20/20 个全量种子均存在合格候选，`shape_xi_only` 仅为 3/20。
 
 变量频率按峰值和形状任务分开，并至少给出两种分母：
 
@@ -71,7 +71,7 @@
 
 ## 5. 跨折稳定性
 
-结果：`TBD_AFTER_FORMAL_RUN`
+当前状态：`SHAPE_EXPANSION_DECISION_NOT_EVALUABLE`。`shape_xi_only` 外层折 7 没有任何 `freeze_eligible=True` 候选；机器证据见 `reports/g5_sr_selection_readiness.json`。20 个全量种子中只有 3 个存在合格形状候选，因此现有结果也不能达到 16/20 核心变量稳定门。新版执行授权前不得生成扩展决策、运行条件 campaign 或冻结公式。
 
 | 外层折 | 留出父组 | 峰值结构族 | 形状结构族 | 常数复估状态 | 峰值误差 | 曲线 NRMSE | 最不利约束裕量 | 结论 |
 |---:|---|---|---|---|---:|---:|---:|---|

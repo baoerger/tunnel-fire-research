@@ -25,4 +25,4 @@ SR5 采用的同步时间块表不是均值、置信区间或抽稀后的摘要�
 
 ## 当前执行状态
 
-两张冻结开发表和 SR5 同步时间块输入均已就位，完整预检返回 `READY_FOR_G5_SR_SEARCH`；dry-run 返回初始 490 个 trial、条件追加 245 个 trial、主搜索最多 735 个 trial，且 `lockbox_used=false`。正式 PySR 搜索尚未启动，`A_SR` 和 `A_active` 尚未生成。下一步是运行初始 490-trial 搜索。
+两张冻结开发表和 SR5 同步时间块输入均已就位，完整预检返回 `READY_FOR_G5_SR_SEARCH`；dry-run 返回初始 490 个 trial、条件追加 245 个 trial、主搜索最多 735 个 trial，且 `lockbox_used=false`。随后初始 490 个正式 trial 全部成功，产生 2,746 个原始 Pareto 候选；物理审计保留 1,181 个候选。`shape_xi_only` 合格候选只覆盖 8/9 个外层折和 3/20 个全量种子，外层折 7 为空，故按本协议记录 `SHAPE_EXPANSION_DECISION_NOT_EVALUABLE` 并停线。`A_SR` 和 `A_active` 尚未生成，条件 campaign 未启动，锁箱未使用；下一步需要新版执行授权。
