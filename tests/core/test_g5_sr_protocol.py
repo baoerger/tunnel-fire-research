@@ -739,12 +739,14 @@ class G5SRProtocolTests(unittest.TestCase):
         repo = Path(__file__).resolve().parents[2]
         result = sr.validate_static(repo)
         self.assertEqual("STATIC_G5_SR_PROTOCOL_PASS", result["status"])
-        expected_blockers = [sr.G5_SR_EXECUTION_SUPPLEMENT_NOT_APPROVED]
+        expected_blockers = []
+        if not result["execution_supplement"]["approved"]:
+            expected_blockers.append(sr.G5_SR_EXECUTION_SUPPLEMENT_NOT_APPROVED)
         if result["data_availability"]["missing_inputs"]:
             expected_blockers.append(sr.MISSING_G4_DERIVED_INPUTS)
         self.assertEqual(expected_blockers, result["blocker_codes"])
         self.assertFalse(result["data_availability"]["content_read"])
-        self.assertFalse(result["formal_search_authorized"])
+        self.assertEqual(not expected_blockers, result["formal_search_authorized"])
         self.assertFalse(result["search_results_created"])
 
 

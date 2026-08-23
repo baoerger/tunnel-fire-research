@@ -39,6 +39,7 @@ EXPECTED_DEVELOPMENT_INPUTS = {
 FORMAL_EXECUTION_ARTIFACTS = (
     "src/analysis/g5_sr_protocol.py",
     "src/analysis/g5_sr_interval.py",
+    "src/analysis/build_g5_sr_time_blocks.py",
     "src/analysis/run_g5_symbolic_search.py",
     "src/analysis/evaluate_g5_symbolic_search.py",
     "pyproject.toml",

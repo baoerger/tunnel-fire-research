@@ -1,14 +1,11 @@
 {
   "schema_version": "1.0",
   "stage": "G5_SR_ENVIRONMENT",
-  "generated_at": "2026-08-23T09:47:33.278652+00:00",
-  "status": "ENVIRONMENT_SMOKE_PASS_DATA_BLOCKED",
-  "formal_search_authorized": false,
-  "blocker_code": "G5_SR_EXECUTION_SUPPLEMENT_NOT_APPROVED",
-  "blocker_codes": [
-    "G5_SR_EXECUTION_SUPPLEMENT_NOT_APPROVED",
-    "MISSING_G4_DERIVED_INPUTS"
-  ],
+  "generated_at": "2026-08-23T10:45:29.7833601Z",
+  "status": "ENVIRONMENT_SMOKE_PASS_INPUTS_AVAILABLE_NOT_READ",
+  "formal_search_authorized": true,
+  "blocker_code": null,
+  "blocker_codes": [],
   "approved_protocol": {
     "protocol_id": "g5_symbolic_regression_v1",
     "status": "SR_PROTOCOL_APPROVED",
@@ -18,12 +15,12 @@
     "hash_match": true
   },
   "execution_supplement": {
-    "status": "DRAFT_REQUIRES_USER_APPROVAL",
-    "approved": false,
-    "blocker_code": "G5_SR_EXECUTION_SUPPLEMENT_NOT_APPROVED",
+    "status": "G5_SR_EXECUTION_SUPPLEMENT_APPROVED",
+    "approved": true,
+    "blocker_code": null,
     "draft_path": "config/g5_sr_execution_supplement_v1.draft.json",
     "approved_path": "config/g5_sr_execution_supplement_v1.json",
-    "approved_sha256": null,
+    "approved_sha256": "c3fe3963d6eaedd1cc3fbb65c73a0bcf57cb260fd2f6fa9c40d3371f40640a55",
     "validation_issues": []
   },
   "python": {
@@ -32,15 +29,15 @@
     "executable_name": "python.exe",
     "system": "Windows",
     "release": "10",
-    "platform": "Windows-10-10.0.19045-SP0",
+    "platform": "Windows-10-10.0.26200-SP0",
     "machine": "AMD64",
     "architecture_bits": "64bit"
   },
   "tooling": {
     "uv": {
       "available": true,
-      "version": "0.11.25",
-      "raw": "uv 0.11.25 (1fc7de7c4 2026-06-26 x86_64-pc-windows-msvc)"
+      "version": "0.11.21",
+      "raw": "uv 0.11.21 (5aa65dd7a 2026-06-11 x86_64-pc-windows-msvc)"
     }
   },
   "python_packages": {
@@ -55,13 +52,18 @@
     "files": [
       {
         "relative_path": "src/analysis/g5_sr_protocol.py",
-        "sha256": "4342c3c31835d0e69851982f67ed9b6dcc90fb35dcd879859eef35c8c9d6c77a",
-        "bytes": 50577
+        "sha256": "4557300bc1725bc5d2ebd2fc9b7d3fc56ed5f227939613c4b1ac71229df33a6b",
+        "bytes": 50624
       },
       {
         "relative_path": "src/analysis/g5_sr_interval.py",
         "sha256": "6e188fe88fbbcb19d7cd2b57040cdcde1fd1ffd0592e03459adce00ef81103f8",
         "bytes": 39952
+      },
+      {
+        "relative_path": "src/analysis/build_g5_sr_time_blocks.py",
+        "sha256": "933fe0c4f7a2da4d2a315e64da328227eed62e1574d314751eabd31d651e5f72",
+        "bytes": 23674
       },
       {
         "relative_path": "src/analysis/run_g5_symbolic_search.py",
@@ -135,24 +137,21 @@
     "paths_accessed": []
   },
   "data_preflight": {
-    "status": "BLOCKED",
-    "blocker_code": "MISSING_G4_DERIVED_INPUTS",
+    "status": "AVAILABLE_NOT_READ",
+    "blocker_code": null,
     "required_inputs": [
       {
         "relative_path": "derived/development/case_metrics.csv",
-        "present": false
+        "present": true
       },
       {
         "relative_path": "derived/development/curve_points.csv",
-        "present": false
+        "present": true
       }
     ],
-    "missing_inputs": [
-      "derived/development/case_metrics.csv",
-      "derived/development/curve_points.csv"
-    ],
+    "missing_inputs": [],
     "content_read": false,
     "check_method": "PATH_EXISTENCE_ONLY",
-    "development_run_directory_present": false
+    "development_run_directory_present": true
   }
 }

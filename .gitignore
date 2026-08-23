@@ -60,11 +60,12 @@ outputs/
 !/runs/.gitkeep
 /derived/*
 !/derived/.gitkeep
-# G5-SR 跨主机执行所需的两张冻结开发表允许入库；其余派生结果仍忽略
+# G5-SR 跨主机执行所需的冻结开发输入允许入库；其余派生结果仍忽略
 !/derived/development/
 /derived/development/*
 !/derived/development/case_metrics.csv
 !/derived/development/curve_points.csv
+!/derived/development/g5_sr_synchronized_time_block_profiles.csv
 /reports/logs/
 
 # ---------- 大文件 / 压缩包 ----------

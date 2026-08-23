@@ -8,7 +8,7 @@
 - 执行方案：[`docs/实施方案.md`](docs/实施方案.md)
 - 当前进度：[`docs/当前实施进度.md`](docs/当前实施进度.md)
 - G5-SR 批准执行合同：[`docs/无风隧道顶棚温度_物理辅助符号回归公式发现方案_审阅稿.md`](docs/无风隧道顶棚温度_物理辅助符号回归公式发现方案_审阅稿.md)
-- G5-SR 执行补充协议：[`docs/technical/G5-SR执行补充协议_待批准.md`](docs/technical/G5-SR执行补充协议_待批准.md)（当前待批准）
+- G5-SR 执行补充协议：[`docs/technical/G5-SR执行补充协议_批准记录.md`](docs/technical/G5-SR执行补充协议_批准记录.md)（已批准；原待批准稿保留为历史审阅记录）
 - G5-SR 公式发现过程报告：[`reports/g5_sr_formula_discovery.md`](reports/g5_sr_formula_discovery.md)（待实际搜索填充）
 - 自动执行 Loop：[`docs/项目自动执行Loop提示词.md`](docs/项目自动执行Loop提示词.md)
 - 协议：[`config/protocol_v1.json`](config/protocol_v1.json)（当前为 `G5_SR_EXECUTION_SUPPLEMENT_APPROVAL_AND_INPUT_RESTORE_REQUIRED`）
@@ -34,4 +34,4 @@ uv sync --locked
 uv run --locked python -m pytest -q
 ```
 
-G1–G4、有限人工候选比较和 G5-SR 方法审阅已经完成。用户于 2026-08-23 正式批准父科学协议 `SR_PROTOCOL_APPROVED`：`M1_S1/A0` 仅作为不可变人工候选基准，G6 暂停，必须先实际运行 G5-SR 并生成唯一最终正向公式冻结 `A_active`。机器协议、PySR/Julia 冒烟验证、490-trial 原始搜索编排和候选审计层已经完成；正式搜索仍须先批准执行补充协议并恢复被 Git 忽略的两张开发集逐点派生表，SR5 另需远端原始 `_devc.csv` 或由其生成的同步时间块表。现有 G4 记录已足以沿用 FDS 验收，不会重跑或重复验证。锁箱状态为 `SEALED_UNREAD_UNRUN`（封存于 G3），快速反演继续保持 `G7_SKIPPED_NOT_REQUESTED`。
+G1–G4、有限人工候选比较和 G5-SR 方法审阅已经完成。用户于 2026-08-23 正式批准父科学协议及执行补充协议：`M1_S1/A0` 仅作为不可变人工候选基准，G6 暂停，必须先实际运行 G5-SR 并生成唯一最终正向公式冻结 `A_active`。两张冻结开发表已恢复；27 份原始 `_devc.csv` 已生成通过完整性校验的 80,017 行同步时间块表并继续留在本机。完整预检和 490-trial dry-run 已通过，当前下一步为正式初始搜索。现有 G4 记录直接沿用，不会重跑或重复验证 FDS。锁箱状态为 `SEALED_UNREAD_UNRUN`（封存于 G3），快速反演继续保持 `G7_SKIPPED_NOT_REQUESTED`。

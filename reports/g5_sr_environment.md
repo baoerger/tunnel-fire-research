@@ -62,17 +62,17 @@ PyPI 的 `aifeynman==2.0.7` 可以解析，但默认安装在当前工具链下�
 2. AI Feynman 2.0 不进入 `pyproject.toml` 或 `uv.lock`；
 3. 若以后执行 AI Feynman 结构审计，应使用单独的隔离环境并记录兼容变量、精确依赖和失败日志；其不可复现不阻塞主搜索，也不能临时替换主引擎。
 
-## 5. 当前真实阻塞
+## 5. 当前真实状态
 
-运行环境已具备可重建路径，但 G5-SR 仍不能开始正式搜索。首先，执行补充协议仍为 `DRAFT_REQUIRES_USER_APPROVAL`，正式执行器尚未获得双协议授权；其次，下列已批准的开发集派生表在本地均不存在：
+运行环境和正式输入现已具备可重建路径。用户已批准执行补充协议 v1，正式执行器通过父协议与补充协议双哈希校验；下列已批准的开发集派生表均已恢复并通过精确哈希、模式、行数和身份预检：
 
 - `derived/development/case_metrics.csv`
 - `derived/development/curve_points.csv`
 
-同时 `runs/development/` 目录不存在，本机没有可用于重建上述逐点表或 SR5 同步时间块的 G4 原始 `_devc.csv`。这些都是旧数据恢复问题，不是 FDS 新算例请求，也不是 PySR 依赖问题。现有 G4 验收记录直接沿用，不重复验证 FDS；批准执行补充协议并恢复两张开发表前不得运行正式搜索，SR5 还须恢复原始 `_devc.csv` 或由其生成的同步时间块表。锁箱继续保持封存。
+本机 27 份已接受开发运行的原始 `_devc.csv` 已生成 `derived/development/g5_sr_synchronized_time_block_profiles.csv`：1,633 个步长为 1 的完整循环同步时间块、80,017 行；清单保存了生成器和全部源运行哈希。原始 `runs/` 继续被忽略，不上传 Git。完整预检返回 `READY_FOR_G5_SR_SEARCH`，初始 490-trial dry-run 通过。正式搜索尚未启动，锁箱继续保持封存。
 
 ## 6. 环境文件验证
 
 - `uv lock --check`：通过，共解析 28 个 Python 包；
-- 使用仓库锁定的 Python 3.11 环境执行全量测试：`239 passed, 148 subtests passed`；
+- 使用仓库锁定的 Python 3.11 环境执行全量测试：`242 passed, 148 subtests passed`；
 - 唯一警告是既有 5 秒 FDS 输入仅适合启动检查的合同警告，与符号回归环境无关。

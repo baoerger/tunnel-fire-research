@@ -4,17 +4,14 @@
   "generated_date": "2026-08-23",
   "decision": "SR_PROTOCOL_APPROVED",
   "static_preflight": "PASS",
-  "execution_status": "NOT_RUN_EXECUTION_SUPPLEMENT_APPROVAL_AND_G4_INPUTS_REQUIRED",
-  "blocker_code": "G5_SR_EXECUTION_SUPPLEMENT_NOT_APPROVED",
-  "additional_blocker_codes": [
-    "MISSING_G4_DERIVED_INPUTS",
-    "SR5_SYNCHRONIZED_TIME_BLOCK_INPUT_MISSING"
-  ],
+  "execution_status": "READY_FOR_G5_SR_INITIAL_SEARCH",
+  "blocker_code": null,
+  "additional_blocker_codes": [],
   "execution_supplement": {
-    "status": "DRAFT_REQUIRES_USER_APPROVAL",
+    "status": "G5_SR_EXECUTION_SUPPLEMENT_APPROVED",
     "draft_path": "config/g5_sr_execution_supplement_v1.draft.json",
     "approved_path": "config/g5_sr_execution_supplement_v1.json",
-    "approved_sha256": null
+    "approved_sha256": "c3fe3963d6eaedd1cc3fbb65c73a0bcf57cb260fd2f6fa9c40d3371f40640a55"
   },
   "machine_protocol": "config/symbolic_regression_v1.json",
   "machine_protocol_sha256": "453c6a9dbc6ba19d096c9ae6dfb6836b82df3f4ef8501b17a41e60f12dc21a8b",
@@ -40,22 +37,32 @@
     "read_allowed": false,
     "used_by_g5_sr": false
   },
-  "required_missing_inputs": [
+  "required_inputs": [
     {
       "relative_path": "derived/development/case_metrics.csv",
       "expected_sha256": "d97f50bc253b9e7cb45e58990f59f741888a7fb26e2746508ae1f664f5acbde1",
       "expected_rows": 27,
-      "present": false
+      "present": true
     },
     {
       "relative_path": "derived/development/curve_points.csv",
       "expected_sha256": "e5222d35143945bea27b808a1e95f28fa728815d2c95f21496dfd14acda4ab73",
       "expected_rows": 1323,
-      "present": false
+      "present": true
     }
   ],
+  "sr5_synchronized_time_block_input": {
+    "status": "PASS",
+    "relative_path": "derived/development/g5_sr_synchronized_time_block_profiles.csv",
+    "sha256": "428cf96c8958cce70d401b8e8cc5d8ad1a56fddc19431e4476756ec05787b667",
+    "bytes": 14696463,
+    "rows": 80017,
+    "time_blocks": 1633,
+    "manifest_path": "reports/g5_sr_synchronized_time_block_manifest.json",
+    "manifest_sha256": "f209b739b50ef74ac3848c024b2cc7ff82eeae66360948979aac585487b48055"
+  },
   "search_started": false,
   "search_results_created": false,
   "formula_selected": false,
-  "next_action": "Approve and freeze the execution supplement, restore the two exact G4 development tables, pass the dual-protocol preflight, and restore the synchronized-time-block input before SR5"
+  "next_action": "Run the approved initial 490-trial G5-SR search; do not launch the conditional 245 trials unless the frozen trigger passes"
 }

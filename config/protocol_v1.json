@@ -567,12 +567,12 @@
     "machine_protocol": "config/symbolic_regression_v1.json",
     "machine_protocol_sha256": "453c6a9dbc6ba19d096c9ae6dfb6836b82df3f4ef8501b17a41e60f12dc21a8b",
     "preflight_module": "src.analysis.g5_sr_protocol",
-    "execution_status": "NOT_RUN_EXECUTION_SUPPLEMENT_APPROVAL_AND_G4_INPUTS_REQUIRED",
+    "execution_status": "READY_FOR_G5_SR_INITIAL_SEARCH",
     "execution_supplement": {
-      "status": "DRAFT_REQUIRES_USER_APPROVAL",
+      "status": "G5_SR_EXECUTION_SUPPLEMENT_APPROVED",
       "draft_path": "config/g5_sr_execution_supplement_v1.draft.json",
       "approved_path": "config/g5_sr_execution_supplement_v1.json",
-      "approved_sha256": null
+      "approved_sha256": "c3fe3963d6eaedd1cc3fbb65c73a0bcf57cb260fd2f6fa9c40d3371f40640a55"
     },
     "A0": {
       "role": "IMMUTABLE_HUMAN_CANDIDATE_BASELINE",
@@ -591,12 +591,19 @@
         "A_SR"
       ]
     },
+    "sr5_synchronized_time_block_input": {
+      "status": "PASS",
+      "table_path": "derived/development/g5_sr_synchronized_time_block_profiles.csv",
+      "table_sha256": "428cf96c8958cce70d401b8e8cc5d8ad1a56fddc19431e4476756ec05787b667",
+      "table_bytes": 14696463,
+      "table_rows": 80017,
+      "time_blocks": 1633,
+      "development_runs": 27,
+      "manifest_path": "reports/g5_sr_synchronized_time_block_manifest.json",
+      "manifest_sha256": "f209b739b50ef74ac3848c024b2cc7ff82eeae66360948979aac585487b48055"
+    },
     "lockbox_status": "SEALED_UNREAD_UNRUN",
-    "blockers": [
-      "G5_SR_EXECUTION_SUPPLEMENT_NOT_APPROVED",
-      "MISSING_G4_DERIVED_INPUTS",
-      "SR5_SYNCHRONIZED_TIME_BLOCK_INPUT_MISSING"
-    ],
-    "next_action": "APPROVE_EXECUTION_SUPPLEMENT_AND_RESTORE_G4_INPUTS_BEFORE_FORMAL_G5_SR"
+    "blockers": [],
+    "next_action": "RUN_G5_SR_INITIAL_490_TRIAL_SEARCH"
   }
 }

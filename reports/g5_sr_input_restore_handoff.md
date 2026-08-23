@@ -1,22 +1,16 @@
-# G5-SR 开发数据恢复交接
+# G5-SR 开发数据恢复完成记录
 
-> 状态：`EXTERNAL_INFORMATION_REQUIRED_AND_EXECUTION_SUPPLEMENT_PENDING`
+> 状态：`COMPLETE_READY_FOR_G5_SR_SEARCH`
 >
 > 日期：2026-08-23
 
-G5-SR 已获 `SR_PROTOCOL_APPROVED`，但当前工作区缺少两张由 G4 生成、此前被 Git 忽略的开发派生表。它们不是新的 FDS 计算结果；本阶段不需要新增或重跑 FDS。
-
-现有 G4 记录已足以沿用 27/27 条开发运行的 FDS 技术与科学验收，后续不再重复版本、日志、HRR 闭合、准稳态窗或批次门验证。这 27 条保持为已批准的 FDS 6.9.1 开发证据集，不与新增 6.10.1 结果混合拟合。若从远端恢复原始 `_devc.csv`，只核对运行身份、冻结窗口和文件完整性，并用于生成 G5-SR5 的同步时间块统计输入；这不是重新验收 FDS，也不需要为了复验恢复 `.out`、`_hrr.csv`、`.smv` 或场文件。
-
-请把原文件直接放回以下位置，不要改名、另存或用汇总报告重建：
+两张由 G4 生成的冻结开发表已经恢复并通过完整预检：
 
 | 本机相对路径 | 字节数 | 数据行数 | SHA-256 |
 |---|---:|---:|---|
 | `derived/development/case_metrics.csv` | 15,799 | 27 | `d97f50bc253b9e7cb45e58990f59f741888a7fb26e2746508ae1f664f5acbde1` |
 | `derived/development/curve_points.csv` | 301,127 | 1,323 | `e5222d35143945bea27b808a1e95f28fa728815d2c95f21496dfd14acda4ab73` |
 
-也可以恢复原 `derived/development/` 整目录。若两张表已丢失，只需从远端 27 个已接受 attempt 取回各自的 `_devc.csv` 来重建，不要求为了复验回传整个运行目录或其他 FDS 输出；重建结果必须与上表冻结哈希逐字节一致。该动作只恢复数据，不重新裁决 G4/FDS。不要提供、复制或读取 `runs/lockbox/` 或任何锁箱结果。
+执行补充协议 v1 也已批准。27 条已接受开发运行的原始 `_devc.csv` 已生成符合批准模式的 `derived/development/g5_sr_synchronized_time_block_profiles.csv` 及来源清单：27 个运行、1,633 个完整循环同步时间块、80,017 行。该表不是 CI 摘要或抽稀数据；所有移动块均以步长 1 保留，同一时间块对全部空间点使用相同源索引。
 
-若要完成 G5-SR5 的同步时间块分层 Bootstrap，还需恢复 27 条已接受开发运行的原始 `_devc.csv`，或在远端从这些原文件生成符合补充协议的 `g5_sr_synchronized_time_block_profiles.csv` 及清单。现有汇总记录能证明 G4 已通过，但不能反推出测点间同步的源时间块。
-
-文件恢复后仍不会立即启动正式 PySR。必须先把 `config/g5_sr_execution_supplement_v1.draft.json` 审批并冻结为正式补充协议，随后让执行器同时核验父协议与补充协议哈希；两表的哈希、字段、运行身份、父组数量和锁箱守卫也全部通过后，才可启动正式搜索。同步时间块输入可晚于搜索表恢复，但必须在 G5-SR5 前通过完整性检查。
+完整预检已返回 `READY_FOR_G5_SR_SEARCH`。原始 `runs/development/` 继续被 Git 忽略；本次只上传两张冻结开发表、同步时间块表和轻量来源清单。现有 G4 的 27/27 FDS 接收结论直接沿用，没有重跑或重复验证 FDS。锁箱未生成、未运行、未读取。
